@@ -1,0 +1,21 @@
+{
+  "name": "MCT Notify",
+  "short_name": "MCT Notify",
+  "description": "Student Communication & Management Platform for MCT Department",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#EAEFFB",
+  "theme_color": "#4226E9",
+  "icons": [
+    {
+      "src": "./assets/Logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/Logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
