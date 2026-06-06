@@ -271,8 +271,7 @@
                             MCT NOTIFY
                         </h2>
                         <div class="absolute bottom-6 left-0 right-0 flex flex-col items-center justify-center pointer-events-none gap-0.5">
-                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;" class="text-[10px] font-bold text-white/80 tracking-wide uppercase">By ProMotion</span>
-                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;" class="text-[10px] font-bold text-white/80 tracking-wide uppercase">MD. RIFAT HOSSAIN</span>
+                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;" class="text-[10px] font-bold text-white/80 tracking-wide uppercase">By MCT 39th Batch</span>
                         </div>
                     </div>
 
@@ -310,8 +309,7 @@
 
                     <!-- ========================================== -->
                     <div class="absolute bottom-4 left-0 right-0 flex flex-col items-center justify-center pb-2 pointer-events-none gap-0.5">
-                        <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;" class="text-[10px] font-bold text-slate-400/80 tracking-wide uppercase">By ProMotion</span>
-                        <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;" class="text-[10px] font-bold text-slate-400/80 tracking-wide uppercase">MD. RIFAT HOSSAIN</span>
+                        <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;" class="text-[10px] font-bold text-slate-400/80 tracking-wide uppercase">By MCT 39th Batch</span>
                     </div>
                     <!-- SCREEN 3: LOGIN SCREEN                     -->
                     <!-- ========================================== -->
@@ -4434,14 +4432,19 @@
                 try {
                     if (currentUserCoursesList && currentUserCoursesList.length > 0) {
                         if (typeof showLoader !== 'undefined') showLoader(false);
-                        navigate('screen-student-dashboard');
-                        updateDashboardGreetings();
-                        await loadDashboardDataAsync();
-                        triggerUrgentPopupModal();
-                        if (typeof loadDashboardTodayRoutine === 'function') await loadDashboardTodayRoutine();
-                        if (typeof loadScheduleList === 'function') await loadScheduleList();
-                        setTimeout(startReminderEngine, 2000); // PART 10
-                        showGlobalToast("Student Portal", `Welcome back, ${profile?.full_name || 'Fellow'}`);
+                        const needsNotificationPrompt = ('Notification' in window) && Notification.permission === 'default' && sessionStorage.getItem('notification_skipped') !== 'true';
+                        if (needsNotificationPrompt) {
+                            navigate('screen-notification-permission');
+                        } else {
+                            navigate('screen-student-dashboard');
+                            updateDashboardGreetings();
+                            await loadDashboardDataAsync();
+                            triggerUrgentPopupModal();
+                            if (typeof loadDashboardTodayRoutine === 'function') await loadDashboardTodayRoutine();
+                            if (typeof loadScheduleList === 'function') await loadScheduleList();
+                            setTimeout(startReminderEngine, 2000); // PART 10
+                            showGlobalToast("Student Portal", `Welcome back, ${profile?.full_name || 'Fellow'}`);
+                        }
                     } else {
                         if (typeof showLoader !== 'undefined') showLoader(false);
                         navigate('screen-onboarding');
@@ -12394,6 +12397,10 @@
                     return;
                 }
 
+                if (!('Notification' in window)) {
+                    showGlobalToast("Unsupported", "Notifications are only supported if you add this app to your Home Screen.");
+                    return;
+                }
                 console.log(`[FCM PERMISSION] Current Notification permission state: ${Notification.permission}`);
                 
                 if (Notification.permission === 'denied') {
@@ -12481,18 +12488,20 @@
 
         // Fill diagnostics on load
         setInterval(() => {
-            const diagPerm = document.getElementById('diag-perm');
-            if (diagPerm) {
-                diagPerm.innerText = ('Notification' in window) ? Notification.permission : 'Unsupported';
-                if (document.getElementById('diag-os')) document.getElementById('diag-os').innerText = navigator.platform;
-                
-                const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
-                if (document.getElementById('diag-pwa')) document.getElementById('diag-pwa').innerText = isStandalone ? 'Yes' : 'No';
-                
-                if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-                    if (document.getElementById('diag-sw')) document.getElementById('diag-sw').innerText = 'Active';
+            try {
+                const diagPerm = document.getElementById('diag-perm');
+                if (diagPerm) {
+                    diagPerm.innerText = ('Notification' in window) ? Notification.permission : 'Unsupported';
+                    if (document.getElementById('diag-os')) document.getElementById('diag-os').innerText = navigator.platform;
+                    
+                    const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+                    if (document.getElementById('diag-pwa')) document.getElementById('diag-pwa').innerText = isStandalone ? 'Yes' : 'No';
+                    
+                    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                        if (document.getElementById('diag-sw')) document.getElementById('diag-sw').innerText = 'Active';
+                    }
                 }
-            }
+            } catch(e) { console.warn("Diag interval error", e); }
         }, 3000);
 
         window.addReminderRow = function(type) {
@@ -12597,6 +12606,14 @@
         };
 
         window.grantNotificationPermission = async function() {
+            if (!('Notification' in window)) {
+                showGlobalToast("Unsupported", "Notifications are only supported if you add this app to your Home Screen.");
+                return;
+            }
+            if (Notification.permission === 'denied') {
+                showGlobalToast("Notifications Blocked", "Please open your Browser Settings (Site Settings) and allow notifications for this site.");
+                return;
+            }
             if (typeof window.requestNotificationPermission === 'function') {
                 await window.requestNotificationPermission();
             }
@@ -12623,7 +12640,12 @@
         }
 
         window.updateNotificationStatusUI = function() {
-            const hasPermission = Notification.permission === 'granted';
+            let hasPermission = false;
+            let isDenied = false;
+            if ('Notification' in window) {
+                hasPermission = Notification.permission === 'granted';
+                isDenied = Notification.permission === 'denied';
+            }
             
             // Dashboard Red Dots
             const dashboardAlerts = document.querySelectorAll('.global-notification-alert');
@@ -12635,8 +12657,20 @@
             // Profile Page Alert
             const profileAlert = document.getElementById('profile-notification-alert');
             if (profileAlert) {
-                if (!hasPermission) profileAlert.classList.remove('hidden');
-                else profileAlert.classList.add('hidden');
+                if (!hasPermission) {
+                    profileAlert.classList.remove('hidden');
+                    const textEl = profileAlert.querySelector('p');
+                    const btn = profileAlert.querySelector('button');
+                    if (isDenied) {
+                        if (textEl) textEl.innerText = "Notifications are blocked. Please allow them in your Browser Settings.";
+                        if (btn) btn.innerText = "Check Settings";
+                    } else {
+                        if (textEl) textEl.innerText = "Enable notification permission for better experience.";
+                        if (btn) btn.innerText = "Enable Now";
+                    }
+                } else {
+                    profileAlert.classList.add('hidden');
+                }
             }
         };
 
