@@ -390,7 +390,7 @@
                             <h2 class="text-[32px] font-black text-slate-900 tracking-tight">Register</h2>
                         </div>
 
-                        <form id="register-form" onsubmit="handleRegister(event)" class="px-8 mt-6 space-y-4 flex-1">
+                        <form id="register-form" onsubmit="event.preventDefault(); handleRegister(event);" class="px-8 mt-6 space-y-4 flex-1">
                             <div id="register-error-banner" class="hidden bg-red-50 text-red-600 border border-red-200 text-xs font-semibold px-4 py-3 rounded-2xl text-center"></div>
 
                             <div class="relative">
@@ -427,7 +427,7 @@
                                 <span id="register-password-error" class="text-xs text-red-500 font-bold mt-1 px-4 block hidden font-sans">Password must be at least 8 characters long</span>
                             </div>
 
-                            <button type="submit" class="w-full py-4 bg-[#4226E9] text-white rounded-full font-bold text-base shadow-lg shadow-indigo-600/35 hover:bg-[#341BC5] active:scale-[0.98] transition-all duration-200">
+                            <button type="button" onclick="event.preventDefault(); handleRegister(event);" class="w-full py-4 bg-[#4226E9] text-white rounded-full font-bold text-base shadow-lg shadow-indigo-600/35 hover:bg-[#341BC5] active:scale-[0.98] transition-all duration-200">
                                 Register
                             </button>
 
@@ -7990,7 +7990,9 @@
 
         let isRegistering = false;
         async function handleRegister(event) {
-            event.preventDefault();
+            console.log('[REGISTER] Form submit started');
+            if (event) event.preventDefault();
+            console.log('[REGISTER] preventDefault executed');
             if (isRegistering) return;
             isRegistering = true;
             
@@ -8030,7 +8032,7 @@
                 return;
             }
 
-            console.log("[OTP] Request started");
+            console.log('[REGISTER] Calling signUp');
             if (typeof showLoader === 'function') showLoader(true, "Creating account...");
             try {
                 const { data, error } = await _supabase.auth.signUp({
@@ -8045,13 +8047,14 @@
                 });
                 if (error) throw error;
                 
-                console.log("[OTP] Request success");
+                console.log('[REGISTER] signUp success');
                 if (typeof showGlobalToast === 'function') showGlobalToast("Success", "Account created successfully. Please enter the verification code sent to your email.");
                 localStorage.setItem('pending_signup_email', email);
                 localStorage.setItem('pending_signup_phone', phone);
                 
-                console.log("[OTP] Navigating to OTP page");
+                console.log('[REGISTER] Navigating to OTP');
                 if (typeof navigate === 'function') navigate('screen-confirm-email');
+                console.log('[REGISTER] OTP page rendered');
                 startResendCooldown();
             } catch (err) {
                 console.error("[AUTH] Register error:", err);
