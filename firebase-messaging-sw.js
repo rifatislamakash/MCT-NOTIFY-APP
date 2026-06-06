@@ -1,22 +1,31 @@
-// 1. Import the Firebase Compat scripts
+// Firebase Compat SDK
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
 
-const CACHE_NAME = 'mct-notify-v3';
+const CACHE_NAME = 'mct-notify-v4';
+
+// ======================
+// SERVICE WORKER INSTALL
+// ======================
 
 self.addEventListener('install', (event) => {
-    console.log('[PWA CACHE] Service worker installing, skipping waiting');
+    console.log('[SW] Installing...');
     self.skipWaiting();
 });
 
+// ======================
+// SERVICE WORKER ACTIVATE
+// ======================
+
 self.addEventListener('activate', (event) => {
-    console.log('[PWA CACHE] Service worker activated, claiming clients');
+    console.log('[SW] Activated');
+
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
                     if (cacheName !== CACHE_NAME) {
-                        console.log('[PWA CACHE] Old caches cleared:', cacheName);
+                        console.log('[SW] Removing old cache:', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
@@ -25,7 +34,10 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// 2. Initialize the Firebase app in the service worker
+// ======================
+// FIREBASE CONFIG
+// ======================
+
 const firebaseConfig = {
     apiKey: "AIzaSyDBZj8DiQjd7KQyElLQ2ZC7IINJLPvebQU",
     authDomain: "notify---cms.firebaseapp.com",
@@ -37,57 +49,97 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 
-// 3. Retrieve an instance of Firebase Messaging so it can handle background messages
 const messaging = firebase.messaging();
 
-// 4. Handle background messages
-messaging.onBackgroundMessage((payload) => {
-    console.log('[FIREBASE BACKGROUND] Received background message: ', payload);
+// ======================
+// BACKGROUND NOTIFICATION
+// ======================
 
-    const notificationTitle = payload.notification?.title || payload.data?.title || "MCT Notify";
-    const body = payload.notification?.body || payload.data?.body || "You have a new update.";
-    const icon = payload.notification?.icon || payload.data?.icon || 'https://ngropmfrneaaejwocnbf.supabase.co/storage/v1/object/public/materials/Logo.png';
-    const badge = payload.notification?.badge || payload.data?.badge || 'https://ngropmfrneaaejwocnbf.supabase.co/storage/v1/object/public/materials/Logo.png';
+messaging.onBackgroundMessage((payload) => {
+
+    console.log('[FCM BACKGROUND]', payload);
+
+    const notificationTitle =
+        payload?.data?.title ||
+        payload?.notification?.title ||
+        "MCT Notify";
+
+    const notificationBody =
+        payload?.data?.body ||
+        payload?.notification?.body ||
+        "You have a new update.";
+
+    const icon =
+        payload?.data?.icon ||
+        payload?.notification?.icon ||
+        "https://mctnotify.vercel.app/assets/Logo.png";
+
+    const badge =
+        payload?.data?.badge ||
+        payload?.notification?.badge ||
+        "https://mctnotify.vercel.app/assets/Logo.png";
+
+    const image =
+        payload?.data?.image ||
+        payload?.notification?.image ||
+        "https://mctnotify.vercel.app/assets/Logo.png";
+
+    const clickAction =
+        payload?.data?.click_action ||
+        "https://mctnotify.vercel.app";
 
     const notificationOptions = {
-        body: body,
+        body: notificationBody,
         icon: icon,
         badge: badge,
-        data: payload
+        image: image,
+        requireInteraction: true,
+        tag: 'mct-notify',
+
+        data: {
+            click_action: clickAction
+        }
     };
 
-    if (navigator.setAppBadge && (payload.notification?.badge || payload.data?.badge)) {
-        const badgeCount = parseInt(payload.notification?.badge || payload.data?.badge || 1);
-        navigator.setAppBadge(badgeCount).catch(err => console.warn('[FIREBASE BACKGROUND] Set badge failed:', err));
-    }
-
-    // Prevent background notification duplication:
-    // If standard notification title and body are already present, the platform automatically displays the alert banner.
-    if (payload.notification && payload.notification.title && payload.notification.body) {
-        console.log('[FIREBASE BACKGROUND] Standard notification title and body present. Suppressing secondary manual registration call to prevent duplication.');
-        return;
-    }
-
-    self.registration.showNotification(notificationTitle, notificationOptions);
+    return self.registration.showNotification(
+        notificationTitle,
+        notificationOptions
+    );
 });
 
-// 5. Handle notification click actions
+// ======================
+// NOTIFICATION CLICK
+// ======================
+
 self.addEventListener('notificationclick', (event) => {
-    console.log('[FIREBASE BACKGROUND] Notification clicked:', event.notification);
+
+    console.log('[FCM CLICK]', event.notification);
+
     event.notification.close();
 
+    const targetUrl =
+        event.notification?.data?.click_action ||
+        'https://mctnotify.vercel.app';
+
     event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-            // Check if there is already a window open
-            for (let i = 0; i < windowClients.length; i++) {
-                const client = windowClients[i];
-                if (client.url && 'focus' in client) {
+
+        clients.matchAll({
+            type: 'window',
+            includeUncontrolled: true
+        }).then((clientList) => {
+
+            for (const client of clientList) {
+
+                if (
+                    client.url.includes('mctnotify.vercel.app') &&
+                    'focus' in client
+                ) {
                     return client.focus();
                 }
             }
-            // If no window is open, open a new one
+
             if (clients.openWindow) {
-                return clients.openWindow('/');
+                return clients.openWindow(targetUrl);
             }
         })
     );

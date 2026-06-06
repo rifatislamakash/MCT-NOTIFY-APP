@@ -3920,10 +3920,79 @@
 
         function triggerUrgentPopupModal() {
             const modal = document.getElementById('urgent-notice-modal');
-            if (modal && typeof _urgentNoticeForPopup !== 'undefined' && _urgentNoticeForPopup) {
-                modal.classList.remove('opacity-0', 'pointer-events-none');
+            const notice = window._urgentNoticeForPopup;
+            
+            if (modal && notice) {
+                let seenNotices = [];
+                try { seenNotices = JSON.parse(sessionStorage.getItem('seenUrgentNotices')) || []; } catch(e){}
+                
+                if (!seenNotices.includes(notice.id)) {
+                    // Populate data
+                    const titleEl = document.getElementById('urgent-popup-title');
+                    const msgEl = document.getElementById('urgent-popup-message');
+                    const dateEl = document.getElementById('urgent-popup-datetime');
+                    const imgEl = document.getElementById('urgent-popup-att-img');
+                    const imgContainer = document.getElementById('urgent-popup-attachment');
+                    
+                    if (titleEl) titleEl.innerText = notice.title;
+                    if (msgEl) msgEl.innerText = notice.message;
+                    if (dateEl) {
+                        let dStr = notice.notice_date ? new Date(notice.notice_date).toLocaleDateString(undefined, {month:'short', day:'numeric'}) : '';
+                        if (notice.notice_time) {
+                            const [h,m] = notice.notice_time.split(':');
+                            const h12 = +h % 12 || 12;
+                            dStr += ` • ${h12}:${m} ${+h >= 12 ? 'PM':'AM'}`;
+                        }
+                        dateEl.innerText = dStr || new Date(notice.created_at).toLocaleDateString();
+                    }
+                    if (imgContainer && imgEl) {
+                        if (notice.file_url && (notice.file_url.match(/\.(jpeg|jpg|gif|png|webp)$/i) || notice.file_type?.startsWith('image/'))) {
+                            imgEl.src = notice.file_url;
+                            imgContainer.classList.remove('hidden');
+                        } else {
+                            imgContainer.classList.add('hidden');
+                        }
+                    }
+                    
+                    modal.classList.remove('opacity-0', 'pointer-events-none');
+                    // Add slight scale pop
+                    const innerCard = modal.querySelector('.scale-90');
+                    if (innerCard) {
+                        setTimeout(() => innerCard.classList.replace('scale-90', 'scale-100'), 50);
+                    }
+                }
             }
         }
+        
+        window.markUrgentNoticeAsSeen = function() {
+            if (window._urgentNoticeForPopup) {
+                let seenNotices = [];
+                try { seenNotices = JSON.parse(sessionStorage.getItem('seenUrgentNotices')) || []; } catch(e){}
+                if (!seenNotices.includes(window._urgentNoticeForPopup.id)) {
+                    seenNotices.push(window._urgentNoticeForPopup.id);
+                    sessionStorage.setItem('seenUrgentNotices', JSON.stringify(seenNotices));
+                }
+            }
+        };
+
+        window.dismissUrgentModal = function() {
+            window.markUrgentNoticeAsSeen();
+            const modal = document.getElementById('urgent-notice-modal');
+            if (modal) {
+                const innerCard = modal.querySelector('.scale-100');
+                if (innerCard) innerCard.classList.replace('scale-100', 'scale-90');
+                modal.classList.add('opacity-0', 'pointer-events-none');
+            }
+        };
+
+        window.viewUrgentNoticeDetails = function() {
+            window.markUrgentNoticeAsSeen();
+            const modal = document.getElementById('urgent-notice-modal');
+            if (modal) modal.classList.add('opacity-0', 'pointer-events-none');
+            if (window._urgentNoticeForPopup) {
+                openNoticeDetails(window._urgentNoticeForPopup.id);
+            }
+        };
 
         window.showGlobalToast = showGlobalToast;
         window.showLoader = showLoader;
@@ -10615,12 +10684,14 @@
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
+        window._urgentNoticeForPopup = null;
         function injectDashboardNotices() {
             // Top Urgent Notice for dashboard
             const urgentCard = document.getElementById('dashboard-urgent-notice');
             if (urgentCard) {
                 const latestUrgent = currentNoticesList.find(n => n.notice_type === 'urgent');
                 if (latestUrgent) {
+                    window._urgentNoticeForPopup = latestUrgent;
                     urgentCard.classList.remove('hidden');
                     const dashTitle = document.getElementById('dash-urgent-title');
                     const dashDesc = document.getElementById('dash-urgent-desc');
@@ -10628,6 +10699,7 @@
                     if (dashDesc) dashDesc.innerText = latestUrgent.message;
                     urgentCard.onclick = () => openNoticeDetails(latestUrgent.id);
                 } else {
+                    window._urgentNoticeForPopup = null;
                     urgentCard.classList.add('hidden');
                 }
             }
@@ -12282,7 +12354,7 @@
                     console.log('[FIREBASE FOREGROUND] Message received manually displaying system notification:', payload);
                     const title = payload.notification?.title || payload.data?.title || "MCT Notify";
                     const body = payload.notification?.body || payload.data?.body || "You have a new update.";
-                    const icon = payload.notification?.icon || payload.data?.icon || './assets/Logo.png';
+                    const icon = payload.notification?.icon || payload.data?.icon || 'https://mctnotify.vercel.app/assets/Logo.png';
                     
                     if (window.showGlobalToast) {
                         window.showGlobalToast(title, body);
@@ -12391,7 +12463,7 @@
 
                 let registration;
                 try {
-                    registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js?v=3');
+                    registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js?v=10');
                     console.log('[FCM SW REGISTERED] Service Worker registration success with scope:', registration.scope);
                     if (document.getElementById('diag-sw')) document.getElementById('diag-sw').innerText = 'Registered';
                     await navigator.serviceWorker.ready;
@@ -12450,7 +12522,7 @@
                     if (!initialized) return;
                 }
                 if (!('serviceWorker' in navigator)) return;
-                const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js?v=3');
+                const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js?v=10');
                 await navigator.serviceWorker.ready;
                 console.log('[FCM TOKEN GENERATED] Token generation start (Silent)...');
                 const token = await getToken(messaging, {
