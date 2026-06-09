@@ -1,0 +1,167 @@
+// Phase 11: Bridge Migration Entry Point
+
+import { _supabase } from './js/supabase-client.js';
+window._supabase = _supabase;
+
+import { showGlobalToast, dismissGlobalToast, showLoader, forceHideLoader, deduplicateRequest, fetchCachedOrDeduplicated, cancelActiveRequest, cancelAllActiveRequests, fetchWithRetry, ensureBucketExists, extractIdFromEmail, getGreeting } from './js/utils.js';
+window.showGlobalToast = showGlobalToast;
+window.dismissGlobalToast = dismissGlobalToast;
+window.showLoader = showLoader;
+window.forceHideLoader = forceHideLoader;
+window.deduplicateRequest = deduplicateRequest;
+window.fetchCachedOrDeduplicated = fetchCachedOrDeduplicated;
+window.cancelActiveRequest = cancelActiveRequest;
+window.cancelAllActiveRequests = cancelAllActiveRequests;
+window.fetchWithRetry = fetchWithRetry;
+window.ensureBucketExists = ensureBucketExists;
+window.extractIdFromEmail = extractIdFromEmail;
+window.getGreeting = getGreeting;
+
+import { fetchUserProfile, handleUserRouting, checkActiveSession, handleConfirmOTP, handleLogin, handleRegister, logout } from './js/auth.js';
+window.fetchUserProfile = fetchUserProfile;
+window.handleUserRouting = handleUserRouting;
+window.checkActiveSession = checkActiveSession;
+window.handleConfirmOTP = handleConfirmOTP;
+window.handleLogin = handleLogin;
+window.handleRegister = handleRegister;
+
+import { ReactionService, AuthorService } from './js/services/ReactionService.js';
+window.ReactionService = ReactionService;
+window.AuthorService = AuthorService;
+window.logout = logout;
+
+import { AuthService } from './js/auth.js';
+window.AuthService = AuthService;
+
+import { populateProfileDetails, savePhoneEdit } from './js/profile.js';
+window.populateProfileDetails = populateProfileDetails;
+window.savePhoneEdit = savePhoneEdit;
+
+import { ProfileService } from './js/profile.js';
+window.ProfileService = ProfileService;
+window.openProfilePictureModal = ProfileService.openProfilePictureModal;
+window.closeProfilePictureModal = ProfileService.closeProfilePictureModal;
+window.resetProfilePictureModal = ProfileService.resetProfilePictureModal;
+window.updateProfilePictureModalView = ProfileService.updateProfilePictureModalView;
+window.cancelCrop = ProfileService.cancelCrop;
+window.handleCropAndUpload = ProfileService.handleCropAndUpload;
+window.handleDeleteProfilePicture = ProfileService.handleDeleteProfilePicture;
+window.updateGlobalAvatars = ProfileService.updateGlobalAvatars;
+window.openPhoneEditModal = ProfileService.openPhoneEditModal;
+window.closePhoneEditModal = ProfileService.closePhoneEditModal;
+
+import { uploadFacultyImage, deleteFacultyImageFromStorage, loadFacultyList, loadFacultyDetails, updateFaculty, removeFaculty, fetchCourseList, loadCourseDropdown, loadCourseDropdownForDetails, handleAddFaculty } from './js/faculty.js';
+window.uploadFacultyImage = uploadFacultyImage;
+window.deleteFacultyImageFromStorage = deleteFacultyImageFromStorage;
+window.loadFacultyList = loadFacultyList;
+window.loadFacultyDetails = loadFacultyDetails;
+window.updateFaculty = updateFaculty;
+window.removeFaculty = removeFaculty;
+window.fetchCourseList = fetchCourseList;
+window.loadCourseDropdown = loadCourseDropdown;
+window.loadCourseDropdownForDetails = loadCourseDropdownForDetails;
+window.handleAddFaculty = handleAddFaculty;
+
+import { FacultyService } from './js/faculty.js';
+window.FacultyService = FacultyService;
+window.handleFacultyListLogic = FacultyService.handleFacultyListLogic;
+window.handleFacultyImageSelect = FacultyService.handleFacultyImageSelect;
+window.clearFacultyImagePreview = FacultyService.clearFacultyImagePreview;
+window.filterFacultyList = FacultyService.filterFacultyList;
+window.renderFacultyList = FacultyService.renderFacultyList;
+window.openFacultyDetails = FacultyService.openFacultyDetails;
+
+import { MaterialsService } from './js/materials.js';
+window.MaterialsService = MaterialsService;
+window.loadMaterials = MaterialsService.loadMaterials;
+window.filterMaterialsUI = MaterialsService.filterMaterialsUI;
+window.renderMaterialsList = MaterialsService.renderMaterialsList;
+window.openMaterialDetails = MaterialsService.openMaterialDetails;
+window.checkUploadMaterialForm = MaterialsService.checkUploadMaterialForm;
+window.checkUpdateMaterialForm = MaterialsService.checkUpdateMaterialForm;
+window.loadUploadMaterialDropdowns = MaterialsService.loadUploadMaterialDropdowns;
+window.handleMaterialFileChange = MaterialsService.handleMaterialFileChange;
+window.clearMaterialFile = MaterialsService.clearMaterialFile;
+window.handleUploadMaterial = MaterialsService.handleUploadMaterial;
+window.openUpdateMaterial = MaterialsService.openUpdateMaterial;
+window.handleUpdateMaterial = MaterialsService.handleUpdateMaterial;
+window.deleteMaterialAction = MaterialsService.deleteMaterialAction;
+window.deleteMaterialFromDetails = MaterialsService.deleteMaterialFromDetails;
+
+import { loadNotices, toggleNoticeCourses, openCreateNotice, handleSaveNotice, openNoticeDetails, openEditNotice, deleteNoticeAction } from './js/notices.js';
+window.loadNotices = loadNotices;
+window.toggleNoticeCourses = toggleNoticeCourses;
+window.openCreateNotice = openCreateNotice;
+window.handleSaveNotice = handleSaveNotice;
+window.openNoticeDetails = openNoticeDetails;
+window.openEditNotice = openEditNotice;
+window.deleteNoticeAction = deleteNoticeAction;
+
+import { NoticeService } from './js/notices.js';
+window.NoticeService = NoticeService;
+window._urgentNoticeForPopup = NoticeService._urgentNoticeForPopup;
+window._urgentNoticeForPopup = NoticeService._urgentNoticeForPopup;
+window._urgentNoticeForPopup = NoticeService._urgentNoticeForPopup;
+window.renderNoticesList = NoticeService.renderNoticesList;
+window.injectDashboardNotices = NoticeService.injectDashboardNotices;
+window.setNoticeFilter = NoticeService.setNoticeFilter;
+window.filterNotices = NoticeService.filterNotices;
+window.togglePublishDate = NoticeService.togglePublishDate;
+window.onNoticeFileSelected = NoticeService.onNoticeFileSelected;
+window.clearNoticeFile = NoticeService.clearNoticeFile;
+
+import { loadCoursesForCreateForm } from './js/schedules.js';
+window.loadCoursesForCreateForm = loadCoursesForCreateForm;
+
+import { ScheduleService } from './js/schedules.js';
+window.ScheduleService = ScheduleService;
+window.loadScheduleList = ScheduleService.loadScheduleList;
+window.currentSchedulesList = ScheduleService.currentSchedulesList;
+window.filterSchedulesUI = ScheduleService.filterSchedulesUI;
+window.openScheduleDetails = ScheduleService.openScheduleDetails;
+window.openCreateSchedule = ScheduleService.openCreateSchedule;
+window.onCourseCheckboxChange = ScheduleService.onCourseCheckboxChange;
+window.selectAudienceType = ScheduleService.selectAudienceType;
+window.onScheduleFileSelected = ScheduleService.onScheduleFileSelected;
+window.clearScheduleFile = ScheduleService.clearScheduleFile;
+window.handleCreateSchedule = ScheduleService.handleCreateSchedule;
+window.openEditSchedule = ScheduleService.openEditSchedule;
+window.selectEditAudienceType = ScheduleService.selectEditAudienceType;
+window.onEditScheduleFileSelected = ScheduleService.onEditScheduleFileSelected;
+window.clearEditScheduleFile = ScheduleService.clearEditScheduleFile;
+window.clearEditAttachment = ScheduleService.clearEditAttachment;
+window.handleUpdateSchedule = ScheduleService.handleUpdateSchedule;
+window.handleDeleteSchedule = ScheduleService.handleDeleteSchedule;
+
+import { fetchRoutineDependencies, loadWeeklyRoutine, renderDailyRoutineView, openAddRoutine, handleSaveRoutine, openRoutineDetails, handleUpdateRoutine, handleDeleteRoutine } from './js/routines.js';
+window.fetchRoutineDependencies = fetchRoutineDependencies;
+window.loadWeeklyRoutine = loadWeeklyRoutine;
+window.renderDailyRoutineView = renderDailyRoutineView;
+window.openAddRoutine = openAddRoutine;
+window.handleSaveRoutine = handleSaveRoutine;
+window.openRoutineDetails = openRoutineDetails;
+window.handleUpdateRoutine = handleUpdateRoutine;
+window.handleDeleteRoutine = handleDeleteRoutine;
+
+import { RoutineService } from './js/routines.js';
+window.RoutineService = RoutineService;
+window.switchRoutineView = RoutineService.switchRoutineView;
+window.getSmartDashboardDay = RoutineService.getSmartDashboardDay;
+window.formatRoutineTime = RoutineService.formatRoutineTime;
+window.getDayNameByIndex = RoutineService.getDayNameByIndex;
+window.getTodayRoutineDayName = RoutineService.getTodayRoutineDayName;
+window.getTomorrowRoutineDayName = RoutineService.getTomorrowRoutineDayName;
+window.onRoutineCourseChange = RoutineService.onRoutineCourseChange;
+
+import { loadDashboardTodayRoutine } from './js/dashboard.js';
+window.loadDashboardTodayRoutine = loadDashboardTodayRoutine;
+
+import { DashboardService } from './js/dashboard.js';
+window.DashboardService = DashboardService;
+window.updateDashboardGreetings = DashboardService.updateDashboardGreetings;
+window.updateDashboardQuickAccessBadges = DashboardService.updateDashboardQuickAccessBadges;
+window.goHome = DashboardService.goHome;
+window.updateBottomNavHighlights = DashboardService.updateBottomNavHighlights;
+window.toggleAdminStudentRole = DashboardService.toggleAdminStudentRole;
+window.simulateReload = DashboardService.simulateReload;
+

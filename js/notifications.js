@@ -1,0 +1,476 @@
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getMessaging, getToken, onMessage, isSupported } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDBZj8DiQjd7KQyElLQ2ZC7IINJLPvebQU",
+            authDomain: "notify---cms.firebaseapp.com",
+            projectId: "notify---cms",
+            storageBucket: "notify---cms.firebasestorage.app",
+            messagingSenderId: "752160385235",
+            appId: "1:752160385235:web:fefc78032ac6c2906acc26"
+        };
+
+        const VAPID_KEY = "BAGrU4ReZe_326DRm9BRnPpFF7KQqBv0BQ2ShrG-AJ_QWd4Sn3auLqDy9ONt0yW2DqgtZrmF4_EJVaR30t0d_hw";
+
+        let app;
+        let messaging;
+
+        async function initFirebase() {
+            try {
+                console.log("[FIREBASE] Starting initialization...");
+                const supported = await isSupported();
+                if (!supported) {
+                    console.warn("[FIREBASE] Environment does not support Firebase Messaging.");
+                    return false;
+                }
+
+                app = initializeApp(firebaseConfig);
+                console.log("[FIREBASE] App initialized successfully");
+
+                messaging = getMessaging(app);
+                console.log("[FIREBASE] Messaging initialized successfully");
+
+                onMessage(messaging, (payload) => {
+                    console.log('[FIREBASE FOREGROUND] Message received manually displaying system notification:', payload);
+                    const title = payload.notification?.title || payload.data?.title || "MCT Notify";
+                    const body = payload.notification?.body || payload.data?.body || "You have a new update.";
+                    const icon = payload.notification?.icon || payload.data?.icon || 'https://mctnotify.vercel.app/assets/Logo.png';
+                    
+                    if (window.showGlobalToast) {
+                        window.showGlobalToast(title, body);
+                    }
+                    
+                    if (Notification.permission === 'granted') {
+                        try {
+                            if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+                                navigator.serviceWorker.ready.then(registration => {
+                                    registration.showNotification(title, {
+                                        body: body,
+                                        icon: icon,
+                                        badge: icon,
+                                        data: payload
+                                    });
+                                }).catch(err => {
+                                    console.warn('[FIREBASE FOREGROUND] Service worker showNotification failed, using fallback:', err);
+                                    new Notification(title, { body: body, icon: icon });
+                                });
+                            } else {
+                                new Notification(title, { body: body, icon: icon });
+                            }
+                        } catch (e) {
+                            console.warn('[FIREBASE FOREGROUND] System notification failed:', e);
+                        }
+                    }
+                });
+
+                return true;
+            } catch (error) {
+                console.error("[FIREBASE] Initialization error:", error);
+                return false;
+            }
+        }
+
+        async function saveDeviceTokenToSupabase(token) {
+            try {
+                let deviceId = localStorage.getItem('mct_device_id');
+                if (!deviceId) {
+                    deviceId = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : 'dev-' + Math.random().toString(36).substr(2, 9);
+                    localStorage.setItem('mct_device_id', deviceId);
+                }
+        
+                if (sessionStorage.getItem('token_registered') === token) {
+                    console.log('[FCM TOKEN SAVE] Token already registered in this session. Skipping DB upsert.');
+                    return;
+                }
+        
+                console.log('[FCM TOKEN UPSERT] Preparing to save token to database with Device UUID:', deviceId);
+                const { data: { session } } = await window._supabase.auth.getSession();
+        
+                if (!session || !session.user) {
+                    console.error('[FCM TOKEN SAVE] Cannot save token: Supabase session is empty.');
+                    return;
+                }
+                
+                const fullName = session.user.user_metadata?.full_name || 'Student';
+        
+                // Upsert using device_id as the conflict resolution target
+                const { error } = await window._supabase
+                    .from('device_tokens')
+                    .upsert(
+                        { 
+                            device_id: deviceId,
+                            user_id: session.user.id, 
+                            token: token,
+                            name: fullName
+                        }, 
+                        { onConflict: 'device_id' }
+                    );
+        
+                if (error) {
+                    console.error('[FCM TOKEN UPSERT FAILURE] Token upsert failure:', error.message);
+                } else {
+                    console.log('[FCM TOKEN UPSERT SUCCESS] Token upsert success! Device linked uniquely.');
+                    sessionStorage.setItem('token_registered', token);
+                    if (document.getElementById('diag-token')) document.getElementById('diag-token').innerText = 'Generated & Linked';
+                }
+            } catch (err) {
+                console.error('[FCM TOKEN UPSERT FAILURE] Token upsert failure:', err);
+            }
+        }
+
+        window.requestNotificationPermission = async function () {
+            try {
+                // iOS / Safari detection for Push support
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+                const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+
+                if (isIOS && isSafari && !isStandalone) {
+                    window.showGlobalToast("Requires PWA", "To receive notifications on iOS, please tap 'Share' then 'Add to Home Screen', and launch the app from there.");
+                    return;
+                }
+
+                if (!messaging) {
+                    const initialized = await initFirebase();
+                    if (!initialized) return;
+                }
+
+                console.log("[FCM SW REGISTERED] Registering Service Worker started...");
+                if (!('serviceWorker' in navigator)) {
+                    console.warn('[FCM SW REGISTERED] Unsupported environment: serviceWorker not in navigator.');
+                    return;
+                }
+
+                let registration;
+                try {
+                    registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js?v=10');
+                    console.log('[FCM SW REGISTERED] Service Worker registration success with scope:', registration.scope);
+                    if (document.getElementById('diag-sw')) document.getElementById('diag-sw').innerText = 'Registered';
+                    await navigator.serviceWorker.ready;
+                } catch (swErr) {
+                    console.error('[FCM SW REGISTERED] Service Worker registration failure:', swErr);
+                    return;
+                }
+
+                if (!('Notification' in window)) {
+                    window.showGlobalToast("Unsupported", "Notifications are only supported if you add this app to your Home Screen.");
+                    return;
+                }
+                console.log(`[FCM PERMISSION] Current Notification permission state: ${Notification.permission}`);
+                
+                if (Notification.permission === 'denied') {
+                    window.showGlobalToast("Notifications Blocked", "Please go to your Browser Settings (Site Settings) and allow Notifications for this site.");
+                    return;
+                }
+
+                const permission = await Notification.requestPermission();
+
+                if (permission === 'granted') {
+                    console.log('[FCM PERMISSION] Notification permission granted state.');
+                    if (document.getElementById('diag-perm')) document.getElementById('diag-perm').innerText = 'Granted';
+                    console.log('[FCM TOKEN GENERATED] Token generation start...');
+                    try {
+                        const token = await getToken(messaging, {
+                            vapidKey: VAPID_KEY,
+                            serviceWorkerRegistration: registration
+                        });
+
+                        if (token) {
+                            console.log('[FCM TOKEN GENERATED] Token generation success:', token);
+                            await saveDeviceTokenToSupabase(token);
+                        } else {
+                            console.warn('[FCM TOKEN GENERATED] Token generation failure: returned null or empty.');
+                            if (document.getElementById('diag-token')) document.getElementById('diag-token').innerText = 'Generation Failed';
+                        }
+                    } catch (tokenErr) {
+                        console.error('[FCM TOKEN GENERATED] Token generation failure (Firebase error):', tokenErr);
+                    }
+                } else {
+                    console.warn('[FCM PERMISSION] Notification permission denied state.');
+                    window.showGlobalToast("Notifications Blocked", "Please go to your Browser Settings (Site Settings) and allow Notifications for this site.");
+                }
+            } catch (err) {
+                console.error('[FIREBASE] Error during notification request process:', err);
+            }
+        };
+
+        window.silentNotificationInit = async function () {
+            if (Notification.permission !== 'granted') return;
+            try {
+                if (!messaging) {
+                    const initialized = await initFirebase();
+                    if (!initialized) return;
+                }
+                if (!('serviceWorker' in navigator)) return;
+                const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js?v=10');
+                await navigator.serviceWorker.ready;
+                console.log('[FCM TOKEN GENERATED] Token generation start (Silent)...');
+                const token = await getToken(messaging, {
+                    vapidKey: VAPID_KEY,
+                    serviceWorkerRegistration: registration
+                });
+                if (token) {
+                    console.log('[FCM TOKEN GENERATED] Token generation success (Silent):', token);
+                    await saveDeviceTokenToSupabase(token);
+                }
+            } catch (err) {
+                console.error('[FIREBASE SILENT INIT ERROR]', err);
+            }
+        };
+
+
+
+        // Fill diagnostics on load
+        setInterval(() => {
+            try {
+                const diagPerm = document.getElementById('diag-perm');
+                if (diagPerm) {
+                    diagPerm.innerText = ('Notification' in window) ? Notification.permission : 'Unsupported';
+                    if (document.getElementById('diag-os')) document.getElementById('diag-os').innerText = navigator.platform;
+                    
+                    const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+                    if (document.getElementById('diag-pwa')) document.getElementById('diag-pwa').innerText = isStandalone ? 'Yes' : 'No';
+                    
+                    if (navigator.serviceWorker) {
+                        navigator.serviceWorker.getRegistration().then(reg => {
+                            if (reg && reg.active) {
+                                if (document.getElementById('diag-sw')) document.getElementById('diag-sw').innerText = 'Active';
+                            }
+                        });
+                    }
+
+                    if (sessionStorage.getItem('token_registered') || (typeof window !== 'undefined' && window.deviceToken)) {
+                        if (document.getElementById('diag-token')) document.getElementById('diag-token').innerText = 'Generated & Linked';
+                    }
+                }
+            } catch(e) { console.warn("Diag interval error", e); }
+        }, 3000);
+
+
+        
+
+        window.grantNotificationPermission = async function() {
+            if (!('Notification' in window)) {
+                window.showGlobalToast("Unsupported", "Notifications are only supported if you add this app to your Home Screen.");
+                return;
+            }
+            if (Notification.permission === 'denied') {
+                window.showGlobalToast("Notifications Blocked", "Please open your Browser Settings (Site Settings) and allow notifications for this site.");
+                return;
+            }
+            if (typeof window.requestNotificationPermission === 'function') {
+                await window.requestNotificationPermission();
+            }
+            finishNotificationPermissionFlow();
+        };
+
+        window.skipNotificationPermission = function() {
+            sessionStorage.setItem('notification_skipped', 'true');
+            finishNotificationPermissionFlow();
+        };
+
+        function finishNotificationPermissionFlow() {
+            if (window.currentUserRole === 'admin') {
+                window.navigate('screen-admin-dashboard');
+            } else {
+                window.navigate('screen-student-dashboard');
+            }
+            if (typeof window.updateDashboardGreetings === 'function') window.updateDashboardGreetings();
+            if (typeof window.loadDashboardDataAsync === 'function') window.loadDashboardDataAsync();
+            if (typeof window.triggerUrgentPopupModal === 'function') window.triggerUrgentPopupModal();
+            setTimeout(() => { if (typeof window.loadDashboardTodayRoutine === 'function') window.loadDashboardTodayRoutine(); }, 600);
+            setTimeout(() => { if (typeof window.loadScheduleList === 'function') window.loadScheduleList(); }, 1000);
+            updateNotificationStatusUI();
+        }
+
+        window.updateNotificationStatusUI = function() {
+            let hasPermission = false;
+            let isDenied = false;
+            if ('Notification' in window) {
+                hasPermission = Notification.permission === 'granted';
+                isDenied = Notification.permission === 'denied';
+            }
+            
+            // Dashboard Red Dots
+            const dashboardAlerts = document.querySelectorAll('.global-notification-alert');
+            dashboardAlerts.forEach(alert => {
+                if (!hasPermission) alert.classList.remove('hidden');
+                else alert.classList.add('hidden');
+            });
+
+            // Profile Page Alert
+            const profileAlert = document.getElementById('profile-notification-alert');
+            if (profileAlert) {
+                if (!hasPermission) {
+                    profileAlert.classList.remove('hidden');
+                    const textEl = profileAlert.querySelector('p');
+                    const btn = profileAlert.querySelector('button');
+                    if (isDenied) {
+                        if (textEl) textEl.innerText = "Notifications are blocked. Please allow them in your Browser Settings.";
+                        if (btn) btn.innerText = "Check Settings";
+                    } else {
+                        if (textEl) textEl.innerText = "Enable notification permission for better experience.";
+                        if (btn) btn.innerText = "Enable Now";
+                    }
+                } else {
+                    profileAlert.classList.add('hidden');
+                }
+            }
+        };
+
+
+
+        // ----------------------------------------------------
+        // NOTIFICATION CENTER LOGIC
+        // ----------------------------------------------------
+        let globalUserNoticeReads = new Set();
+        let notificationCenterNotices = [];
+
+        window.fetchNotificationCenterNotices = async function() {
+            if (!window.authState.user) return;
+            try {
+                const { data: reads } = await _supabase.from('user_notice_reads').select('notice_id').eq('user_id', window.authState.user.id);
+                if (reads) {
+                    globalUserNoticeReads = new Set(reads.map(r => r.notice_id));
+                }
+
+                notificationCenterNotices = [...currentNoticesList].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+                updateNotificationBadge();
+            } catch (e) {
+                console.error("[NOTIFICATIONS] Error fetching reads:", e);
+            }
+        };
+
+        function updateNotificationBadge() {
+            let unreadCount = 0;
+            notificationCenterNotices.forEach(n => {
+                if (!globalUserNoticeReads.has(n.id)) unreadCount++;
+            });
+
+            const badges = document.querySelectorAll('.dashboard-bell-badge');
+            const counts = document.querySelectorAll('.dashboard-bell-count');
+            
+            if (unreadCount > 0) {
+                badges.forEach(b => b.classList.remove('hidden'));
+                counts.forEach(c => c.innerText = unreadCount > 99 ? '99+' : unreadCount);
+            } else {
+                badges.forEach(b => b.classList.add('hidden'));
+            }
+        }
+
+        window.openNotificationCenter = function() {
+            const modal = document.getElementById('notification-center-modal');
+            const panel = document.getElementById('notification-center-panel');
+            if(modal && panel) {
+                modal.classList.remove('hidden');
+                modal.style.opacity = '0';
+                modal.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => {
+                    modal.style.opacity = '1';
+                    panel.style.transform = 'translateX(0)';
+                }, 10);
+                renderNotificationCenter();
+            }
+            if(typeof lucide !== 'undefined') lucide.createIcons();
+        };
+
+        window.closeNotificationCenter = function() {
+            const modal = document.getElementById('notification-center-modal');
+            const panel = document.getElementById('notification-center-panel');
+            if(modal && panel) {
+                panel.style.transform = 'translateX(100%)';
+                modal.style.opacity = '0';
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                }, 300);
+            }
+        };
+
+        function renderNotificationCenter() {
+            const container = document.getElementById('notification-center-list');
+            if (!container) return;
+            
+            if (notificationCenterNotices.length === 0) {
+                container.innerHTML = `<div class="py-10 flex flex-col items-center justify-center text-center">
+                    <i data-lucide="bell-off" class="w-10 h-10 text-slate-300 mb-3"></i>
+                    <p class="text-slate-500 font-medium text-[13px]">No notifications yet</p>
+                </div>`;
+                return;
+            }
+
+            container.innerHTML = notificationCenterNotices.map(n => {
+                const isUnread = !globalUserNoticeReads.has(n.id);
+                return `
+                    <div class="relative bg-white rounded-xl p-4 shadow-sm border ${isUnread ? 'border-indigo-200 cursor-pointer hover:border-indigo-400' : 'border-slate-100 opacity-70'} transition-colors" onclick="markNoticeAsRead('${n.id}')">
+                        ${isUnread ? '<div class="absolute top-4 right-4 w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>' : ''}
+                        <h4 class="font-bold text-[13px] text-slate-900 pr-4 leading-tight">${n.title}</h4>
+                        <p class="text-[11px] text-slate-500 mt-1 line-clamp-2">${n.message}</p>
+                        <p class="text-[9px] font-bold text-slate-400 mt-2 uppercase tracking-wide">${new Date(n.created_at).toLocaleDateString()} &bull; ${new Date(n.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                    </div>
+                `;
+            }).join('');
+            if(typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        window.markNoticeAsRead = async function(noticeId) {
+            if (globalUserNoticeReads.has(noticeId)) return;
+            
+            globalUserNoticeReads.add(noticeId);
+            updateNotificationBadge();
+            renderNotificationCenter();
+
+            try {
+                const { error } = await _supabase.from('user_notice_reads').insert([{
+                    user_id: window.authState.user.id,
+                    notice_id: noticeId
+                }]);
+                if (error) {
+                    if (error.code !== '23505') throw error; // Ignore duplicate key
+                }
+            } catch (e) {
+                console.error("[NOTIFICATIONS] Mark as read error:", e);
+                globalUserNoticeReads.delete(noticeId);
+                updateNotificationBadge();
+                renderNotificationCenter();
+            }
+        };
+
+        window.markAllNoticesAsRead = async function() {
+            if (!window.authState.user) return;
+            const unreadNotices = notificationCenterNotices.filter(n => !globalUserNoticeReads.has(n.id));
+            if (unreadNotices.length === 0) return;
+
+            // Optimistic update
+            unreadNotices.forEach(n => globalUserNoticeReads.add(n.id));
+            updateNotificationBadge();
+            renderNotificationCenter();
+
+            try {
+                const inserts = unreadNotices.map(n => ({
+                    user_id: window.authState.user.id,
+                    notice_id: n.id
+                }));
+                const { error } = await _supabase.from('user_notice_reads').insert(inserts);
+                if (error && error.code !== '23505') throw error;
+            } catch (e) {
+                console.error("[NOTIFICATIONS] Mark all as read error:", e);
+                // Revert optimistic update
+                unreadNotices.forEach(n => globalUserNoticeReads.delete(n.id));
+                updateNotificationBadge();
+                renderNotificationCenter();
+            }
+        };
+
+
+window.NotificationService = {
+    requestPermission: typeof requestNotificationPermission !== 'undefined' ? requestNotificationPermission : window.requestNotificationPermission,
+    silentInit: typeof silentNotificationInit !== 'undefined' ? silentNotificationInit : window.silentNotificationInit,
+    grantPermission: typeof grantNotificationPermission !== 'undefined' ? grantNotificationPermission : window.grantNotificationPermission,
+    skipPermission: typeof skipNotificationPermission !== 'undefined' ? skipNotificationPermission : window.skipNotificationPermission,
+    fetchNotices: typeof fetchNotificationCenterNotices !== 'undefined' ? fetchNotificationCenterNotices : window.fetchNotificationCenterNotices,
+    openCenter: typeof openNotificationCenter !== 'undefined' ? openNotificationCenter : window.openNotificationCenter,
+    closeCenter: typeof closeNotificationCenter !== 'undefined' ? closeNotificationCenter : window.closeNotificationCenter,
+    markAsRead: typeof markNoticeAsRead !== 'undefined' ? markNoticeAsRead : window.markNoticeAsRead,
+    markAllAsRead: typeof markAllNoticesAsRead !== 'undefined' ? markAllNoticesAsRead : window.markAllNoticesAsRead
+};
+console.log("[ARCHITECTURE]\nnotifications loaded");
