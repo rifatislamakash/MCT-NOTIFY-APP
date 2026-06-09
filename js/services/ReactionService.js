@@ -251,14 +251,14 @@ export class ReactionService {
         this.updateDOM(contentType, contentId);
 
         setTimeout(() => {
-            const block = document.getElementById(`reaction-block-${contentId}`);
-            if (block) {
+            const blocks = document.querySelectorAll(`[id="reaction-block-${contentId}"]`);
+            blocks.forEach(block => {
                 const btn = block.querySelector('.reaction-trigger-btn');
                 if (btn) {
                     btn.classList.add('trigger-bounce');
                     setTimeout(() => btn.classList.remove('trigger-bounce'), 400);
                 }
-            }
+            });
         }, 10);
 
         // Network Request
@@ -306,11 +306,11 @@ export class ReactionService {
     }
 
     static updateDOM(contentType, contentId) {
-        const block = document.getElementById(`reaction-block-${contentId}`);
-        if (block) {
+        const blocks = document.querySelectorAll(`[id="reaction-block-${contentId}"]`);
+        blocks.forEach(block => {
             block.outerHTML = this.renderReactionBlock(contentType, contentId);
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
+        });
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
     static currentModalReactions = [];
