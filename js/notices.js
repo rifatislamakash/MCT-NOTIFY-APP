@@ -237,7 +237,12 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     const dashTitle = document.getElementById('dash-urgent-title');
                     const dashDesc = document.getElementById('dash-urgent-desc');
                     if (dashTitle) dashTitle.innerText = latestUrgent.title;
-                    if (dashDesc) dashDesc.innerText = latestUrgent.message;
+                    if (dashDesc) {
+                        let text = (latestUrgent.message || '').replace(/\n+/g, ' ').trim();
+                        if (text.length > 80) text = text.substring(0, 80) + '......... click to read';
+                        else text = text + '......... click to read';
+                        dashDesc.innerText = text;
+                    }
                     urgentCard.onclick = () => openNoticeDetails(latestUrgent.id);
                 } else {
                     
