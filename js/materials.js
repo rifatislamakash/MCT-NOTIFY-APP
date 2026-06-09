@@ -276,6 +276,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 actCont.innerHTML = btns;
             }
 
+            if (window.ReactionService) {
+                document.getElementById('md-reaction-container').innerHTML = window.ReactionService.renderReactionBlock('material', id);
+            }
+
             if (typeof lucide !== 'undefined') lucide.createIcons();
             window.navigate('screen-material-details');
         };

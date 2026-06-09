@@ -133,6 +133,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const now = new Date();
             const toDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             filtered.sort((a, b) => {
+                if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
+
                 const dateA = new Date((a.notice_date || toDateStr(now)) + 'T' + (a.notice_time || '23:59:00'));
                 const dateB = new Date((b.notice_date || toDateStr(now)) + 'T' + (b.notice_time || '23:59:00'));
                 const aIsExpired = dateA < now;
@@ -624,6 +626,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
             } else {
                 document.getElementById('btn-edit-notice').classList.add('hidden');
             }
+            if (window.ReactionService) {
+                document.getElementById('nd-reaction-container').innerHTML = window.ReactionService.renderReactionBlock('notice', id);
+            }
+
             if (typeof lucide !== 'undefined') lucide.createIcons();
             window.navigate('screen-notice-details');
         }

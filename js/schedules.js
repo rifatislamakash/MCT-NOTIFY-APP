@@ -232,6 +232,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const now = new Date();
             const toDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             list.sort((a, b) => {
+                if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
+
                 const dateA = new Date((a.schedule_date || toDateStr(now)) + 'T' + (a.schedule_time || '23:59:00'));
                 const dateB = new Date((b.schedule_date || toDateStr(now)) + 'T' + (b.schedule_time || '23:59:00'));
                 const aIsExpired = dateA < now;
@@ -426,6 +428,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const isAdmin = (window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail));
                 if (isAdmin) adminActions.classList.remove('hidden');
                 else adminActions.classList.add('hidden');
+            }
+
+            if (window.ReactionService) {
+                document.getElementById('sd-reaction-container').innerHTML = window.ReactionService.renderReactionBlock('schedule', scheduleId);
             }
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
