@@ -2,7 +2,7 @@
 
         window.isAdminEmail = function(email) {
             const e = String(email || '').trim().toLowerCase();
-            return e === '252-40-016@diu.edu.bd' /* REMOVED HARDCODED - USE isAdminEmail */ || e === '252-40-011@diu.edu.bd';
+            return e === 'gd.riakash@gmail.com';
         };
 
         window.sanitizeHTML = function(str) {

@@ -15,7 +15,7 @@ export const RoutineStore = (function () {
                     const { data: routines, error } = await _supabase
                         .from('weekly_routines')
                         .select(`
-                            id, semester_id, day_name, start_time, class_order, room_number, course_id, faculty_id,
+                            id, batch_id, day_name, start_time, class_order, room_number, course_id, faculty_id, section_name,
                             courses ( id, course_name, short_name ),
                             faculty ( id, faculty_name, teacher_initial )
                         `)

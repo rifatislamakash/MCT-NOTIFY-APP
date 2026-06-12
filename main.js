@@ -1,6 +1,10 @@
 // Phase 11: Bridge Migration Entry Point
 
 import { _supabase } from './js/supabase-client.js';
+import { batchService } from './js/services/batchService.js';
+import { crPermissionService } from './js/services/crPermissionService.js';
+
+window.crPermissionService = crPermissionService;
 window._supabase = _supabase;
 
 import { showGlobalToast, dismissGlobalToast, showLoader, forceHideLoader, deduplicateRequest, fetchCachedOrDeduplicated, cancelActiveRequest, cancelAllActiveRequests, fetchWithRetry, ensureBucketExists, extractIdFromEmail, getGreeting } from './js/utils.js';
@@ -88,30 +92,24 @@ window.handleUpdateMaterial = MaterialsService.handleUpdateMaterial;
 window.deleteMaterialAction = MaterialsService.deleteMaterialAction;
 window.deleteMaterialFromDetails = MaterialsService.deleteMaterialFromDetails;
 
-import { loadNotices, toggleNoticeCourses, openCreateNotice, handleSaveNotice, openNoticeDetails, openEditNotice, deleteNoticeAction } from './js/notices.js';
-window.loadNotices = loadNotices;
-window.toggleNoticeCourses = toggleNoticeCourses;
-window.openCreateNotice = openCreateNotice;
-window.handleSaveNotice = handleSaveNotice;
-window.openNoticeDetails = openNoticeDetails;
-window.openEditNotice = openEditNotice;
-window.deleteNoticeAction = deleteNoticeAction;
-
 import { NoticeService } from './js/notices.js';
 window.NoticeService = NoticeService;
-window._urgentNoticeForPopup = NoticeService._urgentNoticeForPopup;
-window._urgentNoticeForPopup = NoticeService._urgentNoticeForPopup;
+window.loadNotices = NoticeService.loadNotices;
+window.openCreateNotice = NoticeService.openCreateNotice;
+window.handleSaveNotice = NoticeService.handleSaveNotice;
+window.openNoticeDetails = NoticeService.openNoticeDetails;
+window.openEditNotice = NoticeService.openEditNotice;
+window.deleteNoticeAction = NoticeService.deleteNoticeAction;
 window._urgentNoticeForPopup = NoticeService._urgentNoticeForPopup;
 window.renderNoticesList = NoticeService.renderNoticesList;
 window.injectDashboardNotices = NoticeService.injectDashboardNotices;
 window.setNoticeFilter = NoticeService.setNoticeFilter;
 window.filterNotices = NoticeService.filterNotices;
+window.toggleNoticeAudience = NoticeService.toggleNoticeAudience;
 window.togglePublishDate = NoticeService.togglePublishDate;
 window.onNoticeFileSelected = NoticeService.onNoticeFileSelected;
 window.clearNoticeFile = NoticeService.clearNoticeFile;
 
-import { loadCoursesForCreateForm } from './js/schedules.js';
-window.loadCoursesForCreateForm = loadCoursesForCreateForm;
 
 import { ScheduleService } from './js/schedules.js';
 window.ScheduleService = ScheduleService;
@@ -162,6 +160,6 @@ window.updateDashboardGreetings = DashboardService.updateDashboardGreetings;
 window.updateDashboardQuickAccessBadges = DashboardService.updateDashboardQuickAccessBadges;
 window.goHome = DashboardService.goHome;
 window.updateBottomNavHighlights = DashboardService.updateBottomNavHighlights;
-window.toggleAdminStudentRole = DashboardService.toggleAdminStudentRole;
+
 window.simulateReload = DashboardService.simulateReload;
 

@@ -220,6 +220,27 @@
 
 
 
+        // Add global triggerImmediateNotification
+        window.triggerImmediateNotification = async function(type, id, title, message) {
+            try {
+                if (!window.authState || !window.authState.user) return;
+                console.log(`[PUSH] Triggering immediate push notification for ${type} ${id}`);
+                const payload = {
+                    parent_type: type,
+                    parent_id: id,
+                    reminder_time: new Date(Date.now() + 60000).toISOString(), // now + 1 min
+                    sent: false,
+                    reminder_title: title,
+                    reminder_message: message,
+                    created_by: window.authState.user.id
+                };
+                const { error } = await _supabase.from('notification_reminders').insert([payload]);
+                if (error) console.error("[PUSH] Failed to trigger immediate notification:", error);
+            } catch (err) {
+                console.error("[PUSH] Exception triggering immediate notification:", err);
+            }
+        };
+
         // Fill diagnostics on load
         setInterval(() => {
             try {
@@ -270,7 +291,7 @@
         };
 
         function finishNotificationPermissionFlow() {
-            if (window.currentUserRole === 'admin') {
+            if ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr')) {
                 window.navigate('screen-admin-dashboard');
             } else {
                 window.navigate('screen-student-dashboard');

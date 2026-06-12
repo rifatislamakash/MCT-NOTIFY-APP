@@ -12,7 +12,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
         function handleFacultyListLogic() {
             const adminActions = document.getElementById('faculty-admin-actions');
             if (adminActions) {
-                if (window.currentUserRole === 'admin') {
+                if (window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail)) {
                     adminActions.classList.remove('hidden');
                 } else {
                     adminActions.classList.add('hidden');
@@ -143,11 +143,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
         // 1. Fetch Faculty List dynamically from database (Stabilized with fetchWithRetry + AbortController)
         export async function loadFacultyList() {
-            if (isModuleLoading('faculty')) {
+            if (window.isModuleLoading('faculty')) {
                 console.log("[FACULTY FETCH] Faculty fetch already in progress. Reusing existing or ignoring.");
                 return;
             }
-            setModuleLoading('faculty', true);
+            window.setModuleLoading('faculty', true);
             cancelActiveRequest('faculty');
             const localController = new AbortController();
             window.activeLoadControllers['faculty'] = localController;
@@ -166,7 +166,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 if (err.name === 'AbortError') {
                     console.log('[FACULTY LIST] Request aborted (navigated away)');
                     if (typeof window.forceHideLoader === 'function') window.forceHideLoader();
-                    if (isScreenActive('screen-faculty-list') && typeof window.navigate === 'function') {
+                    if (window.isScreenActive('screen-faculty-list') && typeof window.navigate === 'function') {
                         /* window.navigate('screen-welcome'); (removed AbortError redirect) */
                     }
                     return;
@@ -175,7 +175,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 window.currentFacultiesList = [];
                 renderFacultyList([]);
             } finally {
-                setModuleLoading('faculty', false);
+                window.setModuleLoading('faculty', false);
                 if (window.activeLoadControllers['faculty'] === localController) {
                     window.activeLoadControllers['faculty'] = null;
                 }
@@ -303,13 +303,13 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 console.log('[FACULTY DETAIL DATA]', facultyData);
 
                 if (!facultyData) throw new Error("Faculty not found in store");
-
                 // Sync the global tracker
                 window.selectedFaculty = facultyData;
 
                 try {
                     // Handle RBAC UI Guardrails
-                    const isStudent = window.currentUserRole !== 'admin';
+                    const isAdmin = (window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail));
+                    const isStudent = !isAdmin;
 
                     // Populate detailed inputs using exact schema mapping with strict null checking safety gates
                     const inputName = document.getElementById('details-faculty-name');
@@ -410,8 +410,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
         let isUpdatingFaculty = false;
         export async function updateFaculty(event) {
             event.preventDefault();
+            if (!(await window.verifyAdminStatus())) { window.showGlobalToast("Error", "Admin check failed."); return; }
 
-            if (window.currentUserRole !== 'admin') {
+            if (window.currentUserRole !== 'admin' && !window.isAdminEmail(window.currentUserEmail)) {
                 return;
             }
             if (isUpdatingFaculty) return;
@@ -484,8 +485,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
         // 5. Submit Delete Request Safely sequentially unassigning from courses first (Admin Protected)
         let isDeletingFaculty = false;
         export async function removeFaculty() {
+            if (!(await window.verifyAdminStatus())) { window.showGlobalToast("Error", "Admin check failed."); return; }
             try {
-                if (window.currentUserRole !== 'admin') {
+                if (window.currentUserRole !== 'admin' && !window.isAdminEmail(window.currentUserEmail)) {
                     window.showGlobalToast("Access Denied", "You do not have permission to delete faculty.");
                     return;
                 }
@@ -592,8 +594,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
         let isAddingFaculty = false;
         export async function handleAddFaculty(event) {
             event.preventDefault();
+            if (!(await window.verifyAdminStatus())) { window.showGlobalToast("Error", "Admin check failed."); return; }
 
-            if (window.currentUserRole !== 'admin') {
+            if (window.currentUserRole !== 'admin' && !window.isAdminEmail(window.currentUserEmail)) {
                 window.showGlobalToast("Access Denied", "Only administrators can add faculty.");
                 return;
             }

@@ -64,10 +64,14 @@ messaging.onBackgroundMessage((payload) => {
         payload?.notification?.title ||
         "MCT Notify";
 
-    const notificationBody =
+    let notificationBody =
         payload?.data?.body ||
         payload?.notification?.body ||
         "You have a new update.";
+        
+    if (notificationBody.length > 150) {
+        notificationBody = notificationBody.substring(0, 150) + '......';
+    }
 
     const icon =
         payload?.data?.icon ||
@@ -81,8 +85,7 @@ messaging.onBackgroundMessage((payload) => {
 
     const image =
         payload?.data?.image ||
-        payload?.notification?.image ||
-        "https://mctnotify.vercel.app/assets/Logo.png";
+        payload?.notification?.image; // Removed fallback logo image to prevent big image popup
 
     const clickAction =
         payload?.data?.click_action ||
@@ -92,7 +95,7 @@ messaging.onBackgroundMessage((payload) => {
         body: notificationBody,
         icon: icon,
         badge: badge,
-        image: image,
+        ...(image && { image: image }),
         requireInteraction: true,
         tag: 'mct-notify',
 

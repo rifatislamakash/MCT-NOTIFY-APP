@@ -1,4 +1,5 @@
 import { _supabase } from './supabase-client.js';
+import { crPermissionService } from './services/crPermissionService.js';
 import { showGlobalToast, showLoader, forceHideLoader, cancelActiveRequest, fetchWithRetry } from './utils.js';
 import { CourseStore } from './stores/CourseStore.js';
 import { FacultyStore } from './stores/FacultyStore.js';
@@ -14,8 +15,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
         let currentNoticeFilter = 'all';
 
         export async function loadNotices() {
-            if (isModuleLoading('notices')) return;
-            setModuleLoading('notices', true);
+            if (window.isModuleLoading('notices')) return;
+            window.setModuleLoading('notices', true);
             cancelActiveRequest('notices');
             const localController = new AbortController();
             window.activeLoadControllers['notices'] = localController;
@@ -27,25 +28,58 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     allCoursesList = await CourseStore.getCourses();
                 }
                 
-                // Fetch notices with their target courses using retry and abort signal
-                const noticesData = await fetchWithRetry(async (signal) => {
-                    const { data, error } = await _supabase
-                        .from('notices')
-                        .select(`
-                                *,
-                                notice_courses ( course_id ),
-                                profiles (id, full_name, profile_url, role)
-                            `)
-                        .order('is_pinned', { ascending: false })
-                        .order('created_at', { ascending: false })
-                        .abortSignal(signal);
+                let noticesData;
+                if (crPermissionService.isCR()) {
+                    noticesData = await crPermissionService.getVisibleNotices();
+                } else {
+                    noticesData = await fetchWithRetry(async (signal) => {
+                        const { data, error } = await _supabase
+                            .from('notices')
+                            .select(`
+                                    *,
+                                    notice_courses ( course_id ),
+                                    profiles (id, full_name, profile_url, role)
+                                `)
+                            .order('is_pinned', { ascending: false })
+                            .order('created_at', { ascending: false })
+                            .abortSignal(signal);
 
-                    if (error) {
-                        console.error("[NOTICES] Query error:", error);
-                        throw error;
+                        if (error) {
+                            console.error("[NOTICES] Query error:", error);
+                            throw error;
+                        }
+                        return data;
+                    }, 3, 1000, 10000, localController.signal);
+                }
+
+                // Fetch content_targets separately (no FK relationship)
+                if (noticesData && noticesData.length > 0) {
+                    try {
+                        const noticeIds = noticesData.map(n => n.id);
+                        const { data: ctData } = await _supabase
+                            .from('content_targets')
+                            .select('content_id, target_type, target_id')
+                            .eq('content_type', 'notice')
+                            .in('content_id', noticeIds);
+                        
+                        if (ctData && ctData.length > 0) {
+                            const ctMap = {};
+                            ctData.forEach(ct => {
+                                if (!ctMap[ct.content_id]) ctMap[ct.content_id] = [];
+                                ctMap[ct.content_id].push(ct);
+                            });
+                            noticesData.forEach(n => {
+                                n.content_targets = ctMap[n.id] || [];
+                            });
+                        } else {
+                            noticesData.forEach(n => { n.content_targets = []; });
+                        }
+                        console.log('[TARGET LOAD] Loaded content_targets for notices');
+                    } catch (ctErr) {
+                        console.warn('[TARGET LOAD] Failed to load content_targets, using empty:', ctErr);
+                        noticesData.forEach(n => { n.content_targets = []; });
                     }
-                    return data;
-                }, 3, 1000, 10000, localController.signal);
+                }
 
                 if (localController.signal.aborted) {
                     console.log("[NOTICES] Fetch aborted, ignoring rendering.");
@@ -56,21 +90,66 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 console.log(`[AUTH] Detected Role: ${window.currentUserRole}`);
 
                 const btnCreateNotice = document.getElementById('btn-admin-create-notice');
-                const isAdmin = (window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail));
+                const batchFilter = document.getElementById('admin-notices-batch-filter');
+                const isAdmin = ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail));
                 if (isAdmin) {
                     console.log("[AUTH] Admin permission state: GRANTED. Showing admin controls.");
-                    window.currentNoticesList = noticesData || [];
+                    let allNotices = noticesData || [];
+                    
+                    window.currentNoticesList = allNotices;
                     if (btnCreateNotice) btnCreateNotice.classList.remove('hidden');
+                    
+                    // Populate and show batch filter
+                    if (batchFilter) {
+                        const isStrictAdmin = (window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail));
+                        if (isStrictAdmin) {
+                            batchFilter.classList.remove('hidden');
+                            
+                            console.log("[BATCH FILTER LOAD] Populating notices batch filter");
+                            if (batchFilter.options.length <= 1) {
+                                try {
+                                    const { data: batchesData } = await _supabase.from('batches').select('id, batch_name').order('batch_name');
+                                    let optionsHTML = '<option value="" disabled selected class="text-black">Select Batch</option>';
+                                    if (batchesData) {
+                                        optionsHTML += batchesData.map(b => `<option value="${b.id}" class="text-black">${b.batch_name}</option>`).join('');
+                                    }
+                                    batchFilter.innerHTML = optionsHTML;
+                                } catch(e) { console.warn("Failed to load batches", e); }
+                            }
+                        } else {
+                            batchFilter.classList.add('hidden');
+                        }
+                    }
                 } else {
                     console.log("[AUTH] Admin permission state: DENIED. Filtering for student.");
                     if (btnCreateNotice) btnCreateNotice.classList.add('hidden');
+                    if (batchFilter) batchFilter.classList.add('hidden');
 
                     const studentCourses = window.currentUserCoursesList.map(uc => uc.course_id);
+                    const studentBatches = [...new Set(studentCourses.map(cid => {
+                        const c = allCoursesList.find(x => x.id === cid);
+                        return c ? c.batch_id : null;
+                    }).filter(Boolean))];
+
                     window.currentNoticesList = (noticesData || []).filter(n => {
-                        if (n.audience_type === 'all') return true;
+                        // Global Targets
+                        if (n.audience_type === 'all' || n.audience_type === 'all_students') return true;
+                        
+                        // Legacy Filter
                         if (n.notice_courses && n.notice_courses.length > 0) {
-                            return n.notice_courses.some(nc => studentCourses.includes(nc.course_id));
+                            if (n.notice_courses.some(nc => studentCourses.includes(nc.course_id))) return true;
                         }
+                        
+                        // New Target Filter
+                        if (n.content_targets && n.content_targets.length > 0) {
+                            return n.content_targets.some(ct => {
+                                if (ct.target_type === 'course_students') return studentCourses.includes(ct.target_id);
+                                if (ct.target_type === 'batch_students') return studentBatches.includes(ct.target_id);
+                                if (ct.target_type === 'specific_student') return ct.target_id === window.authState.user.id;
+                                return false;
+                            });
+                        }
+                        
                         return false;
                     });
                 }
@@ -84,12 +163,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 if (typeof window.updateDashboardQuickAccessBadges === 'function') window.updateDashboardQuickAccessBadges();
                 if (typeof window.fetchNotificationCenterNotices === 'function') window.fetchNotificationCenterNotices();
             } catch (err) {
-                if (err.name === 'AbortError') {
-                    console.log("[NOTICES] Abort detected, resetting to welcome screen.");
-                    if (typeof window.forceHideLoader === 'function') window.forceHideLoader();
-                    if (isScreenActive('screen-notices-list') && typeof window.navigate === 'function') {
-                        /* window.navigate('screen-welcome'); (removed AbortError redirect) */
-                    }
+                if (err.name === 'AbortError' || (err.message && err.message.includes('AbortError'))) {
+                    console.log("[NOTICES] Load aborted, ignoring.");
                     return;
                 }
                 console.error("Error loading notices:", err);
@@ -99,6 +174,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     window.activeLoadControllers['notices'] = null;
                     window.showLoader(false);
                 }
+                window.setModuleLoading('notices', false);
             }
         }
 
@@ -110,10 +186,34 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     btn.className = "notice-filter-btn active px-4 py-1.5 bg-indigo-600 text-white border border-transparent text-[11px] font-bold rounded-full whitespace-nowrap transition-colors";
                 }
             });
-            renderNoticesList();
+            window.filterNotices();
         }
 
-        function filterNotices() {
+        window.filterNotices = function () {
+            const batchFilterEl = document.getElementById('admin-notices-batch-filter');
+            if (batchFilterEl && !batchFilterEl.classList.contains('hidden')) {
+                const batchVal = batchFilterEl.value;
+                if (!batchVal || batchVal === '') {
+                    console.log("[BATCH FILTER SELECT] Notice batch changed to: undefined");
+                    console.log("[NOTICE BATCH] No batch selected. Showing empty state.");
+                    const list = document.getElementById('notices-list-container');
+                    if (list) {
+                        list.innerHTML = `
+                            <div class="flex flex-col items-center justify-center py-16 px-4 text-center">
+                                <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                                    <i data-lucide="layers" class="w-8 h-8 text-slate-400"></i>
+                                </div>
+                                <h3 class="text-lg font-bold text-slate-700">Please select a batch</h3>
+                                <p class="text-sm text-slate-500 mt-1 max-w-[250px]">Select a batch from the dropdown above to view its notices.</p>
+                            </div>
+                        `;
+                        if (window.lucide) window.lucide.createIcons();
+                    }
+                    return; // DO NOT RENDER
+                }
+                console.log(`[BATCH FILTER SELECT] Notice batch changed to: ${batchVal}`);
+                console.log(`[NOTICE BATCH] Rendering notices for batch: ${batchVal}`);
+            }
             renderNoticesList();
         }
 
@@ -126,7 +226,36 @@ import { ProfileStore } from './stores/ProfileStore.js';
             let filtered = window.currentNoticesList.filter(n => {
                 const matchQuery = n.title.toLowerCase().includes(q) || n.message.toLowerCase().includes(q);
                 const matchType = currentNoticeFilter === 'all' || n.notice_type === currentNoticeFilter;
-                return matchQuery && matchType;
+                
+                let matchBatch = true;
+                const batchFilterEl = document.getElementById('admin-notices-batch-filter');
+                if (batchFilterEl && !batchFilterEl.classList.contains('hidden') && batchFilterEl.value !== 'all') {
+                    const batchVal = batchFilterEl.value;
+                    let matchesBatch = false;
+                    if (n.audience_type === 'all' || n.audience_type === 'all_students') {
+                        matchesBatch = true;
+                    } else {
+                        if (n.notice_courses && n.notice_courses.length > 0) {
+                            matchesBatch = n.notice_courses.some(nc => {
+                                const c = (window.allCoursesList || []).find(x => x.id === nc.course_id);
+                                return c && c.batch_id === batchVal;
+                            });
+                        }
+                        if (!matchesBatch && n.content_targets && n.content_targets.length > 0) {
+                            matchesBatch = n.content_targets.some(ct => {
+                                if (['batch_students', 'batch_crs'].includes(ct.target_type)) return ct.target_id === batchVal;
+                                if (ct.target_type === 'course_students') {
+                                    const c = (window.allCoursesList || []).find(x => x.id === ct.target_id);
+                                    return c && c.batch_id === batchVal;
+                                }
+                                return false;
+                            });
+                        }
+                    }
+                    matchBatch = matchesBatch;
+                }
+
+                return matchQuery && matchType && matchBatch;
             });
 
             // Dynamic Time-Aware Sorting
@@ -180,7 +309,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         }).join('');
                     }
 
-                    const pin = n.is_pinned ? `<i data-lucide="pin" class="w-3 h-3 text-orange-500 fill-orange-500 ml-1"></i>` : '';
+                    const pin = n.is_pinned ? `<i data-lucide="pin" class="w-4.5 h-4.5 text-orange-500 fill-orange-500"></i>` : '';
 
                     let dateStr = '';
                     if (n.notice_date) {
@@ -219,7 +348,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                     <h4 class="font-extrabold text-[15px] text-slate-900 truncate leading-tight">${window.sanitizeHTML(n.title)}</h4>
                                     <p class="text-[13px] text-slate-500 line-clamp-2 overflow-hidden mt-0.5 leading-snug">${window.sanitizeHTML(n.message)}</p>
                                 </div>
-                                ${window.ReactionService ? window.ReactionService.renderReactionBlock('notice', n.id) : ''}
+                                <div class="mt-3">
+                                    ${window.ReactionService ? window.ReactionService.renderReactionBlock('notice', n.id) : ''}
+                                </div>
                             </div>
                         `;
                 }).join('');
@@ -252,46 +383,121 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 }
                 
                 if (typeof window.triggerUrgentPopupModal === 'function') {
+                    window._urgentNoticeForPopup = latestUrgent;
                     triggerUrgentPopupModal();
                 }
             }
 
-            // Recent General Notices
+            // Recent Updates Feed
             const recentContainer = document.getElementById('dashboard-recent-notices');
             if (recentContainer) {
-                const latestGenerals = window.currentNoticesList.filter(n => n.notice_type === 'general').slice(0, 3);
-                if (latestGenerals.length === 0) {
-                    recentContainer.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No recent notices</p>`;
+                // Collect Notices
+                const noticesArray = (window.currentNoticesList || []).filter(n => n.notice_type === 'general').map(n => {
+                    const noticeD = new Date((n.notice_date || n.created_at.split('T')[0]) + 'T' + (n.notice_time || '23:59:00'));
+                    return { ...n, __type: 'notice', sortDate: noticeD };
+                });
+                
+                // Collect Schedules
+                const schedulesArray = (window.currentSchedulesList || []).map(s => {
+                    const schedD = new Date((s.schedule_date || s.created_at.split('T')[0]) + 'T' + (s.schedule_time || '23:59:00'));
+                    return { ...s, __type: 'schedule', sortDate: schedD };
+                });
+                
+                // Combine, sort, and slice
+                const combinedUpdates = [...noticesArray, ...schedulesArray]
+                    .sort((a, b) => {
+                        if (a.is_pinned && !b.is_pinned) return -1;
+                        if (!a.is_pinned && b.is_pinned) return 1;
+                        return b.sortDate - a.sortDate;
+                    })
+                    .slice(0, 3);
+                
+                if (combinedUpdates.length === 0) {
+                    recentContainer.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No recent updates</p>`;
                 } else {
-                    recentContainer.innerHTML = latestGenerals.map(n => {
-                        // Build date string from notice_date/notice_time
-                        let nDateStr = '';
-                        if (n.notice_date) {
-                            const d = new Date(n.notice_date + 'T00:00:00');
-                            nDateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                        }
-                        if (n.notice_time) {
-                            const [h, m] = n.notice_time.split(':');
-                            const ampm = +h >= 12 ? 'PM' : 'AM';
-                            const h12 = +h % 12 || 12;
-                            nDateStr += (nDateStr ? ' • ' : '') + `${h12}:${m} ${ampm}`;
-                        }
-                        if (!nDateStr) nDateStr = new Date(n.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                    recentContainer.innerHTML = combinedUpdates.map(item => {
+                        const now = new Date();
+                        const isExpired = item.sortDate < now;
+                        const expiredClass = isExpired ? 'opacity-60 grayscale hover:opacity-80' : '';
+                        const pin = item.is_pinned ? `<i data-lucide="pin" class="w-4.5 h-4.5 text-orange-500 fill-orange-500"></i>` : '';
+                        let rightSideHtml = `<div class="flex items-center">${pin}</div>`;
+                        
+                        if (item.__type === 'notice') {
+                            const n = item;
+                            let dateStr = '';
+                            if (n.notice_date) {
+                                const d = new Date(n.notice_date + 'T00:00:00');
+                                dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                            }
+                            if (n.notice_time) {
+                                const [h, m] = n.notice_time.split(':');
+                                const ampm = +h >= 12 ? 'PM' : 'AM';
+                                const h12 = +h % 12 || 12;
+                                dateStr += (dateStr ? '   ' : '') + `${h12}:${m} ${ampm}`;
+                            }
+                            if (!dateStr) dateStr = new Date(n.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
-                        return `
-                            <div onclick="openNoticeDetails('${window.sanitizeHTML(n.id)}')" class="flex items-start gap-4 p-4 bg-white rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-3 cursor-pointer active:scale-[0.98] transition-all">
-                                <div class="w-12 h-12 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center shrink-0">
-                                    <i data-lucide="bell" class="w-5 h-5"></i>
-                                </div>
-                                <div class="flex-1 min-w-0 pt-0.5">
-                                    <div class="flex items-center justify-between mb-1">
+                            let badgeHtml = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-indigo-100 text-[#4226E9] uppercase">NOTICE</span>`;
+                            if (n.notice_courses && n.notice_courses.length > 0) {
+                                badgeHtml += n.notice_courses.map(nc => {
+                                    const c = window.currentCoursesList ? window.currentCoursesList.find(x => x.id === nc.course_id) : null;
+                                    const name = c ? (c.short_name || c.course_name) : 'Specific';
+                                    return `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-blue-100 text-blue-600 uppercase ml-1">${window.sanitizeHTML(name)}</span>`;
+                                }).join('');
+                            }
+
+                            return `
+                                <div class="flex flex-col pb-3 px-3 pt-3 bg-white rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer" onclick="openNoticeDetails('${window.sanitizeHTML(n.id)}')">
+                                    ${window.AuthorService ? window.AuthorService.renderAuthorBlock(n.profiles, dateStr, badgeHtml, rightSideHtml) : ''}
+                                    <div class="mt-1 flex flex-col">
                                         <h4 class="font-bold text-[14px] text-slate-900 leading-tight truncate">${window.sanitizeHTML(n.title)}</h4>
-                                        <span class="text-[10px] font-bold text-slate-400 shrink-0 ml-2">${nDateStr}</span>
+                                        <p class="text-[12px] font-medium text-slate-500 leading-snug line-clamp-2 mt-0.5">${window.sanitizeHTML(n.message)}</p>
                                     </div>
-                                    <p class="text-[12px] font-medium text-slate-500 leading-snug line-clamp-2">${window.sanitizeHTML(n.message)}</p>
+                                    <div class="mt-3">
+                                        ${window.ReactionService ? window.ReactionService.renderReactionBlock('notice', n.id) : ''}
+                                    </div>
                                 </div>
-                            </div>
                             `;
+                        } else {
+                            const s = item;
+                            let dateStr = '';
+                            if (s.schedule_date) {
+                                const d = new Date(s.schedule_date + 'T00:00:00');
+                                dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                            }
+                            if (s.schedule_time) {
+                                const [h, m] = s.schedule_time.split(':');
+                                const ampm = +h >= 12 ? 'PM' : 'AM';
+                                const h12 = +h % 12 || 12;
+                                dateStr += (dateStr ? '   ' : '') + `${h12}:${m} ${ampm}`;
+                            }
+                            if (!dateStr) dateStr = new Date(s.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+                            let badgeHtml = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-emerald-100 text-emerald-600 uppercase">SCHEDULE</span>`;
+                            const scMap = window.scheduleCoursesMap || {};
+                            const courseIds = scMap[s.id] || [];
+                            
+                            if (courseIds.length > 0 && window.currentCoursesList) {
+                                courseIds.forEach(cid => {
+                                    const c = window.currentCoursesList.find(x => x.id === cid);
+                                    const name = c ? (c.short_name || c.course_name) : 'Specific';
+                                    badgeHtml += `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-blue-100 text-blue-600 uppercase ml-1">${window.sanitizeHTML(name)}</span>`;
+                                });
+                            }
+
+                            return `
+                                <div class="flex flex-col pb-3 px-3 pt-3 bg-white rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer" onclick="openScheduleDetails('${window.sanitizeHTML(s.id)}')">
+                                    ${window.AuthorService ? window.AuthorService.renderAuthorBlock(s.profiles, dateStr, badgeHtml, rightSideHtml) : ''}
+                                    <div class="mt-1 flex flex-col">
+                                        <h4 class="font-bold text-[14px] text-slate-900 leading-tight truncate">${window.sanitizeHTML(s.title)}</h4>
+                                        <p class="text-[12px] font-medium text-slate-500 leading-snug line-clamp-2 mt-0.5">${window.sanitizeHTML(s.message)}</p>
+                                    </div>
+                                    <div class="mt-3">
+                                        ${window.ReactionService ? window.ReactionService.renderReactionBlock('schedule', s.id) : ''}
+                                    </div>
+                                </div>
+                            `;
+                        }
                     }).join('');
                 }
             }
@@ -299,41 +505,159 @@ import { ProfileStore } from './stores/ProfileStore.js';
         }
 
         // --- Create / Edit ---
-        export async function toggleNoticeCourses() {
+        window.toggleNoticeAudience = async function() {
             const aud = document.getElementById('notice-audience-type').value;
-            const cList = document.getElementById('notice-course-selection');
-            if (aud === 'specific') {
-                // Pre-fetch courses if not loaded
-                if (!window.currentCoursesList || window.currentCoursesList.length === 0) {
-                    console.log("[NOTICE SYSTEM] Courses list empty, fetching...");
+            const tList = document.getElementById('notice-target-selection');
+            if(!tList) return;
+            tList.innerHTML = '';
+            
+            if (['batch_students', 'batch_crs'].includes(aud)) {
+                tList.classList.remove('hidden');
+                
+                // Fetch batches if not loaded
+                let batches = window.adminDirectoryBatches || window.currentBatchesList || [];
+                if (batches.length === 0) {
                     try {
-                        const { data: crs, error } = await _supabase.from('courses').select('*').order('course_name');
-                        if (error) {
-                            console.error("[NOTICE SYSTEM] Course fetch error:", error);
-                        } else {
-                            window.currentCoursesList = crs || [];
-                            console.log(`[NOTICE SYSTEM] Fetched ${window.currentCoursesList.length} courses.`);
+                        tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4"><span class="inline-block w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>Loading batches...</p>';
+                        const { data, error } = await _supabase.from('batches').select('id, batch_name, active').eq('active', true).order('batch_name', { ascending: true });
+                        if (!error && data) {
+                            batches = data;
+                            window.currentBatchesList = data;
                         }
                     } catch (e) {
-                        console.error("[NOTICE SYSTEM] Course fetch exception:", e);
+                        console.warn('[NOTICE AUDIENCE] Failed to fetch batches:', e);
                     }
                 }
-
-                cList.classList.remove('hidden');
-                if (window.currentCoursesList.length === 0) {
-                    cList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4">No courses available</p>';
-                } else {
-                    cList.innerHTML = window.currentCoursesList.map(c => `
-                            <label class="flex items-center gap-3 p-2.5 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors">
-                                <input type="checkbox" value="${c.id}" class="notice-course-cb w-4 h-4 accent-[#4226E9]">
-                                <span class="text-[13px] text-slate-700 font-semibold">${window.sanitizeHTML(c.course_name)} (${c.course_code || c.short_name || ''})</span>
-                            </label>
-                        `).join('');
+                
+                if (batches.length === 0) {
+                    tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4">No batches available.</p>';
+                    return;
                 }
+                
+                tList.innerHTML = batches.map(b => `
+                    <label class="flex items-center gap-3 p-2.5 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors">
+                        <input type="checkbox" value="${b.id}" class="notice-target-cb w-4 h-4 accent-[#4226E9]"${aud === 'batch_crs' ? ` onchange="window.refreshNoticeCRList()"` : ''}>
+                        <span class="text-[13px] text-slate-700 font-semibold">${window.sanitizeHTML(b.batch_name)}</span>
+                    </label>
+                `).join('');
+                
+                // For batch_crs, add a CR list container below
+                if (aud === 'batch_crs') {
+                    tList.innerHTML += '<div id="notice-cr-list-container" class="mt-3 border-t border-slate-100 pt-3"><p class="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-2">Select batch(es) above to see CRs</p></div>';
+                }
+            } else if (aud === 'course_students') {
+                tList.classList.remove('hidden');
+                if (!window.currentCoursesList || window.currentCoursesList.length === 0) {
+                    try {
+                        tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4"><span class="inline-block w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>Loading courses...</p>';
+                        const { data: crs, error } = await _supabase.from('courses').select('*').order('course_name');
+                        if (!error) window.currentCoursesList = crs || [];
+                    } catch (e) {}
+                }
+                const crs = window.currentCoursesList || [];
+                if (crs.length === 0) {
+                    tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4">No courses available.</p>';
+                    return;
+                }
+                tList.innerHTML = crs.map(c => {
+                    const batchName = c.batches ? c.batches.batch_name : c.batch_id;
+                    return `
+                    <label class="flex items-center gap-3 p-2.5 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors">
+                        <input type="checkbox" value="${c.id}" class="notice-target-cb w-4 h-4 accent-[#4226E9]">
+                        <span class="text-[13px] text-slate-700 font-semibold">[Batch ${window.sanitizeHTML(batchName)}] ${window.sanitizeHTML(c.course_name)} (${c.course_code || c.short_name || ''})</span>
+                    </label>
+                `}).join('');
+            } else if (aud === 'specific_student') {
+                tList.classList.remove('hidden');
+                let students = window.adminDirectoryProfiles || [];
+                if (students.length === 0) {
+                    try {
+                        tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4"><span class="inline-block w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>Loading students...</p>';
+                        const { data, error } = await _supabase.from('profiles').select('id, full_name, email').order('full_name');
+                        if (!error && data) students = data;
+                    } catch (e) {
+                        console.warn('[NOTICE AUDIENCE] Failed to fetch students:', e);
+                    }
+                }
+                if (students.length === 0) {
+                    tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4">No students available.</p>';
+                    return;
+                }
+                tList.innerHTML = `
+                    <div class="mb-2">
+                        <input type="text" id="notice-student-search" oninput="window.filterNoticeStudents()" placeholder="Search students..." class="w-full h-9 px-3 rounded-lg border border-slate-200 text-[12px] outline-none focus:border-[#4226E9]">
+                    </div>
+                    <div id="notice-student-list" class="space-y-1 max-h-[200px] overflow-y-auto">
+                        ${students.map(s => `
+                            <label class="notice-student-item flex items-center gap-3 p-2 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors" data-name="${(s.full_name||'').toLowerCase()}">
+                                <input type="checkbox" value="${s.id}" class="notice-target-cb w-4 h-4 accent-[#4226E9]">
+                                <div class="flex flex-col">
+                                    <span class="text-[13px] text-slate-700 font-semibold">${window.sanitizeHTML(s.full_name)}</span>
+                                    <span class="text-[10px] text-slate-400">${window.sanitizeHTML(s.email || '')}</span>
+                                </div>
+                            </label>
+                        `).join('')}
+                    </div>
+                `;
             } else {
-                cList.classList.add('hidden');
+                tList.classList.add('hidden');
             }
-        }
+        };
+        
+        // Dynamic CR list refresh for batch_crs audience type
+        window.refreshNoticeCRList = async function() {
+            const container = document.getElementById('notice-cr-list-container');
+            if (!container) return;
+            
+            const selectedBatches = Array.from(document.querySelectorAll('.notice-target-cb:checked')).map(cb => cb.value);
+            if (selectedBatches.length === 0) {
+                container.innerHTML = '<p class="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-2">Select batch(es) above to see CRs</p>';
+                return;
+            }
+            
+            container.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-2"><span class="inline-block w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>Loading CRs...</p>';
+            
+            try {
+                const { data: crData, error } = await _supabase
+                    .from('batch_crs')
+                    .select('user_id, batch_id, profiles!batch_crs_user_id_fkey(id, full_name, email)')
+                    .eq('active', true)
+                    .in('batch_id', selectedBatches);
+                
+                if (error) throw error;
+                
+                const crs = (crData || []).filter(r => r.profiles);
+                if (crs.length === 0) {
+                    container.innerHTML = '<p class="text-[13px] text-slate-400 text-center py-2">No CRs assigned to selected batch(es).</p>';
+                    return;
+                }
+                
+                const batches = window.currentBatchesList || window.adminDirectoryBatches || [];
+                container.innerHTML = '<p class="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-2">CRs in selected batches</p>' +
+                    crs.map(cr => {
+                        const batchName = batches.find(b => b.id === cr.batch_id)?.batch_name || cr.batch_id;
+                        return `<div class="flex items-center gap-3 p-2 bg-indigo-50 rounded-lg mb-1">
+                            <i data-lucide="shield" class="w-4 h-4 text-indigo-500"></i>
+                            <div class="flex flex-col">
+                                <span class="text-[13px] text-slate-700 font-semibold">${window.sanitizeHTML(cr.profiles.full_name)}</span>
+                                <span class="text-[10px] text-slate-400">Batch ${window.sanitizeHTML(String(batchName))}</span>
+                            </div>
+                        </div>`;
+                    }).join('');
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            } catch (e) {
+                console.error('[NOTICE AUDIENCE] Failed to load CRs:', e);
+                container.innerHTML = '<p class="text-[13px] text-red-400 text-center py-2">Failed to load CRs.</p>';
+            }
+        };
+        
+        window.filterNoticeStudents = function() {
+            const q = document.getElementById('notice-student-search').value.toLowerCase();
+            document.querySelectorAll('.notice-student-item').forEach(item => {
+                if (item.dataset.name.includes(q)) item.classList.remove('hidden');
+                else item.classList.add('hidden');
+            });
+        };
 
         function togglePublishDate(checked) {
             const container = document.getElementById('notice-publish-date-container');
@@ -387,7 +711,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 } catch (e) { console.warn("[NOTICE SYSTEM] Course pre-fetch error:", e); }
             }
 
-            await toggleNoticeCourses();
+            await window.toggleNoticeAudience();
             togglePublishDate(true);
             document.getElementById('btn-delete-notice').classList.add('hidden');
             // Reset radio buttons to general
@@ -400,16 +724,68 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
         export async function handleSaveNotice(e) {
             e.preventDefault();
+            if (!(await window.verifyAdminStatus())) { window.showGlobalToast("Error", "Admin check failed."); return; }
             window.showLoader(true, "Saving Notice...");
             try {
                 const id = document.getElementById('notice-edit-id').value;
                 const title = document.getElementById('notice-title').value;
                 const message = document.getElementById('notice-message').value;
                 const notice_type = document.getElementById('notice-type').value;
-                const is_pinned = document.getElementById('notice-pinned').checked;
+                let is_pinned = document.getElementById('notice-pinned').checked;
+                
+                if (is_pinned) {
+                    const pinnedNotices = window.currentNoticesList.filter(n => n.is_pinned && n.id !== id).sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+                    if (pinnedNotices.length >= 3) {
+                        const oldest = pinnedNotices[0];
+                        const { error: unpinErr } = await _supabase.from('notices').update({ is_pinned: false }).eq('id', oldest.id);
+                        if (!unpinErr) {
+                            window.showGlobalToast("Notice", "Maximum 3 pins allowed. The oldest pinned notice was unpinned.");
+                        }
+                    }
+                }
                 const publish_now = document.getElementById('notice-publish-now').checked;
                 const publish_date = publish_now ? new Date().toISOString() : document.getElementById('notice-publish-date').value;
-                const audience_type = document.getElementById('notice-audience-type').value;
+                let audience_type = document.getElementById('notice-audience-type').value;
+
+                const isAdmin = window.crPermissionService && window.crPermissionService.isAdmin();
+                const isCR = window.crPermissionService && window.crPermissionService.isCR();
+                const checkedCbs = Array.from(document.querySelectorAll('.notice-target-cb:checked')).map(cb => cb.value);
+
+                if (id && isCR) {
+                    const originalNotice = window.currentNoticesList.find(n => n.id === id);
+                    if (originalNotice && originalNotice.created_by !== window.authState.user.id) {
+                        console.log(`[CR PERMISSION DENIED] Attempted to update notice not created by them: ${id}`);
+                        window.showGlobalToast("Access Denied", "You can only edit notices that you created.");
+                        window.showLoader(false);
+                        return;
+                    }
+                }
+
+                if (isCR) {
+                    if (audience_type === 'course_students') {
+                        for (const cid of checkedCbs) {
+                            const c = window.currentCoursesList.find(x => x.id === cid);
+                            if (c && !window.crPermissionService.canAccessBatch(c.batch_id)) {
+                                console.log(`[CR PERMISSION DENIED] Attempted to post notice for unassigned course ${cid}`);
+                                window.showGlobalToast("Access Denied", "You can only post notices to courses in your assigned batches.");
+                                window.showLoader(false);
+                                return;
+                            }
+                        }
+                    } else if (['batch_students', 'batch_crs'].includes(audience_type)) {
+                        for (const bid of checkedCbs) {
+                            if (!window.crPermissionService.canAccessBatch(bid)) {
+                                console.log(`[CR PERMISSION DENIED] Attempted to post notice for unassigned batch ${bid}`);
+                                window.showGlobalToast("Access Denied", "You can only target your assigned batches.");
+                                window.showLoader(false);
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                if (isCR) console.log(`[CR ACCESS CHECK] Validating notice save - PASSED`);
+                if (isCR) console.log(`[CR ${id ? 'UPDATE' : 'CREATE'}] Notice ${id || 'new'}`);
                 // New date/time columns
                 const notice_date = document.getElementById('notice-date-input').value || null;
                 const notice_time = document.getElementById('notice-time-input').value || null;
@@ -532,26 +908,45 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     window.showGlobalToast("Warning", "Notice saved, but reminders calculation failed.");
                 }
 
-                // Handle Audience Courses
-                if (audience_type === 'specific') {
-                    // Delete old
-                    await _supabase.from('notice_courses').delete().eq('notice_id', savedNoticeId);
+                // Handle Audience Targeting via content_targets
+                // Delete old targets
+                await _supabase.from('content_targets').delete().eq('content_type', 'notice').eq('content_id', savedNoticeId);
+                console.log("[TARGET SAVE] Old targets deleted.");
 
-                    const cbs = document.querySelectorAll('.notice-course-cb:checked');
-                    if (cbs.length > 0) {
-                        const ncInserts = Array.from(cbs).map(cb => ({
-                            notice_id: savedNoticeId,
-                            course_id: cb.value
+                const isTargetSpecific = ['batch_students', 'batch_crs', 'course_students', 'specific_student'].includes(audience_type);
+                
+                if (isTargetSpecific) {
+                    const cbs = document.querySelectorAll('.notice-target-cb:checked');
+                    const selectedIds = Array.from(cbs).map(cb => cb.value);
+
+                    if (selectedIds.length > 0) {
+                        const targetInserts = selectedIds.map(tid => ({
+                            content_type: 'notice',
+                            content_id: savedNoticeId,
+                            target_type: audience_type,
+                            target_id: tid
                         }));
-                        console.log("[NOTICE SYSTEM] Inserting notice_courses relations:", ncInserts);
-                        const { error: ncError } = await _supabase.from('notice_courses').insert(ncInserts);
-                        if (ncError) {
-                            console.error("[NOTICE SYSTEM] notice_courses insert error:", ncError);
-                            throw ncError;
+                        console.log("[CONTENT TARGETS] Inserting targets:", targetInserts);
+                        const { error: targetError } = await _supabase.from('content_targets').insert(targetInserts);
+                        if (targetError) {
+                            console.error("[TARGET SAVE] content_targets insert error:", targetError);
+                            throw targetError;
                         }
                     }
                 } else {
-                    await _supabase.from('notice_courses').delete().eq('notice_id', savedNoticeId);
+                    // all_students or all_crs
+                    const targetInsert = {
+                        content_type: 'notice',
+                        content_id: savedNoticeId,
+                        target_type: audience_type,
+                        target_id: null
+                    };
+                    console.log("[CONTENT TARGETS] Inserting global target:", targetInsert);
+                    const { error: targetError } = await _supabase.from('content_targets').insert([targetInsert]);
+                    if (targetError) {
+                        console.error("[TARGET SAVE] content_targets global insert error:", targetError);
+                        throw targetError;
+                    }
                 }
 
                 window.showGlobalToast("Success", "Notice saved successfully.");
@@ -620,7 +1015,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 attCont.classList.add('hidden');
             }
 
-            const isAdmin = (window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail));
+            const isAdmin = ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail));
             if (isAdmin) {
                 document.getElementById('btn-edit-notice').classList.remove('hidden');
             } else {
@@ -668,7 +1063,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 document.getElementById('notice-selected-filesize').innerText = "Keep or replace";
             }
 
-            await toggleNoticeCourses();
+            await window.toggleNoticeAudience();
             if (notice.audience_type === 'specific' && notice.notice_courses) {
                 const cbs = document.querySelectorAll('.notice-course-cb');
                 const courseIds = notice.notice_courses.map(nc => nc.course_id);
@@ -750,12 +1145,26 @@ import { ProfileStore } from './stores/ProfileStore.js';
         }
 
         export async function deleteNoticeAction() {
+            if (!(await window.verifyAdminStatus())) { window.showGlobalToast("Error", "Admin check failed."); return; }
             if (!confirm("Are you sure you want to delete this notice?")) return;
             const id = document.getElementById('notice-edit-id').value;
             if (!id) {
                 console.error("[NOTICE DELETE] No notice ID found in form.");
                 window.showGlobalToast("Error", "No notice selected for deletion.");
                 return;
+            }
+
+            const isAdmin = window.crPermissionService && window.crPermissionService.isAdmin();
+            const isCR = window.crPermissionService && window.crPermissionService.isCR();
+            if (isCR) {
+                const originalNotice = window.currentNoticesList.find(n => n.id === id);
+                if (originalNotice && originalNotice.created_by !== window.authState.user.id) {
+                    console.log(`[CR PERMISSION DENIED] Attempted to delete notice not created by them: ${id}`);
+                    window.showGlobalToast("Access Denied", "You can only delete notices that you created.");
+                    return;
+                }
+                console.log(`[CR ACCESS CHECK] Validating notice delete - PASSED`);
+                console.log(`[CR DELETE] Notice ${id}`);
             }
             console.log("[NOTICE DELETE] Starting deletion for notice ID:", id);
             window.showLoader(true, "Deleting notice...");
@@ -773,14 +1182,14 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     } catch (e) { console.warn("[NOTICE DELETE] Storage cleanup error (non-fatal):", e); }
                 }
 
-                // Step 2: Delete notice_courses relations FIRST (FK constraint)
-                console.log("[NOTICE DELETE] Deleting notice_courses relations...");
-                const { error: relError } = await _supabase.from('notice_courses').delete().eq('notice_id', id);
+                // Step 2: Delete content_targets relations FIRST (FK constraint)
+                console.log("[NOTICE DELETE] Deleting content_targets relations...");
+                const { error: relError } = await _supabase.from('content_targets').delete().eq('content_type', 'notice').eq('content_id', id);
                 if (relError) {
-                    console.error("[NOTICE DELETE] notice_courses delete error:", relError);
+                    console.error("[NOTICE DELETE] content_targets delete error:", relError);
                     throw relError;
                 }
-                console.log("[NOTICE DELETE] notice_courses relations deleted successfully.");
+                console.log("[NOTICE DELETE] content_targets relations deleted successfully.");
 
                 // Task 2: Delete reminders from notification_reminders
                 try {
@@ -794,6 +1203,20 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 } catch (remErr) {
                     console.error("[NOTICE DELETE] Exception during reminders delete:", remErr);
                 }
+
+                // Step 2.1: Delete notice_courses relations
+                console.log("[NOTICE DELETE] Deleting notice_courses relations...");
+                const { error: ncError } = await _supabase.from('notice_courses').delete().eq('notice_id', id);
+                if (ncError) {
+                    console.error("[NOTICE DELETE] notice_courses delete error:", ncError);
+                    throw ncError;
+                }
+
+                // Step 2.2: Delete content_reactions
+                console.log("[NOTICE DELETE] Deleting content_reactions relations...");
+                try {
+                    await _supabase.from('content_reactions').delete().eq('content_type', 'notice').eq('content_id', id);
+                } catch (e) { console.warn("[NOTICE DELETE] Reactions cleanup error:", e); }
 
                 // Step 3: Delete the notice itself
                 console.log("[NOTICE DELETE] Deleting notice row...");
@@ -846,7 +1269,7 @@ export const NoticeService = {
     injectDashboardNotices: typeof injectDashboardNotices !== 'undefined' ? injectDashboardNotices : window.injectDashboardNotices,
     setNoticeFilter: typeof setNoticeFilter !== 'undefined' ? setNoticeFilter : window.setNoticeFilter,
     filterNotices: typeof filterNotices !== 'undefined' ? filterNotices : window.filterNotices,
-    toggleNoticeCourses: typeof toggleNoticeCourses !== 'undefined' ? toggleNoticeCourses : window.toggleNoticeCourses,
+    toggleNoticeAudience: typeof window.toggleNoticeAudience !== 'undefined' ? window.toggleNoticeAudience : function(){},
     togglePublishDate: typeof togglePublishDate !== 'undefined' ? togglePublishDate : window.togglePublishDate,
     onNoticeFileSelected: typeof onNoticeFileSelected !== 'undefined' ? onNoticeFileSelected : window.onNoticeFileSelected,
     clearNoticeFile: typeof clearNoticeFile !== 'undefined' ? clearNoticeFile : window.clearNoticeFile,

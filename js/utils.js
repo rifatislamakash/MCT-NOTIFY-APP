@@ -63,6 +63,9 @@ import { _supabase } from './supabase-client.js';
             activeLoaders.forEach(el => el.classList.remove('loader-active', 'spinning'));
         }
 
+        export const activePromises = {};
+        export const _requestCache = { lastFetch: {} };
+
         export async function deduplicateRequest(key, fetchFn) {
             if (activePromises[key]) {
                 console.log(`[REQUEST DEDUPE] Reusing active promise for: ${key}`);
@@ -108,7 +111,7 @@ import { _supabase } from './supabase-client.js';
             }
         }
 
-        export async function fetchWithRetry(fn, retries = 2, delay = 1000, timeoutMs = 8000, parentSignal = null) {
+        export async function fetchWithRetry(fn, retries = 2, delay = 1000, timeoutMs = 20000, parentSignal = null) {
             let lastError = null;
             for (let i = 0; i < retries; i++) {
                 if (parentSignal && parentSignal.aborted) {
@@ -194,3 +197,4 @@ import { _supabase } from './supabase-client.js';
         }
 
 console.log("[ARCHITECTURE]\nutils loaded");
+

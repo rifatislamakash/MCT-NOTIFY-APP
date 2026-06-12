@@ -1,6 +1,7 @@
 {
   "name": "MCT Notify",
   "short_name": "MCT Notify",
+  "version": "1.0.5-2026",
   "description": "Student Communication & Management Platform for MCT Department",
   "start_url": "./",
   "display": "standalone",

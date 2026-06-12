@@ -1,4 +1,5 @@
 import { _supabase } from './supabase-client.js';
+import { crPermissionService } from './services/crPermissionService.js';
 import { showGlobalToast, showLoader, forceHideLoader, cancelActiveRequest, fetchWithRetry } from './utils.js';
 import { CourseStore } from './stores/CourseStore.js';
 import { FacultyStore } from './stores/FacultyStore.js';
@@ -15,8 +16,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
         // ----------------- MATERIALS MANAGEMENT LOGIC -----------------
 
         window.loadMaterials = async function () {
-            if (isModuleLoading('materials')) return;
-            setModuleLoading('materials', true);
+            if (window.isModuleLoading('materials')) return;
+            window.setModuleLoading('materials', true);
             cancelActiveRequest('materials');
             const localController = new AbortController();
             window.activeLoadControllers['materials'] = localController;
@@ -24,19 +25,25 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (typeof window.showLoader !== 'undefined') window.showLoader(true, "Loading materials...");
             console.log("[MATERIALS] Loading materials list...");
             try {
-                const materialsData = await fetchWithRetry(async (signal) => {
-                    const { data, error } = await _supabase
-                        .from('materials')
-                        .select('*, courses(course_name)')
-                        .order('created_at', { ascending: false })
-                        .abortSignal(signal);
+                let materialsData;
 
-                    if (error) {
-                        console.error("[MATERIALS] Supabase fetch error:", error);
-                        throw error;
-                    }
-                    return data;
-                }, 3, 1000, 10000, localController.signal);
+                if (crPermissionService.isCR()) {
+                    materialsData = await crPermissionService.getVisibleMaterials();
+                } else {
+                    materialsData = await fetchWithRetry(async (signal) => {
+                        const { data, error } = await _supabase
+                            .from('materials')
+                            .select('*, courses(course_name)')
+                            .order('created_at', { ascending: false })
+                            .abortSignal(signal);
+
+                        if (error) {
+                            console.error("[MATERIALS] Supabase fetch error:", error);
+                            throw error;
+                        }
+                        return data;
+                    }, 3, 1000, 10000, localController.signal);
+                }
 
                 if (localController.signal.aborted) {
                     console.log("[MATERIALS] Fetch aborted, ignoring state updates.");
@@ -45,8 +52,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                 let materials = materialsData || [];
 
-                // If student, ONLY show materials connected to their enrolled courses
-                if (window.currentUserRole !== 'admin') {
+                if (!crPermissionService.isAdmin() && !crPermissionService.isCR()) {
+                    // Normal Student logic (filter by currentUserCoursesList)
                     if (window.currentUserCoursesList.length === 0 && window.authState.user) {
                         const ucData = await fetchWithRetry(async (ucSignal) => {
                             const { data, error } = await _supabase
@@ -65,7 +72,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     materials = materials.filter(m => myCourseIds.includes(m.course_id));
                 }
 
-                const uploaderIds = [...new Set(materials.map(m => m.uploaded_by).filter(Boolean))];
+                const uploaderIds = [...new Set(materials.map(m => m.created_by).filter(Boolean))];
                 if (uploaderIds.length > 0) {
                     const { data: profilesData } = await _supabase
                         .from('profiles')
@@ -73,7 +80,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         .in('id', uploaderIds);
                     if (profilesData) {
                         materials.forEach(m => {
-                            m.profiles = profilesData.find(p => p.id === m.uploaded_by) || null;
+                            m.profiles = profilesData.find(p => p.id === m.created_by) || null;
                         });
                     }
                 }
@@ -88,7 +95,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                 const adminActions = document.getElementById('materials-admin-actions');
                 if (adminActions) {
-                const isAdmin = (window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail));
+                const isAdmin = ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail));
                 if (isAdmin) adminActions.classList.remove('hidden');
                     else adminActions.classList.add('hidden');
                 }
@@ -100,7 +107,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 if (err.name === 'AbortError' || (err.message && err.message.includes('AbortError'))) {
                     console.log("[MATERIALS] Load aborted, ignoring.");
                     if (typeof window.forceHideLoader === 'function') window.forceHideLoader();
-                    if (isScreenActive('screen-materials-center') && typeof window.navigate === 'function') {
+                    if (window.isScreenActive('screen-materials-center') && typeof window.navigate === 'function') {
                         /* window.navigate('screen-welcome'); (removed AbortError redirect) */
                     }
                     return;
@@ -149,7 +156,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             }
 
             container.innerHTML = materials.map(m => {
-                const isAdmin = (window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail));
+                const isAdmin = ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail));
                 const courseName = (m.courses && m.courses.course_name) ? m.courses.course_name : 'Unknown Course';
 
                 let iconName, iconBgClass, iconColorClass, badgeClass;
@@ -169,10 +176,13 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const safeDesc = window.sanitizeHTML(m.description || '');
 
                 let badgeHtml = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide uppercase ${badgeClass}">${badgeText}</span>`;
+                if (safeCourse && safeCourse !== 'General' && safeCourse !== 'Unknown') {
+                    badgeHtml += `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-blue-100 text-blue-600 uppercase ml-1">${safeCourse}</span>`;
+                }
 
                 let rightSideHtml = `<div class="flex items-center">`;
-                rightSideHtml += `<div class="w-8 h-8 rounded-[8px] ${iconBgClass} ${iconColorClass} flex items-center justify-center shrink-0 ml-2">
-                                     <i data-lucide="${iconName}" class="w-4 h-4"></i>
+                rightSideHtml += `<div class="w-7 h-7 rounded-full ${iconBgClass} ${iconColorClass} flex items-center justify-center shrink-0 ml-1">
+                                     <i data-lucide="${iconName}" class="w-3.5 h-3.5"></i>
                                   </div>`;
                 rightSideHtml += `</div>`;
 
@@ -180,20 +190,24 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 if (m.created_at) {
                     dateStr = new Date(m.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
                 }
+                
+                console.log(`[MATERIAL AUTHOR] ID: ${m.id}, Author: ${m.profiles ? m.profiles.full_name : 'Unknown'}`);
+                console.log(`[MATERIAL CARD] Title: ${m.title}`);
 
                 return `
-                        <div class="bg-white rounded-[16px] p-4 shadow-sm border border-slate-100 flex flex-col gap-1 cursor-pointer hover:border-[#4226E9]/30 hover:shadow-md transition-all relative pb-4 px-4 pt-3 mt-2" onclick="openMaterialDetails('${m.id}')">
+                        <div class="flex flex-col pb-3 px-3 pt-3 bg-white rounded-[16px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 transition-all active:scale-[0.98] cursor-pointer hover:border-[#4226E9]/30 hover:shadow-md relative" onclick="openMaterialDetails('${m.id}')">
                             ${window.AuthorService ? window.AuthorService.renderAuthorBlock(m.profiles, dateStr, badgeHtml, rightSideHtml) : ''}
                             <div class="mt-1 flex flex-col min-w-0">
-                                <h4 class="font-extrabold text-[15px] text-slate-900 truncate leading-tight">${safeTitle}</h4>
-                                <p class="text-[11px] text-[#4226E9] font-black tracking-wide mt-1 truncate uppercase">${safeCourse}</p>
-                                ${safeDesc ? `<p class="text-[13px] text-slate-500 mt-1 line-clamp-2 leading-snug">${safeDesc}</p>` : ''}
+                                <h4 class="font-bold text-[14px] text-slate-900 truncate leading-tight">${safeTitle}</h4>
+                                ${safeDesc ? `<p class="text-[12px] font-medium text-slate-500 leading-snug line-clamp-2 mt-0.5">${safeDesc}</p>` : ''}
                             </div>
                             ${isAdmin ? `
-                            <div class="flex items-center justify-end mt-1 pt-2">
-                                <button onclick="event.stopPropagation(); openUpdateMaterial('${m.id}')" class="px-4 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-[8px] text-[11px] font-bold transition-colors">Edit</button>
+                            <div class="flex items-center justify-end mt-1 pt-1.5 border-t border-slate-50">
+                                <button onclick="event.stopPropagation(); openUpdateMaterial('${m.id}')" class="px-3 py-1 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-[8px] text-[10px] font-bold transition-colors">Edit</button>
                             </div>` : ''}
-                            ${window.ReactionService ? window.ReactionService.renderReactionBlock('material', m.id) : ''}
+                            <div class="mt-2.5">
+                                ${window.ReactionService ? window.ReactionService.renderReactionBlock('material', m.id) : ''}
+                            </div>
                         </div>
                     `;
             }).join('');
@@ -266,7 +280,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     btns += `<a href="${safeExternal}" target="_blank" class="w-full py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-[12px] font-bold text-[15px] transition-all active:scale-[0.98] flex items-center justify-center gap-2"><i data-lucide="external-link" class="w-4 h-4"></i> Open Link</a>`;
                 }
                 // Admin-only: Edit and Delete buttons
-                const isAdmin = (window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail));
+                const isAdmin = ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail));
                 if (isAdmin) {
                     btns += `<div class="flex gap-2 mt-1">
                             <button onclick="openUpdateMaterial('${material.id}')" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-[12px] font-bold text-[13px] transition-all active:scale-[0.98] flex items-center justify-center gap-2"><i data-lucide="pencil" class="w-4 h-4"></i> Edit</button>
@@ -313,12 +327,15 @@ import { ProfileStore } from './stores/ProfileStore.js';
         window.loadUploadMaterialDropdowns = async function () {
             if (typeof window.showLoader !== 'undefined') window.showLoader(true, "Loading courses...");
             try {
-                window.currentCoursesList = await CourseStore.getCourses();
+                window.currentCoursesList = await crPermissionService.getVisibleCourses();
 
                 const courseSelect = document.getElementById('upload-material-course');
                 if (courseSelect) {
                     courseSelect.innerHTML = '<option value="" disabled selected hidden>Select Course</option>' +
-                        window.currentCoursesList.map(c => `<option value="${c.id}">${window.sanitizeHTML(c.course_name)} (${window.sanitizeHTML(c.course_code)})</option>`).join('');
+                        window.currentCoursesList.map(c => {
+                            const batchName = c.batches ? c.batches.batch_name : c.batch_id;
+                            return `<option value="${c.id}">[Batch ${window.sanitizeHTML(batchName)}] ${window.sanitizeHTML(c.course_name)} (${window.sanitizeHTML(c.course_code || c.short_name || '')})</option>`;
+                        }).join('');
                 }
                 const form = document.getElementById('form-upload-material');
                 if (form) form.reset();
@@ -423,7 +440,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
         let isSubmittingMaterial = false;
         window.handleUploadMaterial = async function (e) {
             e.preventDefault();
-            if (window.currentUserRole !== 'admin') {
+            if (!(await window.verifyAdminStatus())) { window.showGlobalToast("Error", "Admin check failed."); return; }
+            if (window.currentUserRole !== 'admin' && window.currentUserRole !== 'cr') {
                 window.showGlobalToast("Access Denied", "Only admins can upload materials.");
                 return;
             }
@@ -435,8 +453,18 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const title = document.getElementById('upload-material-title').value.trim();
                 const description = document.getElementById('upload-material-description').value.trim();
                 const courseId = document.getElementById('upload-material-course').value;
-                const type = document.getElementById('upload-material-type').value;
                 const link = document.getElementById('upload-material-link').value.trim();
+
+                const course = window.currentCoursesList.find(c => c.id === courseId);
+                if (!course || !crPermissionService.canAccessBatch(course.batch_id)) {
+                    console.log(`[CR PERMISSION DENIED] Attempted to create material for unassigned course ${courseId}`);
+                    window.showGlobalToast("Access Denied", "You can only manage materials for courses in your assigned batches.");
+                    isSubmittingMaterial = false;
+                    if (typeof window.showLoader !== 'undefined') window.showLoader(false);
+                    return;
+                }
+                if (crPermissionService.isCR()) console.log(`[CR ACCESS CHECK] Validating access for course batch ${course.batch_id} - PASSED`);
+                if (crPermissionService.isCR()) console.log(`[CR CREATE] Material for course ${courseId}`);
 
                 console.log("--- UPLOAD MATERIAL DEBUG ---");
                 console.log("Form Data:", { title, description, courseId, type, link });
@@ -477,7 +505,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     external_link: link,
                     attachment_url: attachmentUrl,
                     thumbnail_url: thumbnailUrl,
-                    uploaded_by: window.authState.user.id
+                    created_by: window.authState.user.id
                 };
 
                 const { data: insertedMaterials, error: insertError } = await _supabase.from('materials').insert([payload]).select();
@@ -486,20 +514,12 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     console.error("Database insert error:", insertError);
                     throw insertError;
                 }
-
                 const notifyChecked = document.getElementById('mat-notify-users')?.checked;
-                if (notifyChecked && insertedMaterials && insertedMaterials.length > 0) {
+                if (insertedMaterials && insertedMaterials.length > 0) {
                     const newMaterialId = insertedMaterials[0].id;
-                    const reminderPayload = {
-                        parent_type: 'material',
-                        parent_id: newMaterialId,
-                        reminder_time: new Date(Date.now() + 60000).toISOString(),
-                        sent: false,
-                        reminder_title: 'New Material Uploaded',
-                        reminder_message: `A new material "${title}" has been uploaded.`,
-                        created_by: window.authState.user.id
-                    };
-                    await _supabase.from('notification_reminders').insert([reminderPayload]);
+                    if (window.triggerImmediateNotification) {
+                        window.triggerImmediateNotification('material', newMaterialId, 'New Material Added', `A new material ${payload.title} was uploaded.`);
+                    }
                 }
 
                 window.showGlobalToast("Success", "Material uploaded successfully!");
@@ -521,12 +541,15 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
             if (typeof window.showLoader !== 'undefined') window.showLoader(true, "Loading material...");
             try {
-                window.currentCoursesList = await CourseStore.getCourses();
+                window.currentCoursesList = await crPermissionService.getVisibleCourses();
 
                 const courseSelect = document.getElementById('update-material-course');
                 if (courseSelect) {
                     courseSelect.innerHTML = '<option value="" disabled selected hidden>Select Course</option>' +
-                        window.currentCoursesList.map(c => `<option value="${c.id}">${window.sanitizeHTML(c.course_name)} (${window.sanitizeHTML(c.course_code)})</option>`).join('');
+                        window.currentCoursesList.map(c => {
+                            const batchName = c.batches ? c.batches.batch_name : c.batch_id;
+                            return `<option value="${c.id}">[Batch ${window.sanitizeHTML(batchName)}] ${window.sanitizeHTML(c.course_name)} (${window.sanitizeHTML(c.course_code || c.short_name || '')})</option>`;
+                        }).join('');
                 }
 
                 document.getElementById('update-material-course').value = material.course_id || '';
@@ -567,7 +590,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
         window.handleUpdateMaterial = async function (e) {
             e.preventDefault();
-            if (window.currentUserRole !== 'admin') {
+            if (!(await window.verifyAdminStatus())) { window.showGlobalToast("Error", "Admin check failed."); return; }
+            if (window.currentUserRole !== 'admin' && window.currentUserRole !== 'cr') {
                 window.showGlobalToast("Access Denied", "Only admins can edit materials.");
                 return;
             }
@@ -582,6 +606,29 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const section = document.getElementById('update-material-section').value;
                 const type = document.getElementById('update-material-type').value;
                 const link = document.getElementById('update-material-link').value.trim();
+
+                const originalMaterial = window.currentMaterialsList.find(m => m.id === selectedMaterialIdForEdit);
+                if (!originalMaterial) throw new Error("Original material not found.");
+                
+                const origCourse = window.currentCoursesList.find(c => c.id === originalMaterial.course_id);
+                const newCourse = window.currentCoursesList.find(c => c.id === courseId);
+                
+                if (origCourse && !crPermissionService.canAccessBatch(origCourse.batch_id)) {
+                    console.log(`[CR PERMISSION DENIED] Attempted to update material from unassigned course`);
+                    window.showGlobalToast("Access Denied", "You can only edit materials from your assigned batches.");
+                    isSubmittingMaterial = false;
+                    if (typeof window.showLoader !== 'undefined') window.showLoader(false);
+                    return;
+                }
+                if (newCourse && !crPermissionService.canAccessBatch(newCourse.batch_id)) {
+                    console.log(`[CR PERMISSION DENIED] Attempted to move material to unassigned course`);
+                    window.showGlobalToast("Access Denied", "You can only assign materials to courses in your assigned batches.");
+                    isSubmittingMaterial = false;
+                    if (typeof window.showLoader !== 'undefined') window.showLoader(false);
+                    return;
+                }
+                if (crPermissionService.isCR()) console.log(`[CR ACCESS CHECK] Validating access - PASSED`);
+                if (crPermissionService.isCR()) console.log(`[CR UPDATE] Material ${selectedMaterialIdForEdit}`);
 
                 console.log("--- UPDATE MATERIAL DEBUG ---");
                 console.log("Update Form Data:", { title, description, courseId, section, type, link });
@@ -658,11 +705,34 @@ import { ProfileStore } from './stores/ProfileStore.js';
         };
 
         window.deleteMaterialAction = async function () {
+            if (!(await window.verifyAdminStatus())) { window.showGlobalToast("Error", "Admin check failed."); return; }
+            if (window.currentUserRole !== 'admin' && window.currentUserRole !== 'cr') { window.showGlobalToast("Access Denied", "Only admins can delete materials."); return; }
             if (!confirm("Delete this material? This will also permanently remove any attached file from storage.")) return;
             if (typeof window.showLoader !== 'undefined') window.showLoader(true, "Deleting material...");
             try {
                 // 1. Fetch the material record to get its attachment_url before deleting
                 const material = window.currentMaterialsList.find(m => m.id === selectedMaterialIdForEdit);
+
+                // CR Batch Validation
+                if (material) {
+                    let courseBatchId = null;
+                    if (window.currentCoursesList) {
+                        const c = window.currentCoursesList.find(c => c.id === material.course_id);
+                        if (c) courseBatchId = c.batch_id;
+                    }
+                    if (!courseBatchId) {
+                        const { data: cData } = await _supabase.from('courses').select('batch_id').eq('id', material.course_id).single();
+                        if (cData) courseBatchId = cData.batch_id;
+                    }
+                    if (courseBatchId && !crPermissionService.canAccessBatch(courseBatchId)) {
+                        console.log(`[CR PERMISSION DENIED] Attempted to delete material for unassigned batch`);
+                        window.showGlobalToast("Access Denied", "You can only delete materials from your assigned batches.");
+                        if (typeof window.showLoader !== 'undefined') window.showLoader(false);
+                        return;
+                    }
+                    if (crPermissionService.isCR()) console.log(`[CR ACCESS CHECK] Validating access - PASSED`);
+                    if (crPermissionService.isCR()) console.log(`[CR DELETE] Material ${material.id}`);
+                }
 
                 // 2. If an attachment_url exists, extract the storage file path and delete it from the bucket
                 if (material && material.attachment_url) {
@@ -701,6 +771,12 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     console.error("[MATERIAL DELETE] Exception during reminders delete:", remErr);
                 }
 
+                // Step 2.1: Delete content_reactions
+                console.log("[MATERIAL DELETE] Deleting content_reactions relations...");
+                try {
+                    await _supabase.from('content_reactions').delete().eq('content_type', 'material').eq('content_id', selectedMaterialIdForEdit);
+                } catch (e) { console.warn("[MATERIAL DELETE] Reactions cleanup error:", e); }
+
                 // 3. Delete the database record
                 const { error } = await _supabase.from('materials').delete().eq('id', selectedMaterialIdForEdit);
                 if (error) throw error;
@@ -718,9 +794,29 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
         // Delete directly from the material details screen (admin shortcut)
         window.deleteMaterialFromDetails = async function (materialId) {
+            if (!(await window.verifyAdminStatus())) { window.showGlobalToast("Error", "Admin check failed."); return; }
+            if (window.currentUserRole !== 'admin' && window.currentUserRole !== 'cr') { window.showGlobalToast("Access Denied", "Only admins can delete materials."); return; }
             if (!confirm("Delete this material? This will also permanently remove any attached file from storage.")) return;
             const material = window.currentMaterialsList.find(m => m.id === materialId);
             if (!material) { window.showGlobalToast("Error", "Material not found."); return; }
+            
+            // CR Batch Validation
+            let courseBatchId = null;
+            if (window.currentCoursesList) {
+                const c = window.currentCoursesList.find(c => c.id === material.course_id);
+                if (c) courseBatchId = c.batch_id;
+            }
+            if (!courseBatchId) {
+                const { data: cData } = await _supabase.from('courses').select('batch_id').eq('id', material.course_id).single();
+                if (cData) courseBatchId = cData.batch_id;
+            }
+            if (courseBatchId && !crPermissionService.canAccessBatch(courseBatchId)) {
+                console.log(`[CR PERMISSION DENIED] Attempted to delete material for unassigned batch`);
+                window.showGlobalToast("Access Denied", "You can only delete materials from your assigned batches.");
+                return;
+            }
+            if (window.crPermissionService && window.crPermissionService.isCR()) console.log(`[CR ACCESS CHECK] Validating access - PASSED`);
+            if (window.crPermissionService && window.crPermissionService.isCR()) console.log(`[CR DELETE] Material ${material.id}`);
             selectedMaterialIdForEdit = materialId;
             if (typeof window.showLoader !== 'undefined') window.showLoader(true, "Deleting material...");
             try {
@@ -747,6 +843,12 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 } catch (remErr) {
                     console.error("[MATERIAL DELETE DETAILS] Exception during reminders delete:", remErr);
                 }
+
+                // Step 2.1: Delete content_reactions
+                console.log("[MATERIAL DELETE DETAILS] Deleting content_reactions relations...");
+                try {
+                    await _supabase.from('content_reactions').delete().eq('content_type', 'material').eq('content_id', materialId);
+                } catch (e) { console.warn("[MATERIAL DELETE DETAILS] Reactions cleanup error:", e); }
 
                 const { error } = await _supabase.from('materials').delete().eq('id', materialId);
                 if (error) throw error;

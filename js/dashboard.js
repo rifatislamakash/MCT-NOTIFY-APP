@@ -74,7 +74,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
         // Home redirection / Syncing action
         function goHome() {
             simulateReload();
-            if (window.currentUserRole === 'admin') {
+            const preferredRole = window.currentUserRole === 'cr' ? (sessionStorage.getItem('crPreferredRole') || 'student') : null;
+            if (window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail) || preferredRole === 'cr') {
                 window.navigate('screen-admin-dashboard');
             } else {
                 window.navigate('screen-student-dashboard');
@@ -85,7 +86,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const isHome = screenId === 'screen-student-dashboard' || screenId === 'screen-admin-dashboard';
             const isProfile = screenId === 'screen-profile';
             const isGroups = ['screen-groups-list', 'screen-edit-group', 'screen-groups-detailed'].includes(screenId);
-            const isAdmin = (window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail));
+            const isAdmin = ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail));
 
             document.querySelectorAll('.nav-home-btn').forEach(btn => {
                 if (btn && btn.classList) {
@@ -104,30 +105,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
         }
 
-        function toggleAdminStudentRole() {
-            const isActualAdmin = window.isAdminEmail(window.currentUserEmail);
 
-            if (!isActualAdmin) {
-                window.showGlobalToast("Access Denied", "Only Authorized Admins have role swapping authorization.");
-                return;
-            }
-            if (window.currentUserRole === 'admin') {
-                window.authState.profile.role = 'student';
-                window.currentUserRole = 'student';
-                localStorage.setItem('adminPreferredRole', 'student');
-                window.navigate('screen-student-dashboard');
-                updateDashboardGreetings();
-                triggerUrgentPopupModal();
-                setTimeout(() => { if (typeof window.loadDashboardTodayRoutine === 'function') window.loadDashboardTodayRoutine(); }, 600);
-                window.showGlobalToast("Swap View", "Viewing as Fellow Student.");
-            } else {
-                window.authState.profile.role = 'admin';
-                window.currentUserRole = 'admin';
-                localStorage.setItem('adminPreferredRole', 'admin');
-                window.navigate('screen-admin-dashboard');
-                window.showGlobalToast("Swap View", "Viewing as System Admin");
-            }
-        }
 
 
 
@@ -141,11 +119,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
         // ---- DASHBOARD: Smart Today/Tomorrow Routine ----
         // ---- DASHBOARD: Smart Today/Tomorrow Routine ----
         export async function loadDashboardTodayRoutine() {
-            if (isModuleLoading('dashboard')) {
+            if (window.isModuleLoading('dashboard')) {
                 console.log("[DASHBOARD ROUTINE] Load already in progress, ignoring duplicate call.");
                 return;
             }
-            setModuleLoading('dashboard', true);
+            window.setModuleLoading('dashboard', true);
             cancelActiveRequest('dashboard');
             const localController = new AbortController();
             window.activeLoadControllers['dashboard'] = localController;
@@ -155,7 +133,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const dashContainer = document.getElementById('dashboard-today-routine');
                 const sectionLabel = document.getElementById('dashboard-routine-section-label');
                 if (!dashContainer) {
-                    setModuleLoading('dashboard', false);
+                    window.setModuleLoading('dashboard', false);
                     return;
                 }
 
@@ -179,13 +157,17 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     return (a.start_time || '').localeCompare(b.start_time || '');
                 });
 
-                if (window.currentUserRole !== 'admin') {
+                if (window.currentUserRole !== 'admin' && window.currentUserRole !== 'cr') {
                     const enrolledCourseIds = (window.currentUserCoursesList || []).map(uc => uc.course_id);
                     todayClasses = todayClasses.filter(c => {
-                        if (!c.course_id || c.room_number === 'Break') {
-                            return true;
-                        }
+                        if (!c.course_id || c.room_number === 'Break') return true;
                         return enrolledCourseIds.includes(c.course_id);
+                    });
+                } else if (window.currentUserRole === 'cr' && !window.isAdminEmail(window.currentUserEmail)) {
+                    const allowedCourseIds = (window.currentCoursesList || []).map(c => c.id);
+                    todayClasses = todayClasses.filter(c => {
+                        if (!c.course_id || c.room_number === 'Break') return true;
+                        return allowedCourseIds.includes(c.course_id);
                     });
                 }
 
@@ -307,6 +289,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 ? `<span class="bg-blue-50 text-blue-600 text-[8px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Upcoming</span>`
                                 : `<span class="bg-slate-100 text-slate-500 text-[8px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Done</span>`;
 
+                        let sectionHTML = '';
+                        if (cls.section_name) {
+                            sectionHTML = `<span class="bg-indigo-50 text-indigo-600 text-[10px] font-bold px-2 py-0.5 rounded ml-2 whitespace-nowrap">Sec: ${window.sanitizeHTML(cls.section_name)}</span>`;
+                        }
+
                         contentHTML = `
                                 <div class="flex-1 min-w-0 bg-white p-3.5 rounded-[22px] border border-slate-100 shadow-2xs flex items-center justify-between gap-2 hover:border-[#4226E9]/15 hover:shadow-xs transition-all ${isPast ? 'opacity-60' : ''}">
                                     <div class="flex items-center gap-3.5 min-w-0 flex-1">
@@ -316,7 +303,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                             <p class="text-[11px] font-black ${timeColor} leading-none whitespace-nowrap mt-0.5">${endTimeDisplay}</p>
                                         </div>
                                         <div class="min-w-0 flex-1 text-left">
-                                            <h4 class="font-extrabold text-xs text-slate-900 leading-snug break-words">${cls.courses?.course_name || 'Course'}</h4>
+                                            <h4 class="font-extrabold text-xs text-slate-900 leading-snug break-words flex flex-wrap items-center gap-1">${cls.courses?.course_name || 'Course'}${sectionHTML}</h4>
                                             <p class="text-[10px] text-slate-500 font-semibold mt-1 break-words">Room ${cls.room_number || 'N/A'} — ${cls.faculty?.faculty_name || 'Faculty'}</p>
                                         </div>
                                     </div>
@@ -341,7 +328,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 }
                 console.error('[DASHBOARD ROUTINE ERROR]', err);
             } finally {
-                setModuleLoading('dashboard', false);
+                window.setModuleLoading('dashboard', false);
                 if (window.activeLoadControllers['dashboard'] === localController) {
                     window.activeLoadControllers['dashboard'] = null;
                 }
@@ -357,8 +344,24 @@ export const DashboardService = {
     updateDashboardQuickAccessBadges: updateDashboardQuickAccessBadges,
     goHome: goHome,
     updateBottomNavHighlights: updateBottomNavHighlights,
-    toggleAdminStudentRole: toggleAdminStudentRole,
+
     simulateReload: simulateReload,
-    loadDashboardTodayRoutine: loadDashboardTodayRoutine
+    loadDashboardTodayRoutine: loadDashboardTodayRoutine,
+    applyCRDashboardRestrictions: function() {
+        if (!window.crPermissionService) return;
+        const isCR = window.crPermissionService.isCR();
+        const isAdmin = window.crPermissionService.isAdmin();
+        
+        // Only handle the legacy admin buttons on the admin dashboard if any
+
+        // Also handle the legacy admin buttons on the admin dashboard if any
+        const facultyBtn = document.getElementById('admin-action-faculty');
+        const supportBtn = document.getElementById('admin-action-support');
+        const checkUploadBtn = document.getElementById('admin-action-check-upload');
+        
+        if (facultyBtn) { isCR ? facultyBtn.classList.add('hidden') : facultyBtn.classList.remove('hidden'); }
+        if (supportBtn) { isCR ? supportBtn.classList.add('hidden') : supportBtn.classList.remove('hidden'); }
+        if (checkUploadBtn) { isCR ? checkUploadBtn.classList.add('hidden') : checkUploadBtn.classList.remove('hidden'); }
+    }
 };
 console.log("[ARCHITECTURE]\ndashboard loaded");

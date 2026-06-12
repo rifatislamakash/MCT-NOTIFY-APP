@@ -1,4 +1,5 @@
 import { _supabase } from './supabase-client.js';
+import { crPermissionService } from './services/crPermissionService.js';
 import { showGlobalToast, showLoader, forceHideLoader, fetchCachedOrDeduplicated, cancelActiveRequest, fetchWithRetry } from './utils.js';
 import { CourseStore } from './stores/CourseStore.js';
 import { FacultyStore } from './stores/FacultyStore.js';
@@ -58,25 +59,25 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
         // ----- LOAD SCHEDULE LIST -----
         window.loadScheduleList = async function () {
-            if (isModuleLoading('schedule')) {
+            if (window.isModuleLoading('schedule')) {
                 console.log("[SCHEDULE] Load already in progress, ignoring duplicate call.");
                 return;
             }
-            setModuleLoading('schedule', true);
+            window.setModuleLoading('schedule', true);
             cancelActiveRequest('schedule');
             const localController = new AbortController();
             window.activeLoadControllers['schedule'] = localController;
 
             const container = document.getElementById('schedule-list-container');
             if (!container) {
-                setModuleLoading('schedule', false);
+                window.setModuleLoading('schedule', false);
                 return;
             }
 
             // Show admin add button
             const addBtn = document.getElementById('schedule-admin-add-btn');
             if (addBtn) {
-                const isAdmin = (window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail));
+                const isAdmin = ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail));
                 if (isAdmin) addBtn.classList.remove('hidden');
                 else addBtn.classList.add('hidden');
             }
@@ -91,22 +92,29 @@ import { ProfileStore } from './stores/ProfileStore.js';
             console.log("[SCHEDULE] Fetching schedules list...");
             try {
                 if (allCoursesList.length === 0) {
-                    allCoursesList = await CourseStore.getCourses();
+                    allCoursesList = await window.crPermissionService.getVisibleCourses();
                 }
-                const { rawSchedules, scMap } = await fetchCachedOrDeduplicated('schedules', async () => {
-                    const schedulesData = await fetchWithRetry(async (signal) => {
-                        const { data, error } = await _supabase
-                            .from('schedules')
-                            .select('*, profiles (id, full_name, profile_url, role)')
-                            .order('is_pinned', { ascending: false })
-                            .order('created_at', { ascending: false })
-                            .abortSignal(signal);
-                        if (error) throw error;
-                        return data || [];
-                    }, 2, 1000, 8000, localController.signal);
+                const { rawSchedules, scMap, ctMap } = await fetchCachedOrDeduplicated('schedules', async () => {
+                    let schedulesData;
+                    if (crPermissionService.isCR()) {
+                        schedulesData = await crPermissionService.getVisibleSchedules();
+                    } else {
+                        schedulesData = await fetchWithRetry(async (signal) => {
+                            const { data, error } = await _supabase
+                                .from('schedules')
+                                .select('*, profiles (id, full_name, profile_url, role)')
+                                .order('is_pinned', { ascending: false })
+                                .order('created_at', { ascending: false })
+                                .abortSignal(signal);
+                            if (error) throw error;
+                            return data || [];
+                        }, 2, 1000, 8000, localController.signal);
+                    }
 
-                    const scheduleIds = schedulesData.filter(s => s.audience_type === 'specific').map(s => s.id);
+                    const targetSpecificTypes = ['specific', 'batch_students', 'batch_crs', 'course_students', 'specific_student'];
+                    const scheduleIds = schedulesData.filter(s => targetSpecificTypes.includes(s.audience_type)).map(s => s.id);
                     let scMap = {};
+                    let ctMap = {};
                     if (scheduleIds.length > 0) {
                         const scData = await fetchWithRetry(async (subSignal) => {
                             const { data, error } = await _supabase
@@ -122,8 +130,24 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             if (!scMap[row.schedule_id]) scMap[row.schedule_id] = [];
                             scMap[row.schedule_id].push(row.course_id);
                         });
+
+                        const ctData = await fetchWithRetry(async (subSignal) => {
+                            const { data, error } = await _supabase
+                                .from('content_targets')
+                                .select('*')
+                                .eq('content_type', 'schedule')
+                                .in('content_id', scheduleIds)
+                                .abortSignal(subSignal);
+                            if (error) throw error;
+                            return data || [];
+                        }, 2, 1000, 8000, localController.signal);
+
+                        ctData.forEach(row => {
+                            if (!ctMap[row.content_id]) ctMap[row.content_id] = [];
+                            ctMap[row.content_id].push(row);
+                        });
                     }
-                    return { rawSchedules: schedulesData, scMap };
+                    return { rawSchedules: schedulesData, scMap, ctMap };
                 });
 
                 if (localController.signal.aborted) {
@@ -133,22 +157,115 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                 let filteredSchedules = [...rawSchedules];
                 scheduleCoursesMap = scMap;
+                window.scheduleCoursesMap = scheduleCoursesMap;
+                window.scheduleContentTargetsMap = ctMap;
 
                 // Student visibility filter
-                if (window.currentUserRole !== 'admin') {
+                if (!crPermissionService.isAdmin() && !crPermissionService.isCR()) {
                     const myCourseIds = (window.currentUserCoursesList || []).map(uc => uc.course_id);
+                    const myBatches = [...new Set(myCourseIds.map(cid => {
+                        const c = allCoursesList.find(x => x.id === cid);
+                        return c ? c.batch_id : null;
+                    }).filter(Boolean))];
+
                     filteredSchedules = filteredSchedules.filter(s => {
-                        if (s.audience_type === 'all_students') return true;
+                        if (s.audience_type === 'all' || s.audience_type === 'all_students') return true;
+                        
                         if (s.audience_type === 'specific') {
                             const tgt = scMap[s.id] || [];
-                            return tgt.some(cid => myCourseIds.includes(cid));
+                            if (tgt.some(cid => myCourseIds.includes(cid))) return true;
                         }
-                        return true;
+                        
+                        const targets = ctMap[s.id] || [];
+                        if (targets.length > 0) {
+                            return targets.some(ct => {
+                                if (ct.target_type === 'course_students') return myCourseIds.includes(ct.target_id);
+                                if (ct.target_type === 'batch_students') return myBatches.includes(ct.target_id);
+                                if (ct.target_type === 'specific_student') return ct.target_id === window.authState.user.id;
+                                return false;
+                            });
+                        }
+                        return false;
                     });
                 }
 
                 schedulesList = filteredSchedules;
                 window.currentSchedulesList = schedulesList;
+
+                // Populate admin batch filter
+                const batchFilter = document.getElementById('admin-schedule-batch-filter');
+                if (batchFilter) {
+                    const isAdmin = ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail));
+                    if (isAdmin) {
+                        const isStrictAdmin = (window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail));
+                        if (isStrictAdmin) {
+                            batchFilter.classList.remove('hidden');
+                            console.log("[BATCH FILTER LOAD] Populating schedules batch filter");
+                            if (batchFilter.options.length <= 1) {
+                                try {
+                                    let batchesData, error;
+                                    const sdkPromise = _supabase.from('batches').select('id, batch_name').order('batch_name');
+                                    if (window._supabaseSdkFailing) {
+                                        throw new Error('sdk_timeout');
+                                    }
+                                    let timerId;
+                                    const timeoutPromise = new Promise((_, reject) => {
+                                        timerId = setTimeout(() => reject(new Error('sdk_timeout')), 400);
+                                    });
+                                    try {
+                                        const result = await Promise.race([sdkPromise, timeoutPromise]);
+                                        batchesData = result.data;
+                                        error = result.error;
+                                    } finally {
+                                        clearTimeout(timerId);
+                                    }
+                                    if (error) throw error;
+                                    
+                                    let optionsHTML = '<option value="" disabled selected class="text-black">Select Batch</option>';
+                                    optionsHTML += '<option value="all" class="text-black">All Batches</option>';
+                                    if (batchesData) {
+                                        optionsHTML += batchesData.map(b => `<option value="${b.id}" class="text-black">${b.batch_name}</option>`).join('');
+                                    }
+                                    batchFilter.innerHTML = optionsHTML;
+                                } catch(e) { 
+                                    if (e.message === 'sdk_timeout') {
+                                        window._supabaseSdkFailing = true;
+                                        console.log("[SCHEDULE ADMIN] Supabase SDK hung, falling back to REST for batches");
+                                        try {
+                                            const url = `${_supabase.supabaseUrl}/rest/v1/batches?select=id,batch_name&order=batch_name.asc`;
+                                            const res = await fetch(url, {
+                                                headers: {
+                                                    'apikey': _supabase.supabaseKey,
+                                                    'Authorization': `Bearer ${window.authState?.session?.access_token || _supabase.supabaseKey}`,
+                                                    'cache-control': 'no-cache'
+                                                },
+                                                cache: 'no-store'
+                                            });
+                                            if (res.ok) {
+                                                const batchesData = await res.json();
+                                                let optionsHTML = '<option value="" disabled selected class="text-black">Select Batch</option>';
+                                                optionsHTML += '<option value="all" class="text-black">All Batches</option>';
+                                                if (batchesData) {
+                                                    optionsHTML += batchesData.map(b => `<option value="${b.id}" class="text-black">${b.batch_name}</option>`).join('');
+                                                }
+                                                batchFilter.innerHTML = optionsHTML;
+                                            }
+                                        } catch (fetchErr) {
+                                            console.warn("REST fallback failed for batches", fetchErr);
+                                        }
+                                    } else {
+                                        console.warn("Failed to load batches", e); 
+                                    }
+                                }
+                            }
+                        } else {
+                            batchFilter.classList.add('hidden');
+                        }
+                    } else {
+                        batchFilter.classList.add('hidden');
+                    }
+                }
+
                  // PART 9: For badge count
                 
                 const scheduleIds = schedulesList.map(s => s.id);
@@ -160,12 +277,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 if (typeof window.updateScheduleBadgeCount === 'function') window.updateScheduleBadgeCount();
 
             } catch (err) {
-                if (err.name === 'AbortError') {
-                    console.log("[SCHEDULE] Abort detected, resetting to welcome screen.");
-                    if (typeof window.forceHideLoader === 'function') window.forceHideLoader();
-                    if (isScreenActive('screen-schedule-list') && typeof window.navigate === 'function') {
-                        /* window.navigate('screen-welcome'); (removed AbortError redirect) */
-                    }
+                if (err.name === 'AbortError' || (err.message && err.message.includes('AbortError'))) {
+                    console.log("[SCHEDULE] Load aborted, ignoring.");
                     return;
                 }
                 console.error('[SCHEDULE LOAD ERROR]', err);
@@ -178,7 +291,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         </div>`;
                 if (typeof lucide !== 'undefined') lucide.createIcons();
             } finally {
-                setModuleLoading('schedule', false);
+                window.setModuleLoading('schedule', false);
                 if (window.activeLoadControllers['schedule'] === localController) {
                     window.activeLoadControllers['schedule'] = null;
                 }
@@ -191,16 +304,70 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const searchEl = document.getElementById('schedule-search');
             const sortEl = document.getElementById('schedule-filter-sort');
             const audienceEl = document.getElementById('schedule-filter-audience');
+            const batchFilterEl = document.getElementById('admin-schedule-batch-filter');
 
             const searchVal = (searchEl ? searchEl.value : '').toLowerCase().trim();
             const sortVal = sortEl ? sortEl.value : 'newest';
             const audienceVal = audienceEl ? audienceEl.value : 'all';
+            const batchVal = (batchFilterEl && !batchFilterEl.classList.contains('hidden')) ? batchFilterEl.value : 'all';
+
+            if (batchFilterEl && !batchFilterEl.classList.contains('hidden')) {
+                if (!batchVal || batchVal === '') {
+                    console.log("[BATCH FILTER SELECT] Schedule batch changed to: undefined");
+                    console.log("[SCHEDULE BATCH] No batch selected. Showing empty state.");
+                    const list = document.getElementById('schedule-list-container');
+                    if (list) {
+                        list.innerHTML = `
+                            <div class="flex flex-col items-center justify-center py-16 px-4 text-center">
+                                <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                                    <i data-lucide="layers" class="w-8 h-8 text-slate-400"></i>
+                                </div>
+                                <h3 class="text-lg font-bold text-slate-700">Please select a batch</h3>
+                                <p class="text-sm text-slate-500 mt-1 max-w-[250px]">Select a batch from the dropdown above to view its schedules.</p>
+                            </div>
+                        `;
+                        if (window.lucide) window.lucide.createIcons();
+                    }
+                    return; // DO NOT RENDER
+                }
+                console.log(`[BATCH FILTER SELECT] Schedule batch changed to: ${batchVal}`);
+                console.log(`[SCHEDULE BATCH] Rendering schedules for batch: ${batchVal}`);
+            }
 
             let filtered = [...schedulesList];
 
             // Audience filter
             if (audienceVal !== 'all') {
                 filtered = filtered.filter(s => s.audience_type === audienceVal);
+            }
+            
+            // Admin Batch Filter
+            if (batchVal !== 'all') {
+                filtered = filtered.filter(s => {
+                    if (s.audience_type === 'all' || s.audience_type === 'all_students') return true;
+                    let matchesBatch = false;
+                    const tgt = scheduleCoursesMap[s.id] || [];
+                    if (tgt.length > 0) {
+                        matchesBatch = tgt.some(cid => {
+                            const c = (allCoursesList || []).find(x => x.id === cid);
+                            return c && c.batch_id === batchVal;
+                        });
+                    }
+                    if (!matchesBatch && window.scheduleContentTargetsMap) {
+                        const targets = window.scheduleContentTargetsMap[s.id] || [];
+                        if (targets.length > 0) {
+                            matchesBatch = targets.some(ct => {
+                                if (['batch_students', 'batch_crs'].includes(ct.target_type)) return ct.target_id === batchVal;
+                                if (ct.target_type === 'course_students') {
+                                    const c = (allCoursesList || []).find(x => x.id === ct.target_id);
+                                    return c && c.batch_id === batchVal;
+                                }
+                                return false;
+                            });
+                        }
+                    }
+                    return matchesBatch;
+                });
             }
 
             // Search
@@ -254,7 +421,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         <div class="flex flex-col items-center justify-center py-12 text-center">
                             <i data-lucide="calendar-x" class="w-12 h-12 text-slate-300 mb-3"></i>
                             <h3 class="text-[16px] font-bold text-slate-700">No schedules found</h3>
-                            <p class="text-[11px] text-slate-400 mt-1">${(window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail)) ? 'Tap + to add a new schedule.' : 'Check back when your admin posts a schedule.'}</p>
+                            <p class="text-[11px] text-slate-400 mt-1">${((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail)) ? 'Tap + to add a new schedule.' : 'Check back when your admin posts a schedule.'}</p>
                         </div>`;
                 if (typeof lucide !== 'undefined') lucide.createIcons();
                 return;
@@ -268,7 +435,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
             container.innerHTML = list.map(s => {
                 const msgPreview = (s.message || '').length > 80 ? s.message.substring(0, 80) + '…' : (s.message || '');
-                const isAdmin = (window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail));
+                const isAdmin = ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail));
                 const hasAttachment = !!s.attachment_url;
                 const isPinned = !!s.is_pinned;
                 const isTodayOrTomorrow = s.schedule_date === todayStr || s.schedule_date === tomorrowStr;
@@ -380,7 +547,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 if (courseIds.length > 0) {
                     // Load course names if not already cached
                     if (allCoursesList.length === 0) {
-                        allCoursesList = await CourseStore.getCourses();
+                        allCoursesList = await window.crPermissionService.getVisibleCourses();
                     }
                     if (coursesList) {
                         coursesList.innerHTML = courseIds.map(cid => {
@@ -425,7 +592,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             // Admin actions
             const adminActions = document.getElementById('sd-admin-actions');
             if (adminActions) {
-                const isAdmin = (window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail));
+                const isAdmin = ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail));
                 if (isAdmin) adminActions.classList.remove('hidden');
                 else adminActions.classList.add('hidden');
             }
@@ -439,7 +606,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
         // ----- OPEN CREATE SCHEDULE -----
         window.openCreateSchedule = async function () {
-            if (window.currentUserRole !== 'admin') return;
+            if (window.currentUserRole !== 'admin' && window.currentUserRole !== 'cr') return;
 
             // Reset form
             const titleEl = document.getElementById('cs-title');
@@ -469,97 +636,162 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (filePreview) filePreview.classList.add('hidden');
 
             // Audience button states
-            selectAudienceType('all_students');
-
-            // Load courses
-            await loadCoursesForCreateForm();
+            document.getElementById('cs-audience-type').value = 'all_students';
+            await window.toggleScheduleAudience('cs');
 
             window.navigate('screen-create-schedule');
         };
 
-        export async function loadCoursesForCreateForm() {
-            if (allCoursesList.length === 0) {
-                allCoursesList = await CourseStore.getCourses();
-            }
-            renderCourseCheckboxes('cs-course-checkboxes', currentScheduleSelectedCourses, 'cs');
-        }
-
-        function renderCourseCheckboxes(containerId, selectedIds, prefix) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-
-            if (allCoursesList.length === 0) {
-                container.innerHTML = `<p class="text-[11px] text-slate-400 py-2">No courses found.</p>`;
-                return;
-            }
-
-            container.innerHTML = allCoursesList.map(c => {
-                const isChecked = selectedIds.includes(c.id);
-                const label = c.short_name ? `${window.sanitizeHTML(c.course_name)} (${window.sanitizeHTML(c.short_name)})` : c.course_name;
-                return `
-                    <label class="flex items-center gap-3 p-2.5 rounded-[10px] border border-slate-100 cursor-pointer hover:bg-slate-50 transition ${isChecked ? 'bg-indigo-50 border-indigo-200' : 'bg-white'}">
-                        <input type="checkbox" value="${c.id}" onchange="onCourseCheckboxChange('${prefix}', '${c.id}', this.checked)"
-                            class="w-4 h-4 rounded text-[#4226E9] accent-[#4226E9]" ${isChecked ? 'checked' : ''}>
-                        <span class="text-[12px] font-semibold text-slate-700 flex-1">${label}</span>
-                        ${c.short_name ? `<span class="text-[9px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">${window.sanitizeHTML(c.short_name)}</span>` : ''}
-                    </label>`;
-            }).join('');
-        }
-
-        window.onCourseCheckboxChange = function (prefix, courseId, checked) {
-            if (prefix === 'cs') {
-                if (checked && !currentScheduleSelectedCourses.includes(courseId)) {
-                    currentScheduleSelectedCourses.push(courseId);
-                } else if (!checked) {
-                    currentScheduleSelectedCourses = currentScheduleSelectedCourses.filter(id => id !== courseId);
+        window.toggleScheduleAudience = async function(prefix) {
+            const aud = document.getElementById(`${prefix}-audience-type`).value;
+            const tList = document.getElementById(`${prefix}-target-selection`);
+            if(!tList) return;
+            tList.innerHTML = '';
+            
+            if (['batch_students', 'batch_crs'].includes(aud)) {
+                tList.classList.remove('hidden');
+                
+                // Fetch batches if not loaded
+                let batches = window.adminDirectoryBatches || window.currentBatchesList || [];
+                if (batches.length === 0) {
+                    try {
+                        tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4"><span class="inline-block w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>Loading batches...</p>';
+                        const { data, error } = await _supabase.from('batches').select('id, batch_name, active').eq('active', true).order('batch_name', { ascending: true });
+                        if (!error && data) {
+                            batches = data;
+                            window.currentBatchesList = data;
+                        }
+                    } catch (e) {
+                        console.warn('[SCHEDULE AUDIENCE] Failed to fetch batches:', e);
+                    }
                 }
-                updateSelectedCoursesPreview('cs-selected-courses-preview', currentScheduleSelectedCourses);
-                renderCourseCheckboxes('cs-course-checkboxes', currentScheduleSelectedCourses, 'cs');
-            } else if (prefix === 'es') {
-                if (checked && !currentEditSelectedCourses.includes(courseId)) {
-                    currentEditSelectedCourses.push(courseId);
-                } else if (!checked) {
-                    currentEditSelectedCourses = currentEditSelectedCourses.filter(id => id !== courseId);
+                
+                if (batches.length === 0) {
+                    tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4">No batches available.</p>';
+                    return;
                 }
-                updateSelectedCoursesPreview('es-selected-courses-preview', currentEditSelectedCourses);
-                renderCourseCheckboxes('es-course-checkboxes', currentEditSelectedCourses, 'es');
+                
+                tList.innerHTML = batches.map(b => `
+                    <label class="flex items-center gap-3 p-2.5 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors">
+                        <input type="checkbox" value="${b.id}" class="${prefix}-target-cb w-4 h-4 accent-[#4226E9]"${aud === 'batch_crs' ? ` onchange="window.refreshScheduleCRList('${prefix}')"` : ''}>
+                        <span class="text-[13px] text-slate-700 font-semibold">${window.sanitizeHTML(b.batch_name)}</span>
+                    </label>
+                `).join('');
+                
+                if (aud === 'batch_crs') {
+                    tList.innerHTML += `<div id="${prefix}-cr-list-container" class="mt-3 border-t border-slate-100 pt-3"><p class="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-2">Select batch(es) above to see CRs</p></div>`;
+                }
+            } else if (aud === 'course_students') {
+                tList.classList.remove('hidden');
+                if (allCoursesList.length === 0) {
+                    tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4"><span class="inline-block w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>Loading courses...</p>';
+                    allCoursesList = await window.crPermissionService.getVisibleCourses();
+                }
+                const crs = allCoursesList;
+                if (crs.length === 0) {
+                    tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4">No courses available.</p>';
+                    return;
+                }
+                tList.innerHTML = crs.map(c => {
+                    const batchName = c.batches ? c.batches.batch_name : c.batch_id;
+                    return `
+                    <label class="flex items-center gap-3 p-2.5 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors">
+                        <input type="checkbox" value="${c.id}" class="${prefix}-target-cb w-4 h-4 accent-[#4226E9]">
+                        <span class="text-[13px] text-slate-700 font-semibold">[Batch ${window.sanitizeHTML(batchName)}] ${window.sanitizeHTML(c.course_name)} (${c.short_name || ''})</span>
+                    </label>
+                `}).join('');
+            } else if (aud === 'specific_student') {
+                tList.classList.remove('hidden');
+                let students = window.adminDirectoryProfiles || [];
+                if (students.length === 0) {
+                    try {
+                        tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4"><span class="inline-block w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>Loading students...</p>';
+                        const { data, error } = await _supabase.from('profiles').select('id, full_name, email').order('full_name');
+                        if (!error && data) students = data;
+                    } catch (e) {
+                        console.warn('[SCHEDULE AUDIENCE] Failed to fetch students:', e);
+                    }
+                }
+                if (students.length === 0) {
+                    tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4">No students available.</p>';
+                    return;
+                }
+                tList.innerHTML = `
+                    <div class="mb-2">
+                        <input type="text" id="${prefix}-student-search" oninput="window.filterScheduleStudents('${prefix}')" placeholder="Search students..." class="w-full h-9 px-3 rounded-lg border border-slate-200 text-[12px] outline-none focus:border-[#4226E9]">
+                    </div>
+                    <div id="${prefix}-student-list" class="space-y-1 max-h-[200px] overflow-y-auto">
+                        ${students.map(s => `
+                            <label class="${prefix}-student-item flex items-center gap-3 p-2 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors" data-name="${(s.full_name||'').toLowerCase()}">
+                                <input type="checkbox" value="${s.id}" class="${prefix}-target-cb w-4 h-4 accent-[#4226E9]">
+                                <div class="flex flex-col">
+                                    <span class="text-[13px] text-slate-700 font-semibold">${window.sanitizeHTML(s.full_name)}</span>
+                                    <span class="text-[10px] text-slate-400">${window.sanitizeHTML(s.email || '')}</span>
+                                </div>
+                            </label>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                tList.classList.add('hidden');
             }
         };
-
-        function updateSelectedCoursesPreview(containerId, selectedIds) {
-            const container = document.getElementById(containerId);
+        
+        // Dynamic CR list refresh for schedule batch_crs
+        window.refreshScheduleCRList = async function(prefix) {
+            const container = document.getElementById(`${prefix}-cr-list-container`);
             if (!container) return;
-            if (selectedIds.length === 0) {
-                container.innerHTML = '';
+            
+            const selectedBatches = Array.from(document.querySelectorAll(`.${prefix}-target-cb:checked`)).map(cb => cb.value);
+            if (selectedBatches.length === 0) {
+                container.innerHTML = '<p class="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-2">Select batch(es) above to see CRs</p>';
                 return;
             }
-            container.innerHTML = selectedIds.map(id => {
-                const c = allCoursesList.find(x => x.id === id);
-                if (!c) return '';
-                const label = c.short_name || c.course_name;
-                return `<span class="px-2.5 py-1 bg-indigo-100 text-[#4226E9] text-[10px] font-bold rounded-full">${label}</span>`;
-            }).join('');
-        }
-
-        window.selectAudienceType = function (type) {
-            currentScheduleAudienceType = type;
-            const allBtn = document.getElementById('cs-audience-all-btn');
-            const specificBtn = document.getElementById('cs-audience-specific-btn');
-            const specificSection = document.getElementById('cs-specific-courses-section');
-
-            const activeClass = ['border-[#4226E9]', 'bg-[#4226E9]/10', 'text-[#4226E9]'];
-            const inactiveClass = ['border-slate-200', 'bg-white', 'text-slate-500'];
-
-            if (type === 'all_students') {
-                if (allBtn) { allBtn.classList.add(...activeClass); allBtn.classList.remove(...inactiveClass); }
-                if (specificBtn) { specificBtn.classList.remove(...activeClass); specificBtn.classList.add(...inactiveClass); }
-                if (specificSection) specificSection.classList.add('hidden');
-            } else {
-                if (specificBtn) { specificBtn.classList.add(...activeClass); specificBtn.classList.remove(...inactiveClass); }
-                if (allBtn) { allBtn.classList.remove(...activeClass); allBtn.classList.add(...inactiveClass); }
-                if (specificSection) specificSection.classList.remove('hidden');
-                renderCourseCheckboxes('cs-course-checkboxes', currentScheduleSelectedCourses, 'cs');
+            
+            container.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-2"><span class="inline-block w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>Loading CRs...</p>';
+            
+            try {
+                const { data: crData, error } = await _supabase
+                    .from('batch_crs')
+                    .select('user_id, batch_id, profiles!batch_crs_user_id_fkey(id, full_name, email)')
+                    .eq('active', true)
+                    .in('batch_id', selectedBatches);
+                
+                if (error) throw error;
+                
+                const crs = (crData || []).filter(r => r.profiles);
+                if (crs.length === 0) {
+                    container.innerHTML = '<p class="text-[13px] text-slate-400 text-center py-2">No CRs assigned to selected batch(es).</p>';
+                    return;
+                }
+                
+                const batches = window.currentBatchesList || window.adminDirectoryBatches || [];
+                container.innerHTML = '<p class="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-2">CRs in selected batches</p>' +
+                    crs.map(cr => {
+                        const batchName = batches.find(b => b.id === cr.batch_id)?.batch_name || cr.batch_id;
+                        return `<div class="flex items-center gap-3 p-2 bg-indigo-50 rounded-lg mb-1">
+                            <i data-lucide="shield" class="w-4 h-4 text-indigo-500"></i>
+                            <div class="flex flex-col">
+                                <span class="text-[13px] text-slate-700 font-semibold">${window.sanitizeHTML(cr.profiles.full_name)}</span>
+                                <span class="text-[10px] text-slate-400">Batch ${window.sanitizeHTML(String(batchName))}</span>
+                            </div>
+                        </div>`;
+                    }).join('');
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            } catch (e) {
+                console.error('[SCHEDULE AUDIENCE] Failed to load CRs:', e);
+                container.innerHTML = '<p class="text-[13px] text-red-400 text-center py-2">Failed to load CRs.</p>';
             }
+        };
+        
+        window.filterScheduleStudents = function(prefix) {
+            const searchEl = document.getElementById(`${prefix}-student-search`);
+            if(!searchEl) return;
+            const q = searchEl.value.toLowerCase();
+            document.querySelectorAll(`.${prefix}-student-item`).forEach(item => {
+                if (item.dataset.name.includes(q)) item.classList.remove('hidden');
+                else item.classList.add('hidden');
+            });
         };
 
         window.onScheduleFileSelected = function (input) {
@@ -605,22 +837,59 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
         // ----- HANDLE CREATE SCHEDULE -----
         window.handleCreateSchedule = async function () {
-            if (window.currentUserRole !== 'admin') return;
+            if (!(await window.verifyAdminStatus())) { window.showGlobalToast("Error", "Admin check failed."); return; }
+            if (window.currentUserRole !== 'admin' && window.currentUserRole !== 'cr') return;
 
             const title = document.getElementById('cs-title')?.value?.trim();
             const message = document.getElementById('cs-message')?.value?.trim();
             const date = document.getElementById('cs-date')?.value;
             const time = document.getElementById('cs-time')?.value;
-            const isPinned = document.getElementById('cs-pin')?.checked || false;
+            let isPinned = document.getElementById('cs-pin')?.checked || false;
+            
+            if (isPinned) {
+                const pinnedSchedules = window.currentSchedulesList.filter(s => s.is_pinned).sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+                if (pinnedSchedules.length >= 3) {
+                    const oldest = pinnedSchedules[0];
+                    const { error: unpinErr } = await _supabase.from('schedules').update({ is_pinned: false }).eq('id', oldest.id);
+                    if (!unpinErr) {
+                        window.showGlobalToast("Schedule", "Maximum 3 pins allowed. The oldest pinned schedule was unpinned.");
+                    }
+                }
+            }
 
             // Validation
             if (!title) { window.showGlobalToast('Validation', 'Title is required.'); return; }
             if (!message) { window.showGlobalToast('Validation', 'Message is required.'); return; }
             if (!date) { window.showGlobalToast('Validation', 'Date is required.'); return; }
             if (!time) { window.showGlobalToast('Validation', 'Time is required.'); return; }
-            if (currentScheduleAudienceType === 'specific' && currentScheduleSelectedCourses.length === 0) {
-                window.showGlobalToast('Validation', 'Select at least one course for specific audience.');
+            
+            const audience_type = document.getElementById('cs-audience-type').value;
+            const checkedCbs = Array.from(document.querySelectorAll('.cs-target-cb:checked')).map(cb => cb.value);
+            const isTargetSpecific = ['batch_students', 'batch_crs', 'course_students', 'specific_student'].includes(audience_type);
+
+            if (isTargetSpecific && checkedCbs.length === 0) {
+                window.showGlobalToast('Validation', 'Select at least one target for the specific audience.');
                 return;
+            }
+
+            const isCR = window.crPermissionService && window.crPermissionService.isCR();
+            if (isCR) {
+                if (audience_type === 'course_students') {
+                    for (const cid of checkedCbs) {
+                        const c = allCoursesList.find(x => x.id === cid);
+                        if (c && !window.crPermissionService.canAccessBatch(c.batch_id)) {
+                            window.showGlobalToast('Validation', 'You can only target courses in your assigned batches.');
+                            return;
+                        }
+                    }
+                } else if (['batch_students', 'batch_crs'].includes(audience_type)) {
+                    for (const bid of checkedCbs) {
+                        if (!window.crPermissionService.canAccessBatch(bid)) {
+                            window.showGlobalToast("Access Denied", "You can only target your assigned batches.");
+                            return;
+                        }
+                    }
+                }
             }
 
             window.showLoader(true, 'Creating schedule...');
@@ -651,13 +920,15 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     console.log("Generated Public URL:", attachmentUrl);
                 }
 
+                // No CR specific override
+
                 // Insert schedule row
                 const payload = {
                     title,
                     message,
                     schedule_date: date,
                     schedule_time: time,
-                    audience_type: currentScheduleAudienceType,
+                    audience_type: audience_type,
                     is_pinned: isPinned,
                     attachment_url: attachmentUrl,
                     created_by: window.authState.user?.id || null
@@ -680,7 +951,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         is_pinned: isPinned,
                         publish_now: true,
                         publish_date: new Date().toISOString(),
-                        audience_type: currentScheduleAudienceType,
+                        audience_type: audience_type,
                         notice_date: date,
                         notice_time: time,
                         attachment_url: attachmentUrl,
@@ -694,14 +965,24 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     } else if (noticeData && noticeData.length > 0) {
                         console.log("[SCHEDULE] Automatically created linked notice:", noticeData[0].id);
                         
-                        // Fix 1: Auto-link courses if specific
-                        if (currentScheduleAudienceType === 'specific' && currentScheduleSelectedCourses.length > 0) {
-                            const courseLinks = currentScheduleSelectedCourses.map(courseId => ({
-                                notice_id: noticeData[0].id,
-                                course_id: courseId
+                        // Fix 1: Auto-link targets
+                        if (isTargetSpecific && checkedCbs.length > 0) {
+                            const targetLinks = checkedCbs.map(tid => ({
+                                content_type: 'notice',
+                                content_id: noticeData[0].id,
+                                target_type: audience_type,
+                                target_id: tid
                             }));
-                            const { error: ncError } = await _supabase.from('notice_courses').insert(courseLinks);
-                            if (ncError) console.error("[SCHEDULE] Notice courses link error:", ncError);
+                            const { error: ncError } = await _supabase.from('content_targets').insert(targetLinks);
+                            if (ncError) console.error("[SCHEDULE] Notice targets link error:", ncError);
+                        } else {
+                            const targetLinks = [{
+                                content_type: 'notice',
+                                content_id: noticeData[0].id,
+                                target_type: audience_type,
+                                target_id: null
+                            }];
+                            await _supabase.from('content_targets').insert(targetLinks);
                         }
 
                         // Fix 2: Auto-queue notification for the notice
@@ -789,14 +1070,30 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     window.showGlobalToast("Warning", "Schedule saved, but reminders calculation failed.");
                 }
 
-                // If specific, insert schedule_courses rows
-                if (currentScheduleAudienceType === 'specific' && currentScheduleSelectedCourses.length > 0) {
-                    const scRows = currentScheduleSelectedCourses.map(cid => ({
-                        schedule_id: newSchedule.id,
-                        course_id: cid
-                    }));
-                    const { error: scError } = await _supabase.from('schedule_courses').insert(scRows);
-                    if (scError) console.warn('[SCHEDULE COURSES INSERT WARN]', scError);
+                // Insert content_targets rows for Schedule
+                if (isTargetSpecific) {
+                    let scRows = [];
+                    if (checkedCbs.length > 0) {
+                        scRows = checkedCbs.map(tid => ({
+                            content_type: 'schedule',
+                            content_id: newSchedule.id,
+                            target_type: audience_type,
+                            target_id: tid
+                        }));
+                    }
+                    if (scRows.length > 0) {
+                        const { error: scError } = await _supabase.from('content_targets').insert(scRows);
+                        if (scError) console.warn('[CONTENT TARGETS INSERT WARN]', scError);
+                    }
+                } else {
+                    const scRows = [{
+                        content_type: 'schedule',
+                        content_id: newSchedule.id,
+                        target_type: audience_type,
+                        target_id: null
+                    }];
+                    const { error: scError } = await _supabase.from('content_targets').insert(scRows);
+                    if (scError) console.warn('[CONTENT TARGETS INSERT WARN]', scError);
                 }
 
                 window.showGlobalToast('Published', 'Schedule created successfully!');
@@ -813,7 +1110,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
         // ----- OPEN EDIT SCHEDULE -----
         window.openEditSchedule = async function () {
-            if (window.currentUserRole !== 'admin' || !selectedScheduleId) return;
+            if ((window.currentUserRole !== 'admin' && window.currentUserRole !== 'cr') || !selectedScheduleId) return;
 
             const s = schedulesList.find(x => x.id === selectedScheduleId);
             if (!s) { window.showGlobalToast('Error', 'Schedule data missing.'); return; }
@@ -821,7 +1118,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             window.showLoader(true, 'Loading editor...');
             try {
                 if (allCoursesList.length === 0) {
-                allCoursesList = await CourseStore.getCourses();
+                allCoursesList = await window.crPermissionService.getVisibleCourses();
             }
 
                 // Populate form
@@ -858,9 +1155,15 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                 // Load enrolled courses for audience selection
                 currentEditSelectedCourses = scheduleCoursesMap[selectedScheduleId] || [];
-                selectEditAudienceType(currentEditAudienceType);
-                renderCourseCheckboxes('es-course-checkboxes', currentEditSelectedCourses, 'es');
-                updateSelectedCoursesPreview('es-selected-courses-preview', currentEditSelectedCourses);
+                document.getElementById('es-audience-type').value = currentEditAudienceType;
+                await window.toggleScheduleAudience('es');
+                // The checkboxes are rendered asynchronously, we'll check them below if they are courses
+                if (currentEditAudienceType === 'course_students') {
+                    const cbs = document.querySelectorAll('.es-target-cb');
+                    cbs.forEach(cb => {
+                        if (currentEditSelectedCourses.includes(cb.value)) cb.checked = true;
+                    });
+                }
 
                 // Fetch and render existing reminders
                 const editRemindersList = document.getElementById('edit-schedule-reminders-list');
@@ -939,26 +1242,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             }
         };
 
-        window.selectEditAudienceType = function (type) {
-            currentEditAudienceType = type;
-            const allBtn = document.getElementById('es-audience-all-btn');
-            const specificBtn = document.getElementById('es-audience-specific-btn');
-            const specificSection = document.getElementById('es-specific-courses-section');
 
-            const activeClass = ['border-[#4226E9]', 'bg-[#4226E9]/10', 'text-[#4226E9]'];
-            const inactiveClass = ['border-slate-200', 'bg-white', 'text-slate-500'];
-
-            if (type === 'all_students') {
-                if (allBtn) { allBtn.classList.add(...activeClass); allBtn.classList.remove(...inactiveClass); }
-                if (specificBtn) { specificBtn.classList.remove(...activeClass); specificBtn.classList.add(...inactiveClass); }
-                if (specificSection) specificSection.classList.add('hidden');
-            } else {
-                if (specificBtn) { specificBtn.classList.add(...activeClass); specificBtn.classList.remove(...inactiveClass); }
-                if (allBtn) { allBtn.classList.remove(...activeClass); allBtn.classList.add(...inactiveClass); }
-                if (specificSection) specificSection.classList.remove('hidden');
-                renderCourseCheckboxes('es-course-checkboxes', currentEditSelectedCourses, 'es');
-            }
-        };
 
         window.onEditScheduleFileSelected = function (input) {
             const file = input.files[0];
@@ -1009,21 +1293,68 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
         // ----- HANDLE UPDATE SCHEDULE -----
         window.handleUpdateSchedule = async function () {
-            if (window.currentUserRole !== 'admin' || !selectedScheduleId) return;
+            if (!(await window.verifyAdminStatus())) { window.showGlobalToast("Error", "Admin check failed."); return; }
+            if ((window.currentUserRole !== 'admin' && window.currentUserRole !== 'cr') || !selectedScheduleId) return;
 
             const title = document.getElementById('es-title')?.value?.trim();
             const message = document.getElementById('es-message')?.value?.trim();
             const date = document.getElementById('es-date')?.value;
             const time = document.getElementById('es-time')?.value;
-            const isPinned = document.getElementById('es-pin')?.checked || false;
+            let isPinned = document.getElementById('es-pin')?.checked || false;
+            
+            if (isPinned) {
+                const pinnedSchedules = window.currentSchedulesList.filter(s => s.is_pinned && s.id !== currentEditScheduleId).sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+                if (pinnedSchedules.length >= 3) {
+                    const oldest = pinnedSchedules[0];
+                    const { error: unpinErr } = await _supabase.from('schedules').update({ is_pinned: false }).eq('id', oldest.id);
+                    if (!unpinErr) {
+                        window.showGlobalToast("Schedule", "Maximum 3 pins allowed. The oldest pinned schedule was unpinned.");
+                    }
+                }
+            }
 
             if (!title) { window.showGlobalToast('Validation', 'Title is required.'); return; }
             if (!message) { window.showGlobalToast('Validation', 'Message is required.'); return; }
             if (!date) { window.showGlobalToast('Validation', 'Date is required.'); return; }
             if (!time) { window.showGlobalToast('Validation', 'Time is required.'); return; }
-            if (currentEditAudienceType === 'specific' && currentEditSelectedCourses.length === 0) {
-                window.showGlobalToast('Validation', 'Select at least one course for specific audience.');
+            const audience_type = document.getElementById('es-audience-type').value;
+            const checkedCbs = Array.from(document.querySelectorAll('.es-target-cb:checked')).map(cb => cb.value);
+            const isTargetSpecific = ['batch_students', 'batch_crs', 'course_students', 'specific_student'].includes(audience_type);
+
+            if (isTargetSpecific && checkedCbs.length === 0) {
+                window.showGlobalToast('Validation', 'Select at least one target for the specific audience.');
                 return;
+            }
+
+            const isCR = window.crPermissionService && window.crPermissionService.isCR();
+            if (isCR) {
+                const originalSchedule = schedulesList.find(s => s.id === selectedScheduleId);
+                if (originalSchedule && originalSchedule.created_by !== window.authState.user.id) {
+                    console.log(`[CR PERMISSION DENIED] Attempted to update schedule not created by them: ${selectedScheduleId}`);
+                    window.showGlobalToast("Access Denied", "You can only edit schedules that you created.");
+                    return;
+                }
+                
+                if (audience_type === 'course_students') {
+                    for (const cid of checkedCbs) {
+                        const c = allCoursesList.find(x => x.id === cid);
+                        if (c && !window.crPermissionService.canAccessBatch(c.batch_id)) {
+                            console.log(`[CR PERMISSION DENIED] Attempted to post schedule for unassigned course ${cid}`);
+                            window.showGlobalToast("Access Denied", "You can only post schedules to courses in your assigned batches.");
+                            return;
+                        }
+                    }
+                } else if (['batch_students', 'batch_crs'].includes(audience_type)) {
+                    for (const bid of checkedCbs) {
+                        if (!window.crPermissionService.canAccessBatch(bid)) {
+                            console.log(`[CR PERMISSION DENIED] Attempted to post schedule for unassigned batch ${bid}`);
+                            window.showGlobalToast("Access Denied", "You can only target your assigned batches.");
+                            return;
+                        }
+                    }
+                }
+                console.log(`[CR ACCESS CHECK] Validating schedule update - PASSED`);
+                console.log(`[CR UPDATE] Schedule ${selectedScheduleId}`);
             }
 
             window.showLoader(true, 'Updating schedule...');
@@ -1074,13 +1405,15 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     console.log("Generated Public URL:", attachmentUrl);
                 }
 
+                // No CR specific override
+
                 // Update schedule row
                 const payload = {
                     title,
                     message,
                     schedule_date: date,
                     schedule_time: time,
-                    audience_type: currentEditAudienceType,
+                    audience_type: audience_type,
                     is_pinned: isPinned,
                     attachment_url: attachmentUrl
                 };
@@ -1154,16 +1487,32 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     window.showGlobalToast("Warning", "Schedule updated, but reminders update failed.");
                 }
 
-                // Update schedule_courses: delete old, insert new
-                await _supabase.from('schedule_courses').delete().eq('schedule_id', selectedScheduleId);
+                // Update content_targets: delete old, insert new
+                await _supabase.from('content_targets').delete().eq('content_type', 'schedule').eq('content_id', selectedScheduleId);
 
-                if (currentEditAudienceType === 'specific' && currentEditSelectedCourses.length > 0) {
-                    const scRows = currentEditSelectedCourses.map(cid => ({
-                        schedule_id: selectedScheduleId,
-                        course_id: cid
-                    }));
-                    const { error: scError } = await _supabase.from('schedule_courses').insert(scRows);
-                    if (scError) console.warn('[SCHEDULE COURSES UPDATE WARN]', scError);
+                if (isTargetSpecific) {
+                    let scRows = [];
+                    if (checkedCbs.length > 0) {
+                        scRows = checkedCbs.map(tid => ({
+                            content_type: 'schedule',
+                            content_id: selectedScheduleId,
+                            target_type: audience_type,
+                            target_id: tid
+                        }));
+                    }
+                    if (scRows.length > 0) {
+                        const { error: scError } = await _supabase.from('content_targets').insert(scRows);
+                        if (scError) console.warn('[CONTENT TARGETS UPDATE WARN]', scError);
+                    }
+                } else {
+                    const scRows = [{
+                        content_type: 'schedule',
+                        content_id: selectedScheduleId,
+                        target_type: audience_type,
+                        target_id: null
+                    }];
+                    const { error: scError } = await _supabase.from('content_targets').insert(scRows);
+                    if (scError) console.warn('[CONTENT TARGETS UPDATE WARN]', scError);
                 }
 
                 window.showGlobalToast('Updated', 'Schedule updated successfully!');
@@ -1192,7 +1541,21 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
         // ----- HANDLE DELETE SCHEDULE -----
         window.handleDeleteSchedule = async function () {
-            if (window.currentUserRole !== 'admin' || !selectedScheduleId) return;
+            if (!(await window.verifyAdminStatus())) { window.showGlobalToast("Error", "Admin check failed."); return; }
+            if ((window.currentUserRole !== 'admin' && window.currentUserRole !== 'cr') || !selectedScheduleId) return;
+
+            const isCR = window.crPermissionService && window.crPermissionService.isCR();
+            if (isCR) {
+                const originalSchedule = schedulesList.find(s => s.id === selectedScheduleId);
+                if (originalSchedule && originalSchedule.created_by !== window.authState.user.id) {
+                    console.log(`[CR PERMISSION DENIED] Attempted to delete schedule not created by them: ${selectedScheduleId}`);
+                    window.showGlobalToast("Access Denied", "You can only delete schedules that you created.");
+                    return;
+                }
+                console.log(`[CR ACCESS CHECK] Validating schedule delete - PASSED`);
+                console.log(`[CR DELETE] Schedule ${selectedScheduleId}`);
+            }
+
             if (!confirm('Delete this schedule? This cannot be undone.')) return;
 
             window.showLoader(true, 'Deleting schedule...');
@@ -1210,8 +1573,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     } catch (e) { console.warn('[STORAGE DELETE WARN]', e); }
                 }
 
-                // Delete schedule_courses rows first
-                await _supabase.from('schedule_courses').delete().eq('schedule_id', selectedScheduleId);
+                // Delete content_targets rows first
+                await _supabase.from('content_targets').delete().eq('content_type', 'schedule').eq('content_id', selectedScheduleId);
 
                 // Task 2: Delete reminders from notification_reminders
                 try {
@@ -1225,6 +1588,20 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 } catch (remErr) {
                     console.error("[SCHEDULE DELETE] Exception during reminders delete:", remErr);
                 }
+
+                // Step 2.1: Delete schedule_courses relations
+                console.log("[SCHEDULE DELETE] Deleting schedule_courses relations...");
+                const { error: scError } = await _supabase.from('schedule_courses').delete().eq('schedule_id', selectedScheduleId);
+                if (scError) {
+                    console.error("[SCHEDULE DELETE] schedule_courses delete error:", scError);
+                    throw scError;
+                }
+
+                // Step 2.2: Delete content_reactions
+                console.log("[SCHEDULE DELETE] Deleting content_reactions relations...");
+                try {
+                    await _supabase.from('content_reactions').delete().eq('content_type', 'schedule').eq('content_id', selectedScheduleId);
+                } catch (e) { console.warn("[SCHEDULE DELETE] Reactions cleanup error:", e); }
 
                 // Delete the schedule row
                 const { error } = await _supabase.from('schedules').delete().eq('id', selectedScheduleId);
@@ -1251,8 +1628,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
         window.handleUpdateSchedule = window.handleUpdateSchedule;
         window.handleDeleteSchedule = window.handleDeleteSchedule;
         window.filterSchedulesUI = window.filterSchedulesUI;
-        window.selectAudienceType = window.selectAudienceType;
-        window.selectEditAudienceType = window.selectEditAudienceType;
+
         window.onCourseCheckboxChange = window.onCourseCheckboxChange;
         window.onScheduleFileSelected = window.onScheduleFileSelected;
         window.clearScheduleFile = window.clearScheduleFile;
@@ -1274,7 +1650,7 @@ export const ScheduleService = {
     clearScheduleFile: typeof clearScheduleFile !== 'undefined' ? clearScheduleFile : window.clearScheduleFile,
     handleCreateSchedule: typeof handleCreateSchedule !== 'undefined' ? handleCreateSchedule : window.handleCreateSchedule,
     openEditSchedule: typeof openEditSchedule !== 'undefined' ? openEditSchedule : window.openEditSchedule,
-    selectEditAudienceType: typeof selectEditAudienceType !== 'undefined' ? selectEditAudienceType : window.selectEditAudienceType,
+    toggleScheduleAudience: typeof window.toggleScheduleAudience !== 'undefined' ? window.toggleScheduleAudience : function(){},
     onEditScheduleFileSelected: typeof onEditScheduleFileSelected !== 'undefined' ? onEditScheduleFileSelected : window.onEditScheduleFileSelected,
     clearEditScheduleFile: typeof clearEditScheduleFile !== 'undefined' ? clearEditScheduleFile : window.clearEditScheduleFile,
     clearEditAttachment: typeof clearEditAttachment !== 'undefined' ? clearEditAttachment : window.clearEditAttachment,

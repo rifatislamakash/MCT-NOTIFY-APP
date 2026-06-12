@@ -1,5 +1,5 @@
 import { _supabase } from './supabase-client.js';
-import { showGlobalToast, showLoader, forceHideLoader, cancelActiveRequest, fetchWithRetry, extractIdFromEmail } from './utils.js';
+import { showGlobalToast, showLoader, forceHideLoader, cancelActiveRequest, deduplicateRequest, extractIdFromEmail } from './utils.js';
 import { CourseStore } from './stores/CourseStore.js';
 import { FacultyStore } from './stores/FacultyStore.js';
 import { RoutineStore } from './stores/RoutineStore.js';
@@ -44,15 +44,36 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     window.activeLoadControllers['profile'] = localController;
 
                     try {
-                        const ucData = await fetchWithRetry(async (signal) => {
-                            const { data, error } = await _supabase
-                                .from('user_courses')
-                                .select('course_id')
-                                .eq('user_id', window.authState.user.id)
-                                .abortSignal(signal);
-                            if (error) throw error;
-                            return data;
-                        }, 3, 1000, 8000, localController.signal);
+                        let ucData = [];
+                        const isAdminCheck = window.currentUserRole === 'admin' || window.isAdminEmail(emailStr);
+                        if (!isAdminCheck) {
+                            const coursesPromise = deduplicateRequest('user_courses_boot', async () => {
+                                const sdkPromise = _supabase.from('user_courses').select('course_id').eq('user_id', window.authState.user.id);
+                                const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('sdk_timeout')), 2000));
+                                try {
+                                    const { data, error } = await Promise.race([sdkPromise, timeout]);
+                                    if (error) throw error;
+                                    return data;
+                                } catch (e) {
+                                    if (e.message === 'sdk_timeout') {
+                                        const url = `${_supabase.supabaseUrl}/rest/v1/user_courses?user_id=eq.${window.authState.user.id}&select=course_id`;
+                                        const res = await fetch(url, {
+                                            headers: {
+                                                'apikey': _supabase.supabaseKey,
+                                                'Authorization': `Bearer ${window.authState?.session?.access_token || _supabase.supabaseKey}`,
+                                                'cache-control': 'no-cache'
+                                            },
+                                            cache: 'no-store'
+                                        });
+                                        const fetchResult = await res.json();
+                                        if (fetchResult.error) throw new Error(fetchResult.error.message);
+                                        return fetchResult;
+                                    }
+                                    throw e;
+                                }
+                            });
+                            ucData = await coursesPromise;
+                        }
 
                         if (localController.signal.aborted) return;
 
@@ -63,15 +84,41 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         if (coursesCountEl) coursesCountEl.innerText = courseIds.length;
 
                         if (courseIds.length > 0) {
-                            const cData = await fetchWithRetry(async (signal) => {
-                                const { data, error } = await _supabase
-                                    .from('courses')
-                                    .select('total_credit')
-                                    .in('id', courseIds)
-                                    .abortSignal(signal);
-                                if (error) throw error;
-                                return data;
-                            }, 3, 1000, 8000, localController.signal);
+                            const coursesInfoPromise = _supabase.from('courses').select('total_credit').in('id', courseIds);
+                            let cData;
+                            try {
+                                if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
+                                let timerId;
+                                const timeoutPromise = new Promise((_, reject) => {
+                                    timerId = setTimeout(() => reject(new Error('sdk_timeout')), 400);
+                                });
+                                try {
+                                    const { data, error } = await Promise.race([coursesInfoPromise, timeoutPromise]);
+                                    if (error) throw error;
+                                    cData = data;
+                                } finally {
+                                    clearTimeout(timerId);
+                                }
+                            } catch (e) {
+                                if (e.message === 'sdk_timeout') {
+                                    window._supabaseSdkFailing = true;
+                                    const inList = courseIds.map(id => `"${id}"`).join(',');
+                                    const url = `${_supabase.supabaseUrl}/rest/v1/courses?id=in.(${inList})&select=total_credit`;
+                                    const res = await fetch(url, {
+                                        headers: {
+                                            'apikey': _supabase.supabaseKey,
+                                            'Authorization': `Bearer ${window.authState?.session?.access_token || _supabase.supabaseKey}`,
+                                            'cache-control': 'no-cache'
+                                        },
+                                        cache: 'no-store'
+                                    });
+                                    const fetchResult = await res.json();
+                                    if (fetchResult.error) throw new Error(fetchResult.error.message);
+                                    cData = fetchResult;
+                                } else {
+                                    throw e;
+                                }
+                            }
 
                             if (localController.signal.aborted) return;
 
@@ -98,15 +145,42 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 }
 
                 const role = String(profile?.role || '').toLowerCase();
-                if (role === 'admin' || window.isAdminEmail(emailStr) /* REMOVED HARDCODED - USE window.isAdminEmail */) {
+                if (role === 'admin' || window.isAdminEmail(emailStr)) {
                     if (roleBadge) {
-                        roleBadge.innerText = "System Admin (MCT)";
+                        roleBadge.innerText = "Administrator";
                         roleBadge.className = "inline-block text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-[#4226E9] px-2.5 py-0.5 rounded-full";
+                        console.log(`[PROFILE ROLE DISPLAY] Administrator`);
+                    }
+                } else if (role === 'cr') {
+                    if (roleBadge) {
+                        roleBadge.innerText = "Class Representative";
+                        roleBadge.className = "inline-block text-[10px] font-bold uppercase tracking-wider bg-purple-50 text-purple-700 px-2.5 py-0.5 rounded-full";
+                        
+                        try {
+                            if (window.authState?.user) {
+                                const { data: crBatches, error } = await _supabase
+                                    .from('batch_crs')
+                                    .select('batches(batch_name)')
+                                    .eq('user_id', window.authState.user.id)
+                                    .eq('active', true);
+                                
+                                if (!error && crBatches && crBatches.length > 0) {
+                                    const batchNames = crBatches.map(b => b.batches?.batch_name).filter(n => n).join(', ');
+                                    if (batchNames) {
+                                        roleBadge.innerText = `CR • ${batchNames}`;
+                                        console.log(`[PROFILE ROLE DISPLAY] CR Batches: ${batchNames}`);
+                                    }
+                                }
+                            }
+                        } catch(e) {
+                            console.warn('[CR BATCH LOOKUP ERROR]', e);
+                        }
                     }
                 } else {
                     if (roleBadge) {
                         roleBadge.innerText = "DIU MCT Student";
                         roleBadge.className = "inline-block text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full";
+                        console.log(`[PROFILE ROLE DISPLAY] DIU MCT Student`);
                     }
                 }
 
@@ -120,6 +194,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     if (avatarImg) avatarImg.classList.add('hidden');
                     if (fallbackAvatar) fallbackAvatar.classList.remove('hidden');
                 }
+
+                if (typeof window.renderSecondaryBatchesUI === 'function') {
+                    window.renderSecondaryBatchesUI();
+                }
+
             } catch (err) {
                 console.error("Profile populate error:", err);
             }
@@ -354,7 +433,15 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const name = window.authState.profile?.full_name || 'User';
             const initial = name.charAt(0).toUpperCase();
 
+            console.log(`[PROFILE IMAGE RENDER] Updating ${containers.length} avatar containers. profileUrl: ${profileUrl || 'null'}`);
+
             containers.forEach(container => {
+                if (container.closest('nav') || container.closest('#desktop-sidebar')) {
+                    console.log("[NAVBAR PROFILE] Updating navbar/sidebar avatar");
+                } else {
+                    console.log("[DASHBOARD PROFILE] Updating dashboard/other avatar");
+                }
+
                 if (profileUrl) {
                     const safeUrl = window.sanitizeUrl(profileUrl);
                     container.innerHTML = `<img src="${safeUrl}" class="w-full h-full rounded-full object-cover" onerror="this.outerHTML='<span class=\\'font-bold text-[18px] text-[#4226E9]\\'>${initial}</span>'">`;
@@ -436,20 +523,567 @@ import { ProfileStore } from './stores/ProfileStore.js';
             }
         }
 
+        window.promptEditName = async function() {
+            if (!window.authState.user) return;
+            const currentName = window.authState.profile?.full_name || '';
+            const newName = prompt("Enter your new full name:", currentName);
+            if (newName === null) return;
+            const trimmedName = newName.trim();
+            if (!trimmedName) {
+                window.showGlobalToast("Validation Error", "Name cannot be empty.");
+                return;
+            }
+            if (trimmedName === currentName) return;
 
+            window.showLoader(true, "Updating name...");
+            try {
+                const { error } = await _supabase.from('profiles').update({ full_name: trimmedName }).eq('id', window.authState.user.id);
+                if (error) throw error;
+                if (window.authState.profile) window.authState.profile.full_name = trimmedName;
+                document.getElementById('profile-display-name').innerText = trimmedName;
+                window.updateGlobalAvatars();
+                window.showGlobalToast("Success", "Name updated successfully.");
+            } catch (err) {
+                console.error("[PROFILE] Error updating name:", err);
+                window.showGlobalToast("Error", "Could not update name.");
+            } finally {
+                window.showLoader(false);
+            }
+        };
 
+        // ===== UNIFIED EDIT PROFILE SCREEN =====
+        let editProfileImageFile = null;
+        let editProfileRemovePhoto = false;
 
+        window.populateEditProfileForm = function() {
+            const profile = window.authState.profile || {};
+            editProfileImageFile = null;
+            editProfileRemovePhoto = false;
 
+            // Populate name
+            const nameInput = document.getElementById('edit-profile-name');
+            if (nameInput) nameInput.value = profile.full_name || '';
 
+            // Populate phone
+            const phoneInput = document.getElementById('edit-profile-phone');
+            if (phoneInput) phoneInput.value = profile.phone_number || '';
 
+            // Populate email (read-only)
+            const emailInput = document.getElementById('edit-profile-email');
+            if (emailInput) emailInput.value = profile.email || '';
 
+            // Populate avatar preview
+            const previewImg = document.getElementById('edit-profile-avatar-preview');
+            const fallbackIcon = document.getElementById('edit-profile-fallback');
+            const removeBtn = document.getElementById('btn-remove-edit-photo');
 
+            if (profile.profile_url) {
+                if (previewImg) {
+                    previewImg.src = profile.profile_url;
+                    previewImg.classList.remove('hidden');
+                }
+                if (fallbackIcon) fallbackIcon.classList.add('hidden');
+                if (removeBtn) removeBtn.classList.remove('hidden');
+            } else {
+                if (previewImg) {
+                    previewImg.src = '';
+                    previewImg.classList.add('hidden');
+                }
+                if (fallbackIcon) fallbackIcon.classList.remove('hidden');
+                if (removeBtn) removeBtn.classList.add('hidden');
+            }
 
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        };
 
+        window.handleEditProfileImageSelect = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
+            if (!file.type.startsWith('image/')) {
+                window.showGlobalToast("Error", "Please select a valid image file.");
+                event.target.value = '';
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                window.showGlobalToast("Error", "Image must be under 5MB.");
+                event.target.value = '';
+                return;
+            }
 
+            editProfileImageFile = file;
+            editProfileRemovePhoto = false;
 
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const previewImg = document.getElementById('edit-profile-avatar-preview');
+                const fallbackIcon = document.getElementById('edit-profile-fallback');
+                const removeBtn = document.getElementById('btn-remove-edit-photo');
+                if (previewImg) {
+                    previewImg.src = e.target.result;
+                    previewImg.classList.remove('hidden');
+                }
+                if (fallbackIcon) fallbackIcon.classList.add('hidden');
+                if (removeBtn) removeBtn.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        };
 
+        window.handleRemoveEditProfilePhoto = function() {
+            editProfileImageFile = null;
+            editProfileRemovePhoto = true;
+
+            const previewImg = document.getElementById('edit-profile-avatar-preview');
+            const fallbackIcon = document.getElementById('edit-profile-fallback');
+            const removeBtn = document.getElementById('btn-remove-edit-photo');
+            const fileInput = document.getElementById('edit-profile-image-input');
+
+            if (previewImg) { previewImg.src = ''; previewImg.classList.add('hidden'); }
+            if (fallbackIcon) fallbackIcon.classList.remove('hidden');
+            if (removeBtn) removeBtn.classList.add('hidden');
+            if (fileInput) fileInput.value = '';
+        };
+
+        window.handleSaveProfile = async function(e) {
+            e.preventDefault();
+            if (!window.authState.user) return;
+
+            const newName = document.getElementById('edit-profile-name').value.trim();
+            const newPhone = document.getElementById('edit-profile-phone').value.trim();
+
+            if (!newName) {
+                window.showGlobalToast("Validation Error", "Name cannot be empty.");
+                return;
+            }
+
+            if (newPhone && !/^01\d{9}$/.test(newPhone)) {
+                window.showGlobalToast("Validation Error", "Phone number must be a valid 11-digit BD number (e.g. 01XXXXXXXXX).");
+                return;
+            }
+
+            window.showLoader(true, "Saving profile...");
+
+            try {
+                let newProfileUrl = window.authState.profile?.profile_url || null;
+
+                // Handle image upload
+                if (editProfileImageFile) {
+                    const fileName = `${window.authState.user.id}_${Date.now()}.jpg`;
+
+                    // Delete old image if exists
+                    if (newProfileUrl) {
+                        try {
+                            const match = newProfileUrl.match(/\/(users_pp|avatars)\/(.+)$/);
+                            if (match) {
+                                await _supabase.storage.from(match[1]).remove([match[2]]);
+                            }
+                        } catch (delErr) {
+                            console.warn("[EDIT PROFILE] Could not delete old image:", delErr);
+                        }
+                    }
+
+                    // Resize image before upload for consistency
+                    const resizedBlob = await new Promise((resolve, reject) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const size = 400;
+                            canvas.width = size;
+                            canvas.height = size;
+                            const ctx = canvas.getContext('2d');
+                            // Center crop
+                            const minDim = Math.min(img.width, img.height);
+                            const sx = (img.width - minDim) / 2;
+                            const sy = (img.height - minDim) / 2;
+                            ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+                            canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Canvas toBlob failed')), 'image/jpeg', 0.85);
+                        };
+                        img.onerror = reject;
+                        img.src = URL.createObjectURL(editProfileImageFile);
+                    });
+
+                    const { error: uploadError } = await _supabase.storage
+                        .from('users_pp')
+                        .upload(fileName, resizedBlob, { contentType: 'image/jpeg', upsert: true });
+
+                    if (uploadError) throw uploadError;
+
+                    const { data: urlData } = _supabase.storage.from('users_pp').getPublicUrl(fileName);
+                    newProfileUrl = urlData.publicUrl;
+                    console.log("[EDIT PROFILE] Uploaded new image:", newProfileUrl);
+
+                } else if (editProfileRemovePhoto) {
+                    // Delete existing photo
+                    if (newProfileUrl) {
+                        try {
+                            const match = newProfileUrl.match(/\/(users_pp|avatars)\/(.+)$/);
+                            if (match) {
+                                await _supabase.storage.from(match[1]).remove([match[2]]);
+                            }
+                        } catch (delErr) {
+                            console.warn("[EDIT PROFILE] Could not delete old image:", delErr);
+                        }
+                    }
+                    newProfileUrl = null;
+                }
+
+                // Update profile in DB
+                const updatePayload = {
+                    full_name: newName,
+                    phone_number: newPhone || null,
+                    profile_url: newProfileUrl
+                };
+
+                const { error: dbError } = await _supabase
+                    .from('profiles')
+                    .update(updatePayload)
+                    .eq('id', window.authState.user.id);
+
+                if (dbError) throw dbError;
+
+                // Update local state
+                if (window.authState.profile) {
+                    window.authState.profile.full_name = newName;
+                    window.authState.profile.phone_number = newPhone || null;
+                    window.authState.profile.profile_url = newProfileUrl;
+                }
+
+                // Sync all UI
+                window.updateGlobalAvatars();
+                populateProfileDetails();
+
+                editProfileImageFile = null;
+                editProfileRemovePhoto = false;
+
+                window.showGlobalToast("Success", "Profile updated successfully!");
+                window.navigate('screen-profile');
+
+            } catch (err) {
+                console.error("[EDIT PROFILE] Save error:", err);
+                window.showGlobalToast("Error", "Failed to save profile. Please try again.");
+            } finally {
+                window.showLoader(false);
+            }
+        };
+
+        window.renderSecondaryBatchesUI = function() {
+            const container = document.getElementById('profile-secondary-batches-container');
+            if (!container) return;
+            
+            const secondaryBatches = window.authState.profile?.secondary_batches || [];
+            
+            if (secondaryBatches.length === 0) {
+                container.innerHTML = `<span class="text-[11px] font-medium text-slate-400 italic py-1">No secondary batches added.</span>`;
+                return;
+            }
+
+            container.innerHTML = secondaryBatches.map(batchId => {
+                const batch = window.onboardBatchesList ? window.onboardBatchesList.find(b => String(b.id) === String(batchId)) : null;
+                const batchName = batch ? batch.batch_name : `Batch ${batchId}`;
+                return `
+                    <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-100 pl-3 pr-1 py-1 rounded-full group transition-colors hover:border-slate-300">
+                        <span class="text-[11px] font-bold text-slate-700">${window.sanitizeHTML(batchName)}</span>
+                        <button onclick="window.removeSecondaryBatch('${batchId}')" class="w-5 h-5 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center hover:bg-red-100 hover:text-red-500 transition-colors">
+                            <i data-lucide="x" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        };
+
+        window.openAddSecondaryBatchModal = async function() {
+            const secondaryBatches = window.authState.profile?.secondary_batches || [];
+            if (secondaryBatches.length >= 3) {
+                window.showGlobalToast("Limit Reached", "You can have a maximum of 3 secondary batches.");
+                return;
+            }
+            
+            const primaryBatch = window.authState.profile?.batch_id;
+            
+            if (!window.onboardBatchesList || window.onboardBatchesList.length === 0) {
+                window.showLoader(true, "Loading batches...");
+                try {
+                    const { data, error } = await _supabase.from('batches').select('id, batch_name').order('batch_name');
+                    if (error) throw error;
+                    window.onboardBatchesList = data || [];
+                } catch (err) {
+                    console.error("Error loading batches:", err);
+                    window.showGlobalToast("Error", "Failed to load batches. Please try again.");
+                    window.showLoader(false);
+                    return;
+                }
+                window.showLoader(false);
+            }
+
+            const availableBatches = window.onboardBatchesList.filter(b => String(b.id) !== String(primaryBatch) && !secondaryBatches.includes(String(b.id)));
+            
+            if (availableBatches.length === 0) {
+                window.showGlobalToast("Notice", "No other batches available to add.");
+                return;
+            }
+
+            let optionsHtml = availableBatches.map(b => `<option value="${b.id}">${window.sanitizeHTML(b.batch_name)}</option>`).join('');
+            
+            const container = document.getElementById('modal-add-secondary-batch');
+            const selectEl = document.getElementById('add-secondary-batch-select');
+            if (selectEl) selectEl.innerHTML = `<option value="" disabled selected>Select a batch</option>` + optionsHtml;
+
+            if (container) {
+                container.classList.remove('hidden');
+                setTimeout(() => {
+                    container.classList.remove('opacity-0');
+                    document.getElementById('modal-add-secondary-batch-content').classList.remove('translate-y-full');
+                }, 10);
+            }
+        };
+
+        window.closeAddSecondaryBatchModal = function() {
+            const container = document.getElementById('modal-add-secondary-batch');
+            const content = document.getElementById('modal-add-secondary-batch-content');
+            if (container && content) {
+                container.classList.add('opacity-0');
+                content.classList.add('translate-y-full');
+                setTimeout(() => container.classList.add('hidden'), 300);
+            }
+        };
+
+        window.saveNewSecondaryBatch = async function() {
+            const selectEl = document.getElementById('add-secondary-batch-select');
+            const newBatchId = selectEl?.value;
+            if (!newBatchId) {
+                window.showGlobalToast("Error", "Please select a batch.");
+                return;
+            }
+
+            const secondaryBatches = window.authState.profile?.secondary_batches || [];
+            if (secondaryBatches.length >= 3) return;
+
+            const updatedBatches = [...secondaryBatches, newBatchId];
+            window.showLoader(true, "Adding batch...");
+            try {
+                const { error } = await _supabase.from('profiles').update({ secondary_batches: updatedBatches }).eq('id', window.authState.user.id);
+                if (error) throw error;
+                if (window.authState.profile) window.authState.profile.secondary_batches = updatedBatches;
+                if (typeof window.renderSecondaryBatchesPageUI === 'function') window.renderSecondaryBatchesPageUI();
+                window.closeAddSecondaryBatchModal();
+                window.showGlobalToast("Success", "Secondary batch added. You can now add courses from this batch.");
+            } catch (err) {
+                console.error("Error adding batch:", err);
+                window.showGlobalToast("Error", "Failed to add batch.");
+            } finally {
+                window.showLoader(false);
+            }
+        };
+
+        window.removeSecondaryBatch = async function(batchId) {
+            if (!confirm("Warning: Deleting this secondary batch will automatically remove you from all enrolled courses associated with it. Are you sure?")) return;
+
+            const secondaryBatches = window.authState.profile?.secondary_batches || [];
+            const updatedBatches = secondaryBatches.filter(id => String(id) !== String(batchId));
+
+            window.showLoader(true, "Removing batch and cleaning up courses...");
+            try {
+                // Find all courses associated with this batch
+                const { data: coursesInBatch, error: cErr } = await _supabase.from('courses').select('id').eq('batch_id', batchId);
+                if (cErr) throw cErr;
+
+                const courseIds = coursesInBatch.map(c => c.id);
+
+                if (courseIds.length > 0) {
+                    // Delete from user_courses
+                    const { error: ucErr } = await _supabase.from('user_courses').delete()
+                        .eq('user_id', window.authState.user.id)
+                        .in('course_id', courseIds);
+                    if (ucErr) throw ucErr;
+                }
+
+                // Update profile
+                const { error: pErr } = await _supabase.from('profiles').update({ secondary_batches: updatedBatches }).eq('id', window.authState.user.id);
+                if (pErr) throw pErr;
+
+                if (window.authState.profile) window.authState.profile.secondary_batches = updatedBatches;
+                if (typeof window.renderSecondaryBatchesPageUI === 'function') window.renderSecondaryBatchesPageUI();
+                
+                // Trigger course count update
+                populateProfileDetails();
+                
+                window.showGlobalToast("Success", "Batch and associated courses removed.");
+            } catch (err) {
+                console.error("Error removing batch:", err);
+                window.showGlobalToast("Error", "Failed to remove batch.");
+            } finally {
+                window.showLoader(false);
+            }
+        };
+
+        window.renderSecondaryBatchesPageUI = async function() {
+            const container = document.getElementById('secondary-batches-page-container');
+            if (!container) return;
+
+            const secondaryBatches = window.authState.profile?.secondary_batches || [];
+            if (secondaryBatches.length === 0) {
+                container.innerHTML = `<div class="bg-white rounded-2xl p-6 border border-slate-100 flex flex-col items-center justify-center text-center">
+                    <div class="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 mb-3">
+                        <i data-lucide="layers" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-[14px] font-bold text-slate-800 mb-1">No Secondary Batches</h3>
+                    <p class="text-[12px] text-slate-500 font-medium">You haven't joined any secondary batches yet.</p>
+                </div>`;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                return;
+            }
+
+            container.innerHTML = `<div class="py-4 flex justify-center"><div class="w-6 h-6 border-2 border-[#4226E9] border-t-transparent rounded-full animate-spin"></div></div>`;
+
+            try {
+                if (!window.currentFacultiesList || window.currentFacultiesList.length === 0) {
+                    if (window.FacultyService && window.FacultyService.loadFacultyList) await window.FacultyService.loadFacultyList();
+                }
+                // Fetch batch names
+                const { data: batchesData, error: batchesError } = await _supabase
+                    .from('batches')
+                    .select('id, batch_name')
+                    .in('id', secondaryBatches);
+                    
+                if (batchesError) throw batchesError;
+
+                // Fetch enrolled courses for these batches
+                const { data: coursesData, error: coursesError } = await _supabase
+                    .from('courses')
+                    .select('id, course_name, course_code, total_credit, batch_id')
+                    .in('batch_id', secondaryBatches);
+                    
+                if (coursesError) throw coursesError;
+                
+                // Fetch user_courses to know which ones they enrolled in
+                const { data: userCourses, error: userCoursesError } = await _supabase
+                    .from('user_courses')
+                    .select('course_id')
+                    .eq('user_id', window.authState.user.id);
+                    
+                if (userCoursesError) throw userCoursesError;
+                
+                const enrolledCourseIds = userCourses ? userCourses.map(uc => uc.course_id) : [];
+
+                // Fetch CRs for these batches
+                const { data: crData, error: crError } = await _supabase
+                    .from('batch_crs')
+                    .select('user_id, batch_id, profiles!batch_crs_user_id_fkey(full_name, profile_url, email, phone_number)')
+                    .in('batch_id', secondaryBatches)
+                    .eq('active', true);
+                    
+                if (crError) throw crError;
+
+                let html = '';
+                
+                for (const batchId of secondaryBatches) {
+                    const batch = batchesData?.find(b => String(b.id) === String(batchId));
+                    const batchName = batch ? batch.batch_name : `Batch ${batchId}`;
+                    
+                    const batchCourses = coursesData?.filter(c => String(c.batch_id) === String(batchId)) || [];
+                    const myEnrolledBatchCourses = batchCourses.filter(c => enrolledCourseIds.includes(c.id));
+                    
+                    const batchCrs = crData?.filter(cr => String(cr.batch_id) === String(batchId)) || [];
+                    
+                    html += `
+                        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-4">
+                            <div class="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 rounded-full bg-indigo-100 text-[#4226E9] flex items-center justify-center font-black text-xs">
+                                        ${window.sanitizeHTML(batchName).substring(0,2).toUpperCase()}
+                                    </div>
+                                    <h3 class="font-black text-[15px] text-slate-800">${window.sanitizeHTML(batchName)}</h3>
+                                </div>
+                                <button onclick="window.removeSecondaryBatch('${batchId}')" class="w-7 h-7 rounded-full bg-white border border-slate-200 text-slate-400 flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="p-4 space-y-4">
+                                <!-- Enrolled Courses -->
+                                <div>
+                                    <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Enrolled Courses (${myEnrolledBatchCourses.length})</h4>
+                                    ${myEnrolledBatchCourses.length > 0 ? `
+                                        <div class="flex flex-col gap-2">
+                                            ${myEnrolledBatchCourses.map(c => {
+                                                const faculty = (window.currentFacultiesList || []).find(f => f.id == c.faculty_id);
+                                                const facultyNames = faculty ? faculty.faculty_name : 'Unassigned';
+                                                return `
+                                                <div class="flex flex-col p-3 border border-slate-100 rounded-xl bg-slate-50/50">
+                                                    <div class="flex items-center justify-between">
+                                                        <span class="font-bold text-[13px] text-slate-800">${window.sanitizeHTML(c.course_name)}</span>
+                                                        <span class="text-[11px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">${window.sanitizeHTML(c.course_code)}</span>
+                                                    </div>
+                                                    <div class="flex items-center gap-4 mt-2">
+                                                        <div class="flex items-center gap-1.5">
+                                                            <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i>
+                                                            <span class="text-[11px] font-medium text-slate-600">${window.sanitizeHTML(facultyNames)}</span>
+                                                        </div>
+                                                        <div class="flex items-center gap-1.5">
+                                                            <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-slate-400"></i>
+                                                            <span class="text-[11px] font-medium text-slate-600">${c.total_credit || 0} Credits</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            `}).join('')}
+                                        </div>
+                                    ` : `<p class="text-[11px] text-slate-500 font-medium italic">No courses enrolled from this batch.</p>`}
+                                </div>
+                                
+                                <!-- CRs -->
+                                <div>
+                                    <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Class Representatives (${batchCrs.length})</h4>
+                                    ${batchCrs.length > 0 ? `
+                                        <div class="space-y-2">
+                                            ${batchCrs.map(cr => {
+                                                const p = cr.profiles || {};
+                                                const name = window.sanitizeHTML(p.full_name || 'Unknown');
+                                                const initial = name.charAt(0).toUpperCase();
+                                                const avatar = p.profile_url ? `<img src="${window.sanitizeUrl(p.profile_url)}" class="w-7 h-7 rounded-full object-cover border border-slate-100">` : `<div class="w-7 h-7 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-[10px] border border-blue-100">${initial}</div>`;
+                                                return `
+                                                    <div class="flex items-center justify-between p-2 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors">
+                                                        <div class="flex items-center gap-2.5">
+                                                            ${avatar}
+                                                            <div class="flex flex-col">
+                                                                <span class="text-[12px] font-bold text-slate-800 leading-tight">${name}</span>
+                                                                <span class="text-[9px] font-semibold text-slate-500 mt-0.5">CR</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="flex items-center gap-1.5">
+                                                            ${p.phone_number ? `<a href="tel:${window.sanitizeHTML(p.phone_number)}" class="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-100 transition-colors"><i data-lucide="phone" class="w-3.5 h-3.5"></i></a>` : ''}
+                                                            ${p.email ? `<a href="mailto:${window.sanitizeHTML(p.email)}" class="w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200 transition-colors"><i data-lucide="mail" class="w-3.5 h-3.5"></i></a>` : ''}
+                                                        </div>
+                                                    </div>
+                                                `;
+                                            }).join('')}
+                                        </div>
+                                    ` : `<p class="text-[11px] text-slate-500 font-medium italic">No CRs assigned to this batch.</p>`}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                container.innerHTML = html;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+
+            } catch (err) {
+                console.error("[PROFILE] Error rendering secondary batches page:", err);
+                container.innerHTML = `<div class="p-4 text-center text-[12px] text-red-500 font-bold bg-red-50 rounded-xl">Failed to load batch details. Please try again.</div>`;
+            }
+        };
+
+        const originalNavigate = window.navigate;
+        if (typeof originalNavigate === 'function') {
+            window.navigate = function(screenId) {
+                originalNavigate(screenId);
+                if (screenId === 'screen-secondary-batches') {
+                    window.renderSecondaryBatchesPageUI();
+                }
+            };
+        }
 
 export const ProfileService = {
     populateProfileDetails: typeof populateProfileDetails !== 'undefined' ? populateProfileDetails : window.populateProfileDetails,
@@ -466,3 +1100,4 @@ export const ProfileService = {
     savePhoneEdit: typeof savePhoneEdit !== 'undefined' ? savePhoneEdit : window.savePhoneEdit
 };
 console.log("[ARCHITECTURE]\nprofile loaded");
+

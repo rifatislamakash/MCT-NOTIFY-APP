@@ -1,5 +1,6 @@
 import { _supabase } from './supabase-client.js';
-import { showGlobalToast, showLoader } from './utils.js';
+import { crPermissionService } from './services/crPermissionService.js';
+import { showGlobalToast, showLoader, deduplicateRequest } from './utils.js';
 import { CourseStore } from './stores/CourseStore.js';
 import { FacultyStore } from './stores/FacultyStore.js';
 import { RoutineStore } from './stores/RoutineStore.js';
@@ -16,17 +17,40 @@ let isRegistering = false;
                     .select('*')
                     .eq('id', userId)
                     .maybeSingle();
-                    
-                const timeoutPromise = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('fetchUserProfile timeout')), 15000)
-                );
                 
-                const { data, error } = await Promise.race([profilePromise, timeoutPromise]);
-
-                if (error) {
-                    console.error('Error fetching profile from Supabase:', error.message);
-                    return null;
+                let data, error;
+                try {
+                    if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
+                    let timerId;
+                    const timeoutPromise = new Promise((_, reject) => {
+                        timerId = setTimeout(() => reject(new Error('sdk_timeout')), 400);
+                    });
+                    try {
+                        const result = await Promise.race([profilePromise, timeoutPromise]);
+                        data = result.data;
+                        error = result.error;
+                    } finally {
+                        clearTimeout(timerId);
+                    }
+                } catch (e) {
+                    if (e.message === 'sdk_timeout') {
+                        window._supabaseSdkFailing = true;
+                        const url = `${_supabase.supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=*`;
+                        const res = await fetch(url, {
+                            headers: {
+                                'apikey': _supabase.supabaseKey,
+                                'Authorization': `Bearer ${window.authState?.session?.access_token || _supabase.supabaseKey}`,
+                                'cache-control': 'no-cache'
+                            },
+                            cache: 'no-store'
+                        });
+                        const fetchResult = await res.json();
+                        data = fetchResult && fetchResult.length > 0 ? fetchResult[0] : null;
+                    } else {
+                        throw e;
+                    }
                 }
+                if (error) throw error;
                 return data;
             } catch (err) {
                 console.error('Exception caught in fetchUserProfile:', err);
@@ -36,7 +60,17 @@ let isRegistering = false;
 
 
 
-        export async function handleUserRouting(user, profile) {
+        export const handleUserRouting = async (user, profile) => {
+            console.log("[ROUTING INIT] Starting user routing...");
+            
+            if (typeof window.navigate === 'function') {
+                console.log("[ROUTING FUNCTION FOUND] window.navigate is available.");
+                console.log("[WINDOW NAVIGATE BOUND] Confirmed bounding of navigate function.");
+                console.log("[ROUTING READY] Proceeding with routing execution.");
+            } else {
+                console.warn("[ROUTING FUNCTION MISSING] window.navigate is undefined. Routing will likely fail.");
+            }
+
             if (_isRouting) return;
             _isRouting = true;
             try {
@@ -61,82 +95,142 @@ let isRegistering = false;
 
             // Fetch and set user courses unconditionally on login to populate state
             try {
-                const coursesPromise = _supabase.from('user_courses').select('*').eq('user_id', user.id);
-                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('user_courses timeout')), 15000));
-                const { data: userCourses, error } = await Promise.race([coursesPromise, timeoutPromise]);
-                if (error) throw error;
-                window.currentUserCoursesList = userCourses || [];
-            } catch (e) { console.warn("[ROUTING] user_courses fetch failed or timed out:", e); }
+                const isAdminCheck = window.currentUserRole === 'admin' || window.isAdminEmail(user.email);
+                if (isAdminCheck) {
+                    window.currentUserCoursesList = [];
+                } else {
+                    const coursesPromise = deduplicateRequest('user_courses_boot', async () => {
+                        const sdkPromise = _supabase.from('user_courses').select('*').eq('user_id', user.id);
+                        const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('sdk_timeout')), 2000));
+                        try {
+                            const { data, error } = await Promise.race([sdkPromise, timeout]);
+                            if (error) throw error;
+                            return data;
+                        } catch (e) {
+                            if (e.message === 'sdk_timeout') {
+                                const url = `${_supabase.supabaseUrl}/rest/v1/user_courses?user_id=eq.${user.id}&select=*`;
+                                const res = await fetch(url, {
+                                    headers: {
+                                        'apikey': _supabase.supabaseKey,
+                                        'Authorization': `Bearer ${window.authState?.session?.access_token || _supabase.supabaseKey}`,
+                                        'cache-control': 'no-cache'
+                                    },
+                                    cache: 'no-store'
+                                });
+                                const fetchResult = await res.json();
+                                if (fetchResult.error) throw new Error(fetchResult.error.message);
+                                return fetchResult;
+                            }
+                            throw e;
+                        }
+                    });
+                    const userCourses = await coursesPromise;
+                    window.currentUserCoursesList = userCourses || [];
+                    window._userCoursesFetchFailed = false;
+                }
+            } catch (e) { 
+                console.warn("[ROUTING] user_courses fetch failed or timed out:", e);
+                window._userCoursesFetchFailed = true;
+            }
 
             const loadDashboardDataAsync = async () => {
-                if (typeof window.loadContentSettings === 'function') await window.loadContentSettings().catch(console.warn);
-                if (typeof window.loadNotices === 'function') await window.loadNotices().catch(console.warn);
-                if (typeof window.updateGlobalAvatars === 'function') setTimeout(window.updateGlobalAvatars, 1000);
+                try {
+                    const tasks = [];
+                    if (typeof window.loadContentSettings === 'function') tasks.push(window.loadContentSettings().catch(console.warn));
+                    if (typeof window.loadNotices === 'function') tasks.push(window.loadNotices().catch(console.warn));
+                    if (typeof window.loadDashboardTodayRoutine === 'function') tasks.push(window.loadDashboardTodayRoutine().catch(console.warn));
+                    if (typeof window.loadScheduleList === 'function') tasks.push(window.loadScheduleList().catch(console.warn));
+                    
+                    const timeoutPromise = new Promise(resolve => setTimeout(resolve, 10000));
+                    await Promise.race([Promise.all(tasks), timeoutPromise]);
+                } finally {
+                    if (typeof window.showLoader === 'function') window.showLoader(false);
+                    if (typeof window.updateGlobalAvatars === 'function') setTimeout(window.updateGlobalAvatars, 1000);
+                }
             };
 
             const isActualAdmin = window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail);
+            const isCR = window.currentUserRole === 'cr';
 
-            if (isActualAdmin) {
-                // Determine preferred view (default to student if first time)
-                const preferredRole = localStorage.getItem('adminPreferredRole') || 'student';
-                window.authState.profile.role = preferredRole;
-                window.currentUserRole = preferredRole;
-
-                const toggleOnStudent = document.getElementById('admin-switch-on-student');
-                const toggleOnAdmin = document.getElementById('admin-switch-on-admin');
-                if (toggleOnStudent) toggleOnStudent.classList.remove('hidden');
-                if (toggleOnAdmin) toggleOnAdmin.classList.remove('hidden');
-
-                if (preferredRole === 'student') {
-                    window.navigate('screen-student-dashboard');
-                    window.updateDashboardGreetings();
-                    loadDashboardDataAsync();
-                    if (typeof window.loadDashboardTodayRoutine === 'function') window.loadDashboardTodayRoutine().catch(console.warn);
-                    if (typeof window.loadScheduleList === 'function') window.loadScheduleList().catch(console.warn);
-                    setTimeout(window.startReminderEngine, 2000);
-                    window.showGlobalToast("Student Portal", `Welcome back, ${profile?.full_name || 'System Admin'}`);
+            const processRouting = async () => {
+                let preferredRole = 'student';
+                if (isCR) {
+                    preferredRole = sessionStorage.getItem('crPreferredRole') || 'student';
+                    await crPermissionService.initializePermissions();
                 } else {
-                    window.navigate('screen-admin-dashboard');
-                    window.updateDashboardGreetings();
-                    loadDashboardDataAsync();
-                    window.showGlobalToast("Admin Portal", `Welcome back Admin, ${profile?.full_name || 'System Admin'}`);
+                    window.currentUserCRBatches = [];
                 }
-            } else {
-                const toggleOnStudent = document.getElementById('admin-switch-on-student');
-                const toggleOnAdmin = document.getElementById('admin-switch-on-admin');
-                if (toggleOnStudent) toggleOnStudent.classList.add('hidden');
-                if (toggleOnAdmin) toggleOnAdmin.classList.add('hidden');
 
-                // Onboarding Logic: Check if user has enrolled courses
-                if (typeof window.showLoader !== 'undefined') window.showLoader(true, 'Verifying enrollments...');
-                try {
-                    if (window.currentUserCoursesList && window.currentUserCoursesList.length > 0) {
-                        if (typeof window.showLoader !== 'undefined') window.showLoader(false);
-                        const needsNotificationPrompt = ('Notification' in window) && Notification.permission === 'default' && sessionStorage.getItem('notification_skipped') !== 'true';
-                        if (needsNotificationPrompt) {
-                            window.navigate('screen-notification-permission');
-                        } else {
-                            window.navigate('screen-student-dashboard');
-                            window.updateDashboardGreetings();
-                            loadDashboardDataAsync().catch(console.warn);
-                            window.triggerUrgentPopupModal();
-                            if (typeof window.loadDashboardTodayRoutine === 'function') window.loadDashboardTodayRoutine().catch(console.warn);
-                            if (typeof window.loadScheduleList === 'function') window.loadScheduleList().catch(console.warn);
-                            setTimeout(window.startReminderEngine, 2000); // PART 10
-                            window.showGlobalToast("Student Portal", `Welcome back, ${profile?.full_name || 'Fellow'}`);
-                        }
+                setTimeout(() => {
+                    const btnStudent = document.getElementById('cr-swap-btn-student');
+                    const btnAdmin = document.getElementById('cr-swap-btn-admin');
+                    const adminLogoRole = document.getElementById('admin-dashboard-logo-role');
+                    const adminGreetingRole = document.getElementById('admin-greeting-role');
+                    
+                    if (isCR) {
+                        if (btnStudent) btnStudent.classList.remove('hidden');
+                        if (btnAdmin) btnAdmin.classList.remove('hidden');
+                        if (adminLogoRole) adminLogoRole.innerText = 'CR';
+                        if (adminGreetingRole) adminGreetingRole.innerText = 'CR';
                     } else {
-                        if (typeof window.showLoader !== 'undefined') window.showLoader(false);
-                        window.navigate('screen-onboarding');
-                        if (typeof window.loadCourseSelection === 'function') window.loadCourseSelection();
+                        if (btnStudent) btnStudent.classList.add('hidden');
+                        if (btnAdmin) btnAdmin.classList.add('hidden');
+                        if (adminLogoRole) adminLogoRole.innerText = 'Admin';
+                        if (adminGreetingRole) adminGreetingRole.innerText = 'Admin';
+                    }
+                }, 200);
+
+                try {
+                    if (isActualAdmin || (isCR && preferredRole === 'cr')) {
+                        window.authState.profile.role = isActualAdmin ? 'admin' : 'cr';
+                        window.currentUserRole = window.authState.profile.role;
+                        window.navigate('screen-admin-dashboard');
+                        window.updateDashboardGreetings();
+                        if (window.DashboardService && window.DashboardService.applyCRDashboardRestrictions) {
+                            window.DashboardService.applyCRDashboardRestrictions();
+                        }
+                        loadDashboardDataAsync();
+                        setTimeout(() => {
+                            const cmSection = document.getElementById('admin-content-management-section');
+                            if (isCR && cmSection) cmSection.classList.add('hidden');
+                            else if (cmSection) cmSection.classList.remove('hidden');
+                        }, 100);
+
+                        const portalName = isCR ? "CR Portal" : "Admin Portal";
+                        const welcomeName = profile?.full_name || (isCR ? 'Class Representative' : 'System Admin');
+                        window.showGlobalToast(portalName, `Welcome back, ${welcomeName}`);
+                    } else {
+                        if (typeof window.showLoader !== 'undefined') window.showLoader(true, 'Verifying enrollments...');
+                        if (window.currentUserCoursesList && window.currentUserCoursesList.length > 0) {
+                            if (typeof window.showLoader !== 'undefined') window.showLoader(false);
+                            const needsNotificationPrompt = ('Notification' in window) && Notification.permission === 'default' && sessionStorage.getItem('notification_skipped') !== 'true';
+                            if (needsNotificationPrompt) {
+                                window.navigate('screen-notification-permission');
+                            } else {
+                                window.navigate('screen-student-dashboard');
+                                window.updateDashboardGreetings();
+                                loadDashboardDataAsync().catch(console.warn);
+                                window.triggerUrgentPopupModal();
+                                setTimeout(window.startReminderEngine, 2000);
+                                window.showGlobalToast("Student Portal", `Welcome back, ${profile?.full_name || 'Fellow'}`);
+                            }
+                        } else if (window._userCoursesFetchFailed) {
+                            if (typeof window.showLoader !== 'undefined') window.showLoader(false);
+                            window.showGlobalToast("Network Error", "Could not load your courses. Please check your connection and reload the app.");
+                        } else {
+                            if (typeof window.showLoader !== 'undefined') window.showLoader(false);
+                            window.navigate('screen-onboarding');
+                            if (typeof window.loadCourseSelection === 'function') window.loadCourseSelection();
+                        }
                     }
                 } catch (err) {
                     console.error("[ROUTING ERROR] Caught during user routing:", err);
                     if (typeof window.showLoader !== 'undefined') window.showLoader(false);
-                    window.navigate('screen-student-dashboard'); // Failsafe
+                    window.navigate('screen-student-dashboard');
                     window.updateDashboardGreetings();
                 }
-            }
+            };
+            await processRouting();
             } finally {
                 _isRouting = false;
             }
@@ -144,7 +238,13 @@ let isRegistering = false;
 
 
 
+        let _isCheckingSession = false;
         export async function checkActiveSession() {
+            if (_isCheckingSession) {
+                console.log("[DEBUG] checkActiveSession already running. Skipping.");
+                return;
+            }
+            _isCheckingSession = true;
             console.log("[DEBUG] checkActiveSession: started");
             if (typeof window.showLoader !== 'undefined') window.showLoader(true, "Restoring session...");
             try {
@@ -154,7 +254,7 @@ let isRegistering = false;
                     console.log("[DEBUG] checkActiveSession: calling getSession with timeout");
                     const sessionPromise = _supabase.auth.getSession();
                     const timeoutPromise = new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('getSession timeout')), 15000)
+                        setTimeout(() => reject(new Error('getSession timeout')), 10000)
                     );
                     const { data, error } = await Promise.race([sessionPromise, timeoutPromise]);
                     console.log("[DEBUG] checkActiveSession: getSession returned", !!data?.session, error);
@@ -176,23 +276,31 @@ let isRegistering = false;
                         return;
                     }
 
-                    window.authState.profile = {
+                    console.log("[PROFILE FETCH] checkActiveSession: fetching fresh profile");
+                    let profileData = await fetchUserProfile(session.user.id).catch(e => {
+                        console.warn("[PROFILE] Fetch failed:", e);
+                        return null;
+                    });
+                    console.log(`[PROFILE URL] checkActiveSession: profile_url is ${profileData?.profile_url || 'null'}`);
+                    
+                    const fallbackRole = window.isAdminEmail(session.user.email) ? 'admin' : 'student';
+
+                    console.log("[PROFILE INIT] checkActiveSession: initializing authState.profile");
+                    window.authState.profile = profileData ? profileData : {
                         id: session.user.id,
                         full_name: session.user.user_metadata?.full_name || "MCT Student",
                         email: session.user.email,
-                        role: window.isAdminEmail(session.user.email) ? 'admin' : 'student',
+                        role: fallbackRole,
                         onboarding_completed: true
                     };
-                    
-                    console.log("[DEBUG] checkActiveSession: starting background fetchUserProfile");
-                    fetchUserProfile(session.user.id).then(profileData => {
-                        if (profileData) {
-                            window.authState.profile = profileData;
-                            if (typeof window.updateGlobalAvatars === 'function') {
-                                window.updateGlobalAvatars();
-                            }
-                        }
-                    }).catch(e => console.warn("[PROFILE] Background fetch failed:", e));
+
+                    if (window.authState.profile && !window.authState.profile.role) {
+                        window.authState.profile.role = fallbackRole;
+                    }
+
+                    if (typeof window.updateGlobalAvatars === 'function') {
+                        window.updateGlobalAvatars();
+                    }
 
                     console.log("[DEBUG] checkActiveSession: calling handleUserRouting");
                     await handleUserRouting(window.authState.user, window.authState.profile);
@@ -208,7 +316,13 @@ let isRegistering = false;
                 window.navigate('screen-welcome');
             } finally {
                 console.log("[DEBUG] checkActiveSession: finally block");
-                if (typeof window.showLoader !== 'undefined') window.showLoader(false);
+                // Only hide loader if we actually did something and routing isn't still in progress
+                // Actually, handleUserRouting manages the loader on success, so we don't always need to hide it here unless it failed.
+                // We'll let handleUserRouting hide the loader, except if there's no session or an error.
+                if (!window.authState.user || window.currentUserRole === 'student' && !window.authState.profile) {
+                    if (typeof window.showLoader !== 'undefined') window.showLoader(false);
+                }
+                _isCheckingSession = false;
             }
         }
 // Sync auth changes instantly
@@ -216,6 +330,10 @@ let isRegistering = false;
         _supabase.auth.onAuthStateChange(async (event, session) => {
             console.log("[AUTH] Auth State Change Event:", event);
             if (event === 'INITIAL_SESSION') return;
+            if (_isCheckingSession) {
+                console.log("[AUTH] Ignored onAuthStateChange because checkActiveSession is running.");
+                return;
+            }
             // A1 Fix: Debounce token refresh to prevent UI reload stampede
             if (event === 'SIGNED_IN' && session && window.authState && window.authState.user && window.authState.user.id === session.user.id) {
                 console.log("[AUTH] Token refresh detected, updating session only.");
@@ -244,26 +362,35 @@ let isRegistering = false;
                 console.log("[DEBUG] onAuthStateChange: setting auth state");
                 window.authState.session = session;
                 window.authState.user = session.user;
-                window.authState.profile = {
+                
+                console.log("[PROFILE FETCH] onAuthStateChange: fetching fresh profile");
+                let profileData = await fetchUserProfile(session.user.id).catch(e => {
+                    console.warn("[PROFILE] Fetch failed:", e);
+                    return null;
+                });
+                console.log(`[PROFILE URL] onAuthStateChange: profile_url is ${profileData?.profile_url || 'null'}`);
+                
+                const fallbackRole = window.isAdminEmail(session.user.email) ? 'admin' : 'student';
+
+                console.log("[PROFILE INIT] onAuthStateChange: initializing authState.profile");
+                window.authState.profile = profileData ? profileData : {
                     id: session.user.id,
                     full_name: session.user.user_metadata?.full_name || "MCT Student",
                     email: session.user.email,
-                    role: window.isAdminEmail(session.user.email) ? 'admin' : 'student',
+                    role: fallbackRole,
                     onboarding_completed: true
                 };
 
-                console.log("[DEBUG] onAuthStateChange: starting background profile fetch");
-                fetchUserProfile(session.user.id).then(profileData => {
-                    if (profileData) {
-                        window.authState.profile = profileData;
-                        if (typeof window.updateGlobalAvatars === 'function') {
-                            window.updateGlobalAvatars();
-                        }
-                    }
-                }).catch(e => console.warn("[PROFILE] Background fetch failed:", e));
+                if (window.authState.profile && !window.authState.profile.role) {
+                    window.authState.profile.role = fallbackRole;
+                }
+
+                if (typeof window.updateGlobalAvatars === 'function') {
+                    window.updateGlobalAvatars();
+                }
 
                 console.log("[DEBUG] onAuthStateChange: routing");
-                handleUserRouting(window.authState.user, window.authState.profile).catch(console.warn);
+                await handleUserRouting(window.authState.user, window.authState.profile).catch(console.warn);
                 console.log("[DEBUG] onAuthStateChange: routing done");
             } else if (event === 'SIGNED_OUT') {
         isRecovering = false;
@@ -511,3 +638,6 @@ export const AuthService = {
     logout
 };
 console.log("[ARCHITECTURE]\nauth loaded");
+
+
+
