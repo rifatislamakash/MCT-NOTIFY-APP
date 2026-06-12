@@ -19,14 +19,22 @@
         document.body.appendChild(ptrSpinner);
 
         document.addEventListener('touchstart', (e) => {
+            // Ignore if touching interactive elements like buttons, inputs, links, textareas
+            if (e.target.closest('button, a, input, textarea, select, [role="button"], [onclick]')) {
+                return;
+            }
+
             // Check if we are touching a scrollable element or the body
-            const scrollContainer = e.target.closest('.overflow-y-auto, .overflow-y-scroll') || document.documentElement;
-            touchStartScrollTop = scrollContainer.scrollTop;
+            const scrollContainer = e.target.closest('.overflow-y-auto, .overflow-y-scroll, .screen') || document.documentElement;
+            touchStartScrollTop = scrollContainer.scrollTop || 0;
             
             // Only initiate pull if we are at the very top
             if (touchStartScrollTop <= 0) {
                 startY = e.touches[0].clientY;
+                startX = e.touches[0].clientX;
+                currentY = startY;
                 isPulling = true;
+                isHorizontalSwipe = false;
                 ptrSpinner.style.transition = 'none';
             }
         }, { passive: true });
@@ -34,12 +42,23 @@
         document.addEventListener('touchmove', (e) => {
             if (!isPulling) return;
             currentY = e.touches[0].clientY;
+            currentX = e.touches[0].clientX;
+            
             let dy = currentY - startY;
+            let dx = Math.abs(currentX - startX);
 
-            // Only pull if pulling down
-            if (dy > 0) {
+            // If the user swiped horizontally more than vertically initially, cancel pull
+            if (!isHorizontalSwipe && dx > Math.abs(dy) && dx > 10) {
+                isHorizontalSwipe = true;
+                isPulling = false;
+                ptrSpinner.style.transform = 'translateY(-100%)';
+                return;
+            }
+
+            // Only pull if pulling down significantly
+            if (dy > 15 && !isHorizontalSwipe) {
                 // Visual pull effect with resistance
-                let pullDistance = Math.min(dy * 0.4, 80); 
+                let pullDistance = Math.min((dy - 15) * 0.35, 75); 
                 ptrSpinner.style.transform = `translateY(${pullDistance - 64}px)`;
             }
         }, { passive: true });
@@ -47,11 +66,14 @@
         document.addEventListener('touchend', () => {
             if (!isPulling) return;
             isPulling = false;
+            
+            if (isHorizontalSwipe) return;
+            
             let dy = currentY - startY;
             ptrSpinner.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
 
-            // If pulled past threshold (100px), trigger refresh
-            if (dy > 120) {
+            // Increased threshold to 150px to prevent accidental reloading
+            if (dy > 150) {
                 ptrSpinner.style.transform = 'translateY(16px)';
                 if (typeof showLoader === 'function') {
                     showLoader(true, "Refreshing...");
@@ -63,6 +85,9 @@
                 // Snap back
                 ptrSpinner.style.transform = 'translateY(-100%)';
             }
+            
+            currentY = 0;
+            startY = 0;
         });
     }
 
