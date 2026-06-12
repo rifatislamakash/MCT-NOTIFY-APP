@@ -73,13 +73,18 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
         // Home redirection / Syncing action
         function goHome() {
-            simulateReload();
+            const currentScreen = document.querySelector('.screen:not(.hidden)')?.id || document.querySelector('.screen.active')?.id;
             const preferredRole = window.currentUserRole === 'cr' ? (sessionStorage.getItem('crPreferredRole') || 'student') : null;
-            if (window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail) || preferredRole === 'cr') {
-                window.navigate('screen-admin-dashboard');
-            } else {
-                window.navigate('screen-student-dashboard');
+            const targetScreen = (window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail) || preferredRole === 'cr') ? 'screen-admin-dashboard' : 'screen-student-dashboard';
+            
+            if (currentScreen === targetScreen) {
+                if (typeof showLoader === 'function') showLoader(true, "Refreshing...");
+                window.location.reload();
+                return;
             }
+
+            simulateReload();
+            window.navigate(targetScreen);
         }
 
         function updateBottomNavHighlights(screenId) {
