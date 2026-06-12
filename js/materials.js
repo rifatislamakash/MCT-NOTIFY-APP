@@ -453,6 +453,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const title = document.getElementById('upload-material-title').value.trim();
                 const description = document.getElementById('upload-material-description').value.trim();
                 const courseId = document.getElementById('upload-material-course').value;
+                const type = document.getElementById('upload-material-type').value;
+                const section = document.getElementById('upload-material-section').value;
                 const link = document.getElementById('upload-material-link').value.trim();
 
                 const course = window.currentCoursesList.find(c => c.id === courseId);
@@ -501,6 +503,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     title: title,
                     description: description,
                     course_id: courseId,
+                    section: section,
                     material_type: type,
                     external_link: link,
                     attachment_url: attachmentUrl,

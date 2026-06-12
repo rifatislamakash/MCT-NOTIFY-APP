@@ -916,7 +916,7 @@
                                 <div class="grid grid-cols-2 gap-2 text-left bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
                                     <div>
                                         <span class="text-[9px] text-slate-400 font-bold uppercase block">ID</span>
-                                        <span id="profile-user-id" class="text-xs font-bold text-slate-800 whitespace-nowrap overflow-hidden text-ellipsis block max-w-full">252-40-016</span>
+                                        <span id="profile-user-id" class="text-xs font-bold text-slate-800 whitespace-nowrap overflow-hidden text-ellipsis block max-w-full">-</span>
                                     </div>
                                     <div>
                                         <span class="text-[9px] text-slate-400 font-bold uppercase block">Department</span>
@@ -943,13 +943,38 @@
                                 </div>
                             </div>
 
+                            <!-- CR Access Request Container -->
+                            <div id="cr-request-container" class="mt-4 hidden">
+                                <button id="btn-request-cr" onclick="openCRRequestModal()" class="w-full bg-gradient-to-r from-indigo-500 to-[#4226E9] hover:from-indigo-600 hover:to-[#341BC5] text-white p-3.5 rounded-2xl flex items-center justify-between shadow-md shadow-indigo-500/20 transition-all active:scale-[0.98]">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                                            <i data-lucide="shield" class="w-4 h-4 text-white"></i>
+                                        </div>
+                                        <div class="text-left">
+                                            <span class="block text-[13px] font-black leading-tight">Request CR Access</span>
+                                            <span class="block text-[10px] font-medium text-indigo-100 mt-0.5">Apply to manage your batch</span>
+                                        </div>
+                                    </div>
+                                    <i data-lucide="chevron-right" class="w-4 h-4 text-white/70"></i>
+                                </button>
+                                <div id="cr-request-pending-notice" class="hidden w-full bg-amber-50 border border-amber-100 p-3.5 rounded-2xl flex items-center gap-3 shadow-sm">
+                                    <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                                        <i data-lucide="clock" class="w-4 h-4 text-amber-600"></i>
+                                    </div>
+                                    <div class="text-left">
+                                        <span class="block text-[12px] font-black text-amber-800 leading-tight">Request Pending</span>
+                                        <span class="block text-[10px] font-medium text-amber-600 mt-0.5">Your CR application is under review.</span>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="mt-4 space-y-2">
                                 <div class="bg-white border border-slate-100 p-3.5 rounded-2xl flex items-center justify-between">
                                     <div class="flex items-center gap-3">
                                         <i data-lucide="mail" class="w-4 h-4 text-slate-400"></i>
                                         <div>
                                             <span class="text-[9px] text-slate-400 font-bold uppercase block">Mail Address</span>
-                                            <span id="profile-user-email" class="text-xs font-bold text-slate-800">252-40-016@diu.edu.bd</span>
+                                            <span id="profile-user-email" class="text-xs font-bold text-slate-800">-</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1071,19 +1096,14 @@
                                     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
                                         <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-4">Profile Picture</h3>
                                         <div class="flex items-center gap-5">
-                                            <div class="relative w-20 h-20 shrink-0">
+                                            <div class="relative w-20 h-20 shrink-0 global-user-avatar-container">
                                                 <div class="w-full h-full rounded-full ring-4 ring-[#4226E9]/20 overflow-hidden bg-slate-100 flex items-center justify-center">
-                                                    <img id="edit-profile-avatar-preview" class="w-full h-full object-cover hidden" src="" alt="Avatar">
-                                                    <i id="edit-profile-fallback" data-lucide="user" class="w-8 h-8 text-[#4226E9]"></i>
+                                                    <i data-lucide="user" class="w-8 h-8 text-[#4226E9]"></i>
                                                 </div>
                                             </div>
                                             <div class="flex flex-col gap-2 flex-1">
-                                                <label for="edit-profile-image-input" class="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-50 text-[#4226E9] rounded-xl text-[13px] font-bold cursor-pointer hover:bg-indigo-100 transition-colors active:scale-95 border border-indigo-100">
-                                                    <i data-lucide="camera" class="w-4 h-4"></i> Change Photo
-                                                </label>
-                                                <input type="file" id="edit-profile-image-input" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="window.handleEditProfileImageSelect(event)">
-                                                <button type="button" id="btn-remove-edit-photo" onclick="window.handleRemoveEditProfilePhoto()" class="hidden px-4 py-2 bg-red-50 text-red-600 rounded-xl text-[12px] font-bold hover:bg-red-100 transition-colors border border-red-100">
-                                                    Remove Photo
+                                                <button type="button" onclick="openProfilePictureModal()" class="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-50 text-[#4226E9] rounded-xl text-[13px] font-bold hover:bg-indigo-100 transition-colors active:scale-95 border border-indigo-100 w-full">
+                                                    <i data-lucide="camera" class="w-4 h-4"></i> Update Photo
                                                 </button>
                                             </div>
                                         </div>
@@ -2201,6 +2221,10 @@
                                     <p class="text-[13px] text-slate-400 mt-0.5">Directory & Enrollments</p>
                                 </div>
                             </div>
+                            <button onclick="navigate('screen-admin-cr-requests'); if(typeof loadAdminCRRequests === 'function') loadAdminCRRequests();" class="relative w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-colors shadow-sm ml-2">
+                                <i data-lucide="shield-alert" class="w-5 h-5 text-white"></i>
+                                <span id="admin-cr-req-badge" class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full hidden border-2 border-[#0F172A] shadow-xs">0</span>
+                            </button>
                         </div>
                         <div class="px-6 pt-4 shrink-0 bg-[#F5F6F8] space-y-4">
                             <!-- Analytics Cards (Horizontally Scrollable) -->
@@ -2297,6 +2321,27 @@
                                 <i data-lucide="user" class="w-5 h-5"></i>
                                 <span class="text-[9px] font-semibold">Profile</span>
                             </button>
+                        </div>
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- SCREEN 18.5: ADMIN CR REQUESTS             -->
+                    <!-- ========================================== -->
+                    <div id="screen-admin-cr-requests" class="screen bg-[#F5F6F8] flex flex-col justify-between overflow-hidden">
+                        <div class="bg-[#0F172A] px-6 pt-12 pb-6 flex items-center text-white shadow-sm z-10 shrink-0">
+                            <button onclick="navigate('screen-admin-students');" class="hover:opacity-75 transition-opacity mr-4">
+                                <i data-lucide="arrow-left" class="w-6 h-6 font-light"></i>
+                            </button>
+                            <div>
+                                <h2 class="text-[22px] font-bold leading-tight tracking-wide">CR Requests</h2>
+                                <p class="text-[13px] text-slate-400 mt-0.5">Manage class representative access</p>
+                            </div>
+                        </div>
+
+                        <div class="flex-1 overflow-y-auto px-4 pt-6 pb-24 scrollbar-hide">
+                            <div id="admin-cr-requests-list" class="flex flex-col gap-3">
+                                <p class="text-[13px] text-slate-500 text-center py-8">Loading requests...</p>
+                            </div>
                         </div>
                     </div>
 
@@ -5407,16 +5452,36 @@
                 return;
             }
 
-            container.innerHTML = filtered.map(c => `
-                    <label class="flex items-center gap-3.5 cursor-pointer group bg-white/50 p-2 rounded-xl hover:bg-white transition-all">
-                        <div class="relative flex items-center justify-center w-[22px] h-[22px] border-2 border-slate-900 rounded-[6px] bg-transparent group-hover:border-[#4226E9] transition-colors overflow-hidden">
+            container.innerHTML = filtered.map(c => {
+                let sectionSelectHTML = '';
+                if (c.sections_name) {
+                    let sectionsArray = [];
+                    if (typeof c.sections_name === 'string') {
+                        sectionsArray = c.sections_name.split(',').map(s => s.trim()).filter(s => s);
+                    } else if (Array.isArray(c.sections_name)) {
+                        sectionsArray = c.sections_name;
+                    }
+                    if (sectionsArray.length > 0) {
+                        sectionSelectHTML = `
+                            <select id="onboard-section-${c.id}" onclick="event.stopPropagation();" class="ml-auto text-[11px] font-bold text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#4226E9]">
+                                <option value="" disabled selected>Section</option>
+                                ${sectionsArray.map(sec => `<option value="${window.sanitizeHTML(sec)}">Sec ${window.sanitizeHTML(sec)}</option>`).join('')}
+                            </select>
+                        `;
+                    }
+                }
+                return `
+                    <label class="flex items-center gap-3.5 cursor-pointer group bg-white/50 p-2 rounded-xl hover:bg-white transition-all w-full">
+                        <div class="relative flex items-center justify-center w-[22px] h-[22px] border-2 border-slate-900 rounded-[6px] bg-transparent group-hover:border-[#4226E9] transition-colors overflow-hidden shrink-0">
                             <input type="checkbox" value="${c.id}" class="onboard-course-checkbox peer absolute opacity-0 w-full h-full cursor-pointer">
                             <div class="absolute inset-0 bg-[#4226E9] scale-0 peer-checked:scale-100 transition-transform origin-center"></div>
                             <i data-lucide="check" class="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 z-10 transition-opacity"></i>
                         </div>
-                        <span class="text-[15px] font-semibold text-slate-900">${window.sanitizeHTML(c.course_name)}</span>
+                        <span class="text-[15px] font-semibold text-slate-900 truncate">${window.sanitizeHTML(c.course_name)}</span>
+                        ${sectionSelectHTML}
                     </label>
-                `).join('');
+                `;
+            }).join('');
             if (typeof lucide !== 'undefined') lucide.createIcons();
         };
 
@@ -5444,10 +5509,15 @@
 
             try {
                 // Step 1: Insert into user_courses
-                const inserts = Array.from(checkboxes).map(cb => ({
-                    user_id: userId,
-                    course_id: cb.value
-                }));
+                const inserts = Array.from(checkboxes).map(cb => {
+                    const courseId = cb.value;
+                    const sectionSelect = document.getElementById(`onboard-section-${courseId}`);
+                    return {
+                        user_id: userId,
+                        course_id: courseId,
+                        section_name: sectionSelect ? sectionSelect.value : null
+                    };
+                });
 
                 await _supabase.from('user_courses').delete().eq('user_id', userId);
 
@@ -5579,17 +5649,37 @@
             }
             container.innerHTML = courses.map(c => {
                 const facName = window.currentFacultiesList.find(f => f.id == c.faculty_id)?.faculty_name || 'Unassigned';
+                
+                let sectionSelectHTML = '';
+                if (c.sections_name) {
+                    let sectionsArray = [];
+                    if (typeof c.sections_name === 'string') {
+                        sectionsArray = c.sections_name.split(',').map(s => s.trim()).filter(s => s);
+                    } else if (Array.isArray(c.sections_name)) {
+                        sectionsArray = c.sections_name;
+                    }
+                    if (sectionsArray.length > 0) {
+                        sectionSelectHTML = `
+                            <select id="section-select-${c.id}" class="mt-2 text-[11px] font-bold text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-indigo-300 block w-full max-w-[200px]">
+                                <option value="" disabled selected>Select Section</option>
+                                ${sectionsArray.map(sec => `<option value="${window.sanitizeHTML(sec)}">Section ${window.sanitizeHTML(sec)}</option>`).join('')}
+                            </select>
+                        `;
+                    }
+                }
+
                 return `
                         <div class="bg-white rounded-[16px] p-4 shadow-sm border border-slate-100 flex items-center justify-between">
-                            <div>
-                                <h4 class="text-[15px] font-bold text-slate-900 leading-tight">${window.sanitizeHTML(c.course_name)}</h4>
+                            <div class="min-w-0 flex-1 pr-3">
+                                <h4 class="text-[15px] font-bold text-slate-900 leading-tight truncate">${window.sanitizeHTML(c.course_name)}</h4>
                                 <p class="text-[12px] text-slate-500 font-semibold mt-0.5">${window.sanitizeHTML(c.course_code)}</p>
-                                <div class="flex items-center gap-3 mt-1.5 text-[11px] text-slate-400 font-medium">
+                                <div class="flex items-center gap-3 mt-1.5 text-[11px] text-slate-400 font-medium truncate">
                                     <span>${c.total_credit || 0} Credits</span>
-                                    <span>${facName}</span>
+                                    <span class="truncate">${facName}</span>
                                 </div>
+                                ${sectionSelectHTML}
                             </div>
-                            <button onclick="addCourse('${c.id}')" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-[10px] font-bold text-[12px] shadow-sm active:scale-95 transition-transform shrink-0">Add</button>
+                            <button onclick="addCourse('${c.id}')" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-[10px] font-bold text-[12px] shadow-sm active:scale-95 transition-transform shrink-0 mt-auto mb-auto">Add</button>
                         </div>`;
             }).join('');
             if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -5602,11 +5692,22 @@
             const alreadyEnrolled = currentUserCoursesList.some(uc => uc.course_id === courseId);
             if (alreadyEnrolled) { showGlobalToast("Notice", "Already enrolled in this course."); return; }
 
+            let section_name = null;
+            const sectionSelect = document.getElementById(`section-select-${courseId}`);
+            if (sectionSelect) {
+                if (!sectionSelect.value) {
+                    showGlobalToast("Notice", "Please select a section for this course.");
+                    return;
+                }
+                section_name = sectionSelect.value;
+            }
+
             showLoader(true, "Adding course...");
             try {
                 const { error } = await _supabase.from('user_courses').insert([{
                     user_id: authState.user.id,
-                    course_id: courseId
+                    course_id: courseId,
+                    section_name: section_name
                 }]);
                 if (error) throw error;
                 showGlobalToast("Success", "Course added successfully.");
@@ -5654,28 +5755,39 @@
 
             container.innerHTML = courses.map(c => {
                 const facName = window.currentFacultiesList.find(f => f.id == c.faculty_id)?.faculty_name || 'Unassigned faculty';
+                
+                const enrolledRecord = window.currentUserCoursesList.find(uc => uc.course_id === c.id);
+                const section_name = enrolledRecord?.section_name || '';
 
-                let sectionsStr = "Section A";
+                let sectionBadge = '';
+                let sectionEditBtn = '';
+
                 if (c.sections_name) {
-                    if (Array.isArray(c.sections_name) && c.sections_name.length > 0) sectionsStr = "Section " + c.sections_name;
-                    else if (typeof c.sections_name === 'string') {
-                        try { sectionsStr = "Section " + JSON.parse(c.sections_name); } catch (e) { sectionsStr = "Section " + c.sections_name; }
+                    if (section_name) {
+                        sectionBadge = `<span class="bg-indigo-50 text-indigo-600 text-[10px] font-bold px-2 py-0.5 rounded ml-2 whitespace-nowrap align-middle">Sec: ${window.sanitizeHTML(section_name)}</span>`;
                     }
+                    sectionEditBtn = `
+                        <button onclick="event.stopPropagation(); openEditSectionModal('${c.id}', '${section_name}')" class="text-[10px] font-bold text-[#4226E9] bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1.5 rounded-lg active:scale-95 transition-transform flex items-center gap-1.5 whitespace-nowrap">
+                            <i data-lucide="edit-3" class="w-3 h-3"></i> Section
+                        </button>
+                    `;
                 }
 
                 return `
-                        <div class="bg-white rounded-[16px] p-4 shadow-sm border border-slate-100 flex items-center justify-between">
-                            <div>
-                                <h4 class="text-[16px] font-bold text-slate-900 leading-tight">${window.sanitizeHTML(c.course_name)}</h4>
-                                <p class="text-[12px] text-slate-500 font-semibold mt-0.5">${window.sanitizeHTML(c.course_code)} | ${sectionsStr}</p>
-                                <div class="flex items-center gap-3 mt-2 text-[11px] text-slate-500 font-medium">
+                        <div class="bg-white rounded-[16px] p-4 shadow-sm border border-slate-100 flex items-center justify-between cursor-pointer hover:border-slate-300 transition-colors" onclick="openCourseDetails('${c.id}')">
+                            <div class="min-w-0 flex-1 pr-3">
+                                <h4 class="text-[15px] font-bold text-slate-900 leading-tight truncate flex items-center flex-wrap gap-1">${window.sanitizeHTML(c.course_name)}${sectionBadge}</h4>
+                                <p class="text-[12px] text-slate-500 font-semibold mt-0.5">${window.sanitizeHTML(c.course_code)}</p>
+                                <div class="flex items-center gap-3 mt-1.5 text-[11px] text-slate-400 font-medium truncate">
                                     <span class="flex items-center gap-1"><i data-lucide="plus-square" class="w-3 h-3"></i> ${c.total_credit} Credits</span>
-                                    <span class="flex items-center gap-1"><i data-lucide="user" class="w-3 h-3"></i> ${facName}</span>
+                                    <span class="flex items-center gap-1 truncate"><i data-lucide="user" class="w-3 h-3"></i> ${facName}</span>
                                 </div>
                             </div>
-                            <button onclick="openCourseDetails('${c.id}')" class="px-5 py-2 bg-[#4226E9] hover:bg-[#341BC5] text-white rounded-[10px] font-bold text-[13px] shadow-sm active:scale-95 transition-transform">View</button>
-                        </div>
-                    `;
+                            <div class="shrink-0 flex items-center gap-2" onclick="event.stopPropagation()">
+                                ${sectionEditBtn}
+                                <i data-lucide="chevron-right" class="w-5 h-5 text-slate-300"></i>
+                            </div>
+                        </div>`;
             }).join('');
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
@@ -5817,6 +5929,11 @@
 
             console.log("loadAdminStudents triggered");
             showLoader(true, "Loading students directory...");
+            
+            // Refresh CR Badge
+            if (typeof fetchPendingCRRequestsCount === 'function') {
+                fetchPendingCRRequestsCount();
+            }
             try {
                 console.log("[STUDENT LIST QUERY] Fetching profiles...");
                 let students;
@@ -6254,6 +6371,219 @@
                 container.innerHTML = `<p class="text-[11px] text-slate-400 text-center w-full">Failed to load analytics</p>`;
             }
         }
+
+        // ----------------- ADMIN CR REQUESTS -----------------
+        window.loadAdminCRRequests = async function() {
+            showLoader(true, 'Loading requests...');
+            const listContainer = document.getElementById('admin-cr-requests-list');
+            
+            try {
+                // Ensure auth state is ready
+                if (!window.authState || !window.authState.session) {
+                    await waitForAuthReady();
+                }
+
+                // Check permissions (cr or admin)
+                if (window.authState.profile?.role !== 'admin' && window.authState.profile?.role !== 'cr' && !window.isAdminEmail(window.authState.profile?.email)) {
+                    showGlobalToast('Unauthorized Access', 'error');
+                    navigate('screen-admin-students');
+                    return;
+                }
+
+                const { data: requests, error } = await _supabase
+                    .from('cr_requests')
+                    .select('*, profiles!user_id(full_name, email, profile_url), batches!batch_id(batch_name)')
+                    .eq('status', 'pending')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (!requests || requests.length === 0) {
+                    listContainer.innerHTML = `
+                        <div class="bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
+                            <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                                <i data-lucide="check-circle" class="w-8 h-8 text-slate-300"></i>
+                            </div>
+                            <h3 class="text-[15px] font-bold text-slate-900 leading-tight">All Caught Up</h3>
+                            <p class="text-[12px] text-slate-500 mt-1">There are no pending CR requests.</p>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                    return;
+                }
+
+                let html = '';
+                requests.forEach(req => {
+                    const avatarUrl = req.profiles?.profile_url || '';
+                    const avatarContent = avatarUrl 
+                        ? `<img src="${avatarUrl}" class="w-full h-full object-cover">`
+                        : `<span class="text-[#4226E9] font-black">${req.profiles?.full_name?.charAt(0) || 'U'}</span>`;
+                    
+                    const noteHtml = req.request_note 
+                        ? `<div class="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-100 text-[12px] text-slate-600 font-medium">"${req.request_note}"</div>` 
+                        : '';
+                        
+                    html += `
+                        <div class="bg-white rounded-[24px] p-5 shadow-sm border border-slate-100 relative overflow-hidden group hover:border-indigo-100 transition-colors">
+                            <div class="absolute -right-4 -top-4 w-16 h-16 bg-indigo-50/50 rounded-full blur-xl"></div>
+                            
+                            <div class="flex gap-4">
+                                <div class="w-12 h-12 rounded-full overflow-hidden bg-indigo-100 shrink-0 shadow-sm border-2 border-white flex items-center justify-center text-lg">
+                                    ${avatarContent}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex justify-between items-start gap-2">
+                                        <div>
+                                            <h3 class="font-bold text-[15px] text-slate-900 leading-tight truncate">${req.profiles?.full_name || 'Unknown User'}</h3>
+                                            <p class="text-[11px] text-slate-500 font-medium truncate">${req.profiles?.email || 'No email'}</p>
+                                        </div>
+                                        <span class="px-2 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-black uppercase tracking-wider rounded-lg whitespace-nowrap shrink-0">
+                                            ${req.batches?.batch_name || 'Unknown Batch'}
+                                        </span>
+                                    </div>
+                                    ${noteHtml}
+                                </div>
+                            </div>
+                            
+                            <div class="flex gap-2 mt-4 pt-4 border-t border-slate-50">
+                                <button onclick="rejectCRRequest('${req.id}', '${req.user_id}')" class="flex-1 py-2.5 bg-white border border-red-200 hover:bg-red-50 text-red-600 text-[12px] font-bold rounded-xl transition-colors active:scale-[0.98]">
+                                    Overrule
+                                </button>
+                                <button onclick="approveCRRequest('${req.id}', '${req.user_id}', '${req.batch_id}')" class="flex-1 py-2.5 bg-[#4226E9] hover:bg-[#341BC5] text-white text-[12px] font-bold rounded-xl transition-all shadow-sm active:scale-[0.98]">
+                                    Approve & Assign
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                listContainer.innerHTML = html;
+                lucide.createIcons();
+            } catch (err) {
+                console.error("[CR REQUESTS ERROR]", err);
+                listContainer.innerHTML = `<p class="text-[13px] text-red-500 text-center py-8">Failed to load requests</p>`;
+            } finally {
+                forceHideLoader();
+            }
+        };
+
+        window.approveCRRequest = async function(reqId, userId, batchId) {
+            showLoader(true, 'Approving and assigning role...');
+            try {
+                // 1. Update cr_requests status to approved
+                const { error: reqError } = await _supabase
+                    .from('cr_requests')
+                    .update({ status: 'approved' })
+                    .eq('id', reqId);
+                if (reqError) throw reqError;
+
+                // 2. Update profiles role to cr
+                const { error: profileError } = await _supabase
+                    .from('profiles')
+                    .update({ role: 'cr' })
+                    .eq('id', userId);
+                if (profileError) throw profileError;
+
+                // 3. Upsert into batch_crs
+                const { error: batchError } = await _supabase
+                    .from('batch_crs')
+                    .upsert({ user_id: userId, batch_id: batchId, active: true }, { onConflict: 'user_id,batch_id' });
+                if (batchError) throw batchError;
+
+                showGlobalToast('CR successfully assigned!', 'success');
+                loadAdminCRRequests();
+                fetchPendingCRRequestsCount();
+            } catch (e) {
+                console.error('[APPROVE CR ERROR]', e);
+                showGlobalToast('Failed to approve request', 'error');
+            } finally {
+                forceHideLoader();
+            }
+        };
+
+        window.rejectCRRequest = function(reqId, userId) {
+            document.getElementById('cr-reject-req-id').value = reqId;
+            document.getElementById('cr-reject-user-id').value = userId;
+            document.getElementById('cr-reject-note').value = '';
+            
+            const modal = document.getElementById('modal-reject-cr-request');
+            modal.classList.remove('hidden');
+        };
+
+        window.closeRejectCRModal = function() {
+            document.getElementById('modal-reject-cr-request').classList.add('hidden');
+        };
+
+        window.confirmRejectCRRequest = async function() {
+            const reqId = document.getElementById('cr-reject-req-id').value;
+            const userId = document.getElementById('cr-reject-user-id').value;
+            const note = document.getElementById('cr-reject-note').value.trim();
+            
+            if (!note) {
+                showGlobalToast('Please provide a reason for rejection.', 'error');
+                return;
+            }
+            
+            closeRejectCRModal();
+            showLoader(true, 'Rejecting request...');
+            
+            try {
+                // 1. Update cr_requests status
+                const { error: reqError } = await _supabase
+                    .from('cr_requests')
+                    .update({ status: 'rejected' })
+                    .eq('id', reqId);
+                if (reqError) throw reqError;
+                
+                // 2. Insert notification reminder
+                const { error: notifError } = await _supabase
+                    .from('notification_reminders')
+                    .insert({
+                        target_id: userId,
+                        title: 'CR Access Request Update',
+                        body: `Your request has been overruled. Reason: ${note}`,
+                        data_payload: { type: 'cr_request_rejected' }
+                    });
+                if (notifError) throw notifError;
+                
+                showGlobalToast('Request rejected and user notified.', 'success');
+                loadAdminCRRequests();
+                fetchPendingCRRequestsCount();
+            } catch (e) {
+                console.error('[REJECT CR ERROR]', e);
+                showGlobalToast('Failed to reject request', 'error');
+            } finally {
+                forceHideLoader();
+            }
+        };
+
+        window.fetchPendingCRRequestsCount = async function() {
+            try {
+                // Determine if we should check (only admin/cr)
+                if (!window.authState || !window.authState.profile) return;
+                const role = window.authState.profile.role;
+                if (role !== 'admin' && role !== 'cr' && !window.isAdminEmail(window.authState.profile.email)) return;
+                
+                const { count, error } = await _supabase
+                    .from('cr_requests')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('status', 'pending');
+                    
+                if (error) throw error;
+                
+                const badge = document.getElementById('admin-cr-req-badge');
+                if (badge) {
+                    if (count > 0) {
+                        badge.innerText = count > 9 ? '9+' : count;
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
+            } catch (e) {
+                console.error('[FETCH CR COUNT ERROR]', e);
+            }
+        };
 
         async function openAdminStudentDetails(id) {
             console.log(`[STUDENT DETAILS] Opening details for student ID: ${id}`);
@@ -8228,6 +8558,7 @@
 
         async function populateGroupCourseSelect(selectedCourseId) {
             const selectEl = document.getElementById('group-course-select');
+            const typeEl = document.getElementById('group-type');
             if (!selectEl) return;
 
             try {
@@ -8243,6 +8574,20 @@
             let customOption = '<option value="">Custom Group (No Course Attached)</option>';
             if (window.crPermissionService && window.crPermissionService.isCR()) {
                 customOption = '<option value="" disabled selected>Select a Course</option>';
+                if (typeEl) {
+                    typeEl.innerHTML = '<option value="course">Course Groups</option>';
+                    typeEl.value = 'course';
+                }
+            } else if (typeEl) {
+                const currentType = typeEl.value;
+                typeEl.innerHTML = `
+                    <option value="link">Links</option>
+                    <option value="course">Course Groups</option>
+                    <option value="general">General or Custom Channels</option>
+                `;
+                if (['link', 'course', 'general'].includes(currentType)) {
+                    typeEl.value = currentType;
+                }
             }
 
             selectEl.innerHTML = customOption +
@@ -8618,12 +8963,116 @@
         </div>
     </div>
 
+    <!-- MODAL: PERMISSION GUIDE -->
+    <div id="modal-permission-guide" class="fixed inset-0 bg-slate-900/60 z-[100] hidden flex flex-col justify-end transition-opacity duration-300 opacity-0">
+        <div class="bg-white w-full rounded-t-3xl p-6 shadow-2xl transform translate-y-full transition-transform duration-300" id="modal-permission-guide-content">
+            <div class="flex flex-col items-center text-center">
+                <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4 text-red-500">
+                    <i data-lucide="bell-off" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-[20px] font-black text-slate-900 tracking-tight mb-2">Notifications Blocked</h3>
+                <p class="text-[14px] text-slate-500 font-medium mb-6 leading-relaxed">You have blocked notifications for this app. To receive important updates, you need to manually allow them in your browser settings.</p>
+                
+                <div class="w-full bg-slate-50 rounded-2xl p-4 text-left border border-slate-100 mb-6">
+                    <h4 class="text-[12px] font-bold text-slate-800 uppercase tracking-wider mb-2">How to unblock:</h4>
+                    <ol class="text-[13px] text-slate-600 font-medium space-y-2 list-decimal pl-4">
+                        <li>Tap the <strong class="text-slate-800">AA</strong> or <strong class="text-slate-800">Lock</strong> icon in your address bar.</li>
+                        <li>Go to <strong class="text-slate-800">Site Settings</strong> or <strong class="text-slate-800">Website Settings</strong>.</li>
+                        <li>Find <strong class="text-slate-800">Notifications</strong> and change to <strong class="text-slate-800">Allow</strong>.</li>
+                        <li>Refresh the app.</li>
+                    </ol>
+                </div>
+                
+                <button onclick="closePermissionGuideModal()" class="w-full py-4 rounded-2xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors active:scale-95">I understand, close</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        window.openPermissionGuideModal = function() {
+            const modal = document.getElementById('modal-permission-guide');
+            const content = document.getElementById('modal-permission-guide-content');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                content.classList.remove('translate-y-full');
+            }, 10);
+        };
+        window.closePermissionGuideModal = function() {
+            const modal = document.getElementById('modal-permission-guide');
+            const content = document.getElementById('modal-permission-guide-content');
+            content.classList.add('translate-y-full');
+            setTimeout(() => {
+                modal.classList.add('opacity-0');
+                setTimeout(() => modal.classList.add('hidden'), 300);
+            }, 10);
+        };
+    </script>
+
     <!-- GLOBAL IMAGE PREVIEW MODAL -->
     <div id="image-preview-modal" class="hidden fixed inset-0 z-50 bg-black/90 flex items-center justify-center backdrop-blur-sm transition-opacity" onclick="closeImagePreview()">
         <img id="preview-modal-img" src="" class="max-w-[90%] max-h-[90%] object-contain pointer-events-none rounded-xl drop-shadow-2xl" />
         <button class="absolute top-6 right-6 text-white bg-black/50 hover:bg-white/20 rounded-full w-10 h-10 flex items-center justify-center transition-all z-50 shadow-md" onclick="closeImagePreview(event)">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
+    </div>
+
+    <!-- CR Access Request Modal -->
+    <div id="modal-cr-request" class="fixed inset-0 z-[100] flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeCRRequestModal()"></div>
+        <div class="bg-white rounded-[24px] w-[90%] max-w-[340px] shadow-2xl relative z-10 flex flex-col overflow-hidden animate-slide-up">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-5">
+                    <div>
+                        <h3 class="text-[18px] font-black text-slate-900 tracking-tight leading-none">CR Application</h3>
+                        <p class="text-[11px] text-slate-500 mt-1 font-medium">Request admin access for your batch</p>
+                    </div>
+                    <div class="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center shrink-0">
+                        <i data-lucide="shield" class="w-5 h-5 text-indigo-600"></i>
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Target Batch</label>
+                        <div id="cr-req-batch-display" class="w-full h-[42px] px-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center text-slate-700 text-[13px] font-bold">
+                            Loading...
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Write a note <span class="text-slate-300 normal-case">(Optional)</span></label>
+                        <textarea id="cr-req-note" rows="3" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-[13px] font-medium focus:bg-white focus:outline-none focus:border-[#4226E9] focus:ring-2 focus:ring-indigo-100 transition-all resize-none" placeholder="Why do you need CR access?"></textarea>
+                    </div>
+                </div>
+                
+                <div class="flex gap-3 mt-6">
+                    <button onclick="closeCRRequestModal()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[13px] font-bold rounded-xl transition-colors active:scale-[0.98]">Cancel</button>
+                    <button id="btn-submit-cr-req" onclick="submitCRRequest()" class="flex-1 py-3 bg-[#4226E9] hover:bg-[#341BC5] text-white text-[13px] font-bold rounded-xl transition-all shadow-md shadow-indigo-500/20 active:scale-[0.98]">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CR Access Reject Modal -->
+    <div id="modal-reject-cr-request" class="fixed inset-0 z-[100] flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeRejectCRModal()"></div>
+        <div class="bg-white rounded-[24px] w-[90%] max-w-[340px] shadow-2xl relative z-10 flex flex-col overflow-hidden animate-slide-up">
+            <div class="p-6">
+                <h3 class="text-[18px] font-black text-slate-900 tracking-tight leading-none mb-1">Reject Request</h3>
+                <p class="text-[11px] text-slate-500 mb-4 font-medium">Provide a reason for overruling this request</p>
+                
+                <textarea id="cr-reject-note" rows="3" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-[13px] font-medium focus:bg-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 transition-all resize-none" placeholder="Reason (e.g. Invalid credentials)"></textarea>
+                
+                <input type="hidden" id="cr-reject-req-id" />
+                <input type="hidden" id="cr-reject-user-id" />
+                
+                <div class="flex gap-3 mt-6">
+                    <button onclick="closeRejectCRModal()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[13px] font-bold rounded-xl transition-colors active:scale-[0.98]">Cancel</button>
+                    <button id="btn-confirm-reject-cr" onclick="confirmRejectCRRequest()" class="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white text-[13px] font-bold rounded-xl transition-all shadow-md shadow-red-500/20 active:scale-[0.98]">Overrule</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- PHONE EDIT MODAL -->    <div id="modal-add-secondary-batch" class="fixed inset-0 bg-slate-900/60 z-[100] hidden flex flex-col justify-end transition-opacity duration-300 opacity-0">
@@ -8695,9 +9144,113 @@
     </div>
     
     <script>
+        // ==========================================
+        // EDIT SECTION LOGIC
+        // ==========================================
+        let sectionEditCourseId = null;
+        window.openEditSectionModal = function(courseId, currentSection) {
+            const course = window.currentCoursesList.find(c => c.id === courseId);
+            if (!course || !course.sections_name) return;
+            
+            sectionEditCourseId = courseId;
+            let sectionsArray = [];
+            if (typeof course.sections_name === 'string') {
+                sectionsArray = course.sections_name.split(',').map(s => s.trim()).filter(s => s);
+            } else if (Array.isArray(course.sections_name)) {
+                sectionsArray = course.sections_name;
+            }
 
+            const selectEl = document.getElementById('edit-section-select');
+            selectEl.innerHTML = `<option value="" disabled selected>Select Section</option>` + 
+                sectionsArray.map(sec => `<option value="${window.sanitizeHTML(sec)}">Section ${window.sanitizeHTML(sec)}</option>`).join('');
+            
+            if (currentSection && sectionsArray.includes(currentSection)) {
+                selectEl.value = currentSection;
+            } else {
+                selectEl.value = '';
+            }
 
+            document.getElementById('modal-edit-section').classList.remove('hidden');
+        };
+
+        window.closeEditSectionModal = function() {
+            document.getElementById('modal-edit-section').classList.add('hidden');
+            sectionEditCourseId = null;
+        };
+
+        window.saveEditSection = async function() {
+            if (!sectionEditCourseId || !authState.user?.id) return;
+            const selectEl = document.getElementById('edit-section-select');
+            const newSection = selectEl.value;
+
+            if (!newSection) {
+                showGlobalToast("Notice", "Please select a section.");
+                return;
+            }
+
+            showLoader(true, "Updating section...");
+            try {
+                const { error } = await _supabase.from('user_courses')
+                    .update({ section_name: newSection })
+                    .eq('user_id', authState.user.id)
+                    .eq('course_id', sectionEditCourseId);
+                
+                if (error) throw error;
+                
+                // Update local list
+                const enrolledRecord = window.currentUserCoursesList.find(uc => uc.course_id === sectionEditCourseId);
+                if (enrolledRecord) {
+                    enrolledRecord.section_name = newSection;
+                }
+
+                showGlobalToast("Success", "Section updated successfully.");
+                closeEditSectionModal();
+                
+                // Refresh routines cache since enrolled section changed
+                if (window.RoutineStore) {
+                    await window.RoutineStore.refresh();
+                }
+                const container = document.getElementById('enrolled-courses-list');
+                if (container && typeof window.loadMyCourses === 'function') {
+                    window.loadMyCourses();
+                }
+            } catch (err) {
+                console.error("[UPDATE SECTION] Error:", err);
+                showGlobalToast("Error", err.message || "Failed to update section.");
+            } finally {
+                showLoader(false);
+            }
+        };
     </script>
+    <!-- ========================================== -->
+    <!-- MODAL: EDIT SECTION                        -->
+    <!-- ========================================== -->
+    <div id="modal-edit-section" class="fixed inset-0 z-[100] hidden flex items-end sm:items-center justify-center p-4 sm:p-0">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeEditSectionModal()"></div>
+        <div class="bg-white w-full sm:w-[380px] rounded-t-[28px] sm:rounded-[24px] shadow-2xl relative z-10 animate-slide-up sm:animate-pop-in flex flex-col max-h-[85vh]">
+            <div class="flex justify-center pt-3 pb-2 sm:hidden">
+                <div class="w-12 h-1.5 bg-slate-200 rounded-full"></div>
+            </div>
+            
+            <div class="p-6">
+                <h3 class="text-xl font-extrabold text-slate-900 mb-2">Change Section</h3>
+                <p class="text-[13px] text-slate-500 mb-6 font-medium">Select your enrolled section for this course to receive targeted routines.</p>
+                
+                <div class="mb-6">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Section</label>
+                    <select id="edit-section-select" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-slate-700 font-bold focus:border-[#4226E9] focus:ring-1 focus:ring-[#4226E9] outline-none transition-all appearance-none">
+                        <!-- Filled by JS -->
+                    </select>
+                </div>
+
+                <div class="flex gap-3">
+                    <button onclick="closeEditSectionModal()" class="flex-1 py-3.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl active:scale-95 transition-all text-sm">Cancel</button>
+                    <button onclick="saveEditSection()" class="flex-1 py-3.5 px-4 bg-gradient-to-r from-[#4226E9] to-[#341BC5] hover:opacity-90 text-white font-bold rounded-xl active:scale-95 transition-all shadow-md text-sm">Save Section</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
 

@@ -210,11 +210,17 @@ export class ReactionService {
         `;
     }
 
+    static pendingToggles = {};
+
     static async toggleReaction(contentType, contentId, reactionType) {
         if (!window.authState?.user) {
             showGlobalToast("Error", "You must be logged in to react.");
             return;
         }
+
+        // Prevent race condition (rapid clicks causing multiple inserts)
+        if (this.pendingToggles[contentId]) return;
+        this.pendingToggles[contentId] = true;
 
         const userId = window.authState.user.id;
         const profile = window.authState.profile;
@@ -299,6 +305,8 @@ export class ReactionService {
             console.error('[REACTION NETWORK ERROR]', err);
             // We could revert cache here, but for now just show a toast
             showGlobalToast("Error", "Failed to update reaction.");
+        } finally {
+            delete this.pendingToggles[contentId];
         }
     }
 

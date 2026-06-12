@@ -157,17 +157,33 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     return (a.start_time || '').localeCompare(b.start_time || '');
                 });
 
+                const enrolledCourses = window.currentUserCoursesList || [];
+
                 if (window.currentUserRole !== 'admin' && window.currentUserRole !== 'cr') {
-                    const enrolledCourseIds = (window.currentUserCoursesList || []).map(uc => uc.course_id);
+                    const enrolledCourseIds = enrolledCourses.map(uc => uc.course_id);
                     todayClasses = todayClasses.filter(c => {
                         if (!c.course_id || c.room_number === 'Break') return true;
-                        return enrolledCourseIds.includes(c.course_id);
+                        if (!enrolledCourseIds.includes(c.course_id)) return false;
+                        
+                        const enrolledRecord = enrolledCourses.find(uc => uc.course_id === c.course_id);
+                        if (c.section_name) {
+                            if (!enrolledRecord || !enrolledRecord.section_name) return false;
+                            if (c.section_name.trim().toLowerCase() !== enrolledRecord.section_name.trim().toLowerCase()) return false;
+                        }
+                        return true;
                     });
                 } else if (window.currentUserRole === 'cr' && !window.isAdminEmail(window.currentUserEmail)) {
                     const allowedCourseIds = (window.currentCoursesList || []).map(c => c.id);
                     todayClasses = todayClasses.filter(c => {
                         if (!c.course_id || c.room_number === 'Break') return true;
-                        return allowedCourseIds.includes(c.course_id);
+                        if (!allowedCourseIds.includes(c.course_id)) return false;
+
+                        const enrolledRecord = enrolledCourses.find(uc => uc.course_id === c.course_id);
+                        if (enrolledRecord && c.section_name) {
+                            if (!enrolledRecord.section_name) return false;
+                            if (c.section_name.trim().toLowerCase() !== enrolledRecord.section_name.trim().toLowerCase()) return false;
+                        }
+                        return true;
                     });
                 }
 

@@ -9,8 +9,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
         export async function populateProfileDetails() {
             try {
                 const profile = window.authState.profile || {
-                    full_name: "Alex Johnson",
-                    email: "252-40-016@diu.edu.bd",
+                    full_name: "Loading...",
+                    email: "loading@diu.edu.bd",
                     role: "student"
                 };
 
@@ -199,8 +199,23 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     window.renderSecondaryBatchesUI();
                 }
 
+                // Show/hide notification alert
+                const alertEl = document.getElementById('profile-notification-alert');
+                if (alertEl) {
+                    if (window.Notification && Notification.permission !== 'granted') {
+                        alertEl.classList.remove('hidden');
+                    } else {
+                        alertEl.classList.add('hidden');
+                    }
+                }
+
             } catch (err) {
                 console.error("Profile populate error:", err);
+            }
+
+            if (typeof window.checkCRRequestStatus === 'function') {
+                const role = String(window.authState?.profile?.role || '').toLowerCase();
+                window.checkCRRequestStatus(role);
             }
         }
 
@@ -432,6 +447,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const profileUrl = window.authState.profile?.profile_url;
             const name = window.authState.profile?.full_name || 'User';
             const initial = name.charAt(0).toUpperCase();
+            const needsPermission = (window.Notification && Notification.permission !== 'granted');
 
             console.log(`[PROFILE IMAGE RENDER] Updating ${containers.length} avatar containers. profileUrl: ${profileUrl || 'null'}`);
 
@@ -442,11 +458,27 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     console.log("[DASHBOARD PROFILE] Updating dashboard/other avatar");
                 }
 
+                let contentHtml = '';
                 if (profileUrl) {
                     const safeUrl = window.sanitizeUrl(profileUrl);
-                    container.innerHTML = `<img src="${safeUrl}" class="w-full h-full rounded-full object-cover" onerror="this.outerHTML='<span class=\\'font-bold text-[18px] text-[#4226E9]\\'>${initial}</span>'">`;
+                    contentHtml = `<img src="${safeUrl}" class="w-full h-full rounded-full object-cover" onerror="this.outerHTML='<span class=\\'font-bold text-[18px] text-[#4226E9]\\'>${initial}</span>'">`;
                 } else {
-                    container.innerHTML = `<span class="font-bold text-[18px] text-[#4226E9]">${initial}</span>`;
+                    contentHtml = `<span class="font-bold text-[18px] text-[#4226E9]">${initial}</span>`;
+                }
+
+                if (needsPermission) {
+                    container.innerHTML = `
+                        <div class="relative w-full h-full flex items-center justify-center">
+                            <div class="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-indigo-50">
+                                ${contentHtml}
+                            </div>
+                            <div class="absolute inset-[-4px] rounded-full border-2 border-red-500 animate-pulse pointer-events-none"></div>
+                        </div>
+                    `;
+                    container.classList.remove('overflow-hidden');
+                } else {
+                    container.innerHTML = contentHtml;
+                    container.classList.add('overflow-hidden');
                 }
             });
 
@@ -480,7 +512,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
 
 
-        function closePhoneEditModal() {
+        window.closePhoneEditModal = function () {
             const modal = document.getElementById('modal-phone-edit');
             const content = document.getElementById('modal-phone-edit-content');
             modal.classList.add('opacity-0');
@@ -552,13 +584,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
         };
 
         // ===== UNIFIED EDIT PROFILE SCREEN =====
-        let editProfileImageFile = null;
-        let editProfileRemovePhoto = false;
 
         window.populateEditProfileForm = function() {
             const profile = window.authState.profile || {};
-            editProfileImageFile = null;
-            editProfileRemovePhoto = false;
 
             // Populate name
             const nameInput = document.getElementById('edit-profile-name');
@@ -596,55 +624,6 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (typeof lucide !== 'undefined') lucide.createIcons();
         };
 
-        window.handleEditProfileImageSelect = function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            if (!file.type.startsWith('image/')) {
-                window.showGlobalToast("Error", "Please select a valid image file.");
-                event.target.value = '';
-                return;
-            }
-            if (file.size > 5 * 1024 * 1024) {
-                window.showGlobalToast("Error", "Image must be under 5MB.");
-                event.target.value = '';
-                return;
-            }
-
-            editProfileImageFile = file;
-            editProfileRemovePhoto = false;
-
-            // Show preview
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const previewImg = document.getElementById('edit-profile-avatar-preview');
-                const fallbackIcon = document.getElementById('edit-profile-fallback');
-                const removeBtn = document.getElementById('btn-remove-edit-photo');
-                if (previewImg) {
-                    previewImg.src = e.target.result;
-                    previewImg.classList.remove('hidden');
-                }
-                if (fallbackIcon) fallbackIcon.classList.add('hidden');
-                if (removeBtn) removeBtn.classList.remove('hidden');
-            };
-            reader.readAsDataURL(file);
-        };
-
-        window.handleRemoveEditProfilePhoto = function() {
-            editProfileImageFile = null;
-            editProfileRemovePhoto = true;
-
-            const previewImg = document.getElementById('edit-profile-avatar-preview');
-            const fallbackIcon = document.getElementById('edit-profile-fallback');
-            const removeBtn = document.getElementById('btn-remove-edit-photo');
-            const fileInput = document.getElementById('edit-profile-image-input');
-
-            if (previewImg) { previewImg.src = ''; previewImg.classList.add('hidden'); }
-            if (fallbackIcon) fallbackIcon.classList.remove('hidden');
-            if (removeBtn) removeBtn.classList.add('hidden');
-            if (fileInput) fileInput.value = '';
-        };
-
         window.handleSaveProfile = async function(e) {
             e.preventDefault();
             if (!window.authState.user) return;
@@ -666,67 +645,6 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
             try {
                 let newProfileUrl = window.authState.profile?.profile_url || null;
-
-                // Handle image upload
-                if (editProfileImageFile) {
-                    const fileName = `${window.authState.user.id}_${Date.now()}.jpg`;
-
-                    // Delete old image if exists
-                    if (newProfileUrl) {
-                        try {
-                            const match = newProfileUrl.match(/\/(users_pp|avatars)\/(.+)$/);
-                            if (match) {
-                                await _supabase.storage.from(match[1]).remove([match[2]]);
-                            }
-                        } catch (delErr) {
-                            console.warn("[EDIT PROFILE] Could not delete old image:", delErr);
-                        }
-                    }
-
-                    // Resize image before upload for consistency
-                    const resizedBlob = await new Promise((resolve, reject) => {
-                        const img = new Image();
-                        img.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            const size = 400;
-                            canvas.width = size;
-                            canvas.height = size;
-                            const ctx = canvas.getContext('2d');
-                            // Center crop
-                            const minDim = Math.min(img.width, img.height);
-                            const sx = (img.width - minDim) / 2;
-                            const sy = (img.height - minDim) / 2;
-                            ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
-                            canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Canvas toBlob failed')), 'image/jpeg', 0.85);
-                        };
-                        img.onerror = reject;
-                        img.src = URL.createObjectURL(editProfileImageFile);
-                    });
-
-                    const { error: uploadError } = await _supabase.storage
-                        .from('users_pp')
-                        .upload(fileName, resizedBlob, { contentType: 'image/jpeg', upsert: true });
-
-                    if (uploadError) throw uploadError;
-
-                    const { data: urlData } = _supabase.storage.from('users_pp').getPublicUrl(fileName);
-                    newProfileUrl = urlData.publicUrl;
-                    console.log("[EDIT PROFILE] Uploaded new image:", newProfileUrl);
-
-                } else if (editProfileRemovePhoto) {
-                    // Delete existing photo
-                    if (newProfileUrl) {
-                        try {
-                            const match = newProfileUrl.match(/\/(users_pp|avatars)\/(.+)$/);
-                            if (match) {
-                                await _supabase.storage.from(match[1]).remove([match[2]]);
-                            }
-                        } catch (delErr) {
-                            console.warn("[EDIT PROFILE] Could not delete old image:", delErr);
-                        }
-                    }
-                    newProfileUrl = null;
-                }
 
                 // Update profile in DB
                 const updatePayload = {
@@ -752,9 +670,6 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 // Sync all UI
                 window.updateGlobalAvatars();
                 populateProfileDetails();
-
-                editProfileImageFile = null;
-                editProfileRemovePhoto = false;
 
                 window.showGlobalToast("Success", "Profile updated successfully!");
                 window.navigate('screen-profile');
@@ -1084,6 +999,120 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 }
             };
         }
+
+        // ----------------- CR ACCESS REQUESTS -----------------
+        window.checkCRRequestStatus = async function(role) {
+            const btnContainer = document.getElementById('cr-request-container');
+            const btnRequest = document.getElementById('btn-request-cr');
+            const pendingNotice = document.getElementById('cr-request-pending-notice');
+            
+            if (!btnContainer) return;
+            
+            if (role === 'admin' || role === 'cr') {
+                btnContainer.classList.add('hidden');
+                return;
+            }
+            
+            btnContainer.classList.remove('hidden');
+            
+            try {
+                if (window.authState?.user?.id) {
+                    const { data, error } = await _supabase
+                        .from('cr_requests')
+                        .select('status')
+                        .eq('user_id', window.authState.user.id)
+                        .eq('status', 'pending')
+                        .limit(1);
+                        
+                    if (!error && data && data.length > 0) {
+                        btnRequest.classList.add('hidden');
+                        pendingNotice.classList.remove('hidden');
+                    } else {
+                        btnRequest.classList.remove('hidden');
+                        pendingNotice.classList.add('hidden');
+                    }
+                }
+            } catch (e) {
+                console.error('[CR REQUEST CHECK ERROR]', e);
+            }
+        };
+
+        window.openCRRequestModal = async function() {
+            const modal = document.getElementById('modal-cr-request');
+            const batchDisplay = document.getElementById('cr-req-batch-display');
+            const noteInput = document.getElementById('cr-req-note');
+            
+            if (!modal) return;
+            
+            noteInput.value = '';
+            batchDisplay.innerText = 'Loading batch...';
+            
+            modal.classList.remove('hidden');
+            
+            try {
+                const profile = window.authState.profile;
+                if (!profile?.batch_id) {
+                    batchDisplay.innerText = 'No primary batch set';
+                    return;
+                }
+                
+                const { data, error } = await _supabase
+                    .from('batches')
+                    .select('batch_name')
+                    .eq('id', profile.batch_id)
+                    .single();
+                    
+                if (error) throw error;
+                batchDisplay.innerText = data?.batch_name || 'Unknown Batch';
+            } catch (e) {
+                console.error('[LOAD BATCH ERROR]', e);
+                batchDisplay.innerText = 'Error loading batch';
+            }
+        };
+
+        window.closeCRRequestModal = function() {
+            const modal = document.getElementById('modal-cr-request');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        window.submitCRRequest = async function() {
+            const noteInput = document.getElementById('cr-req-note');
+            const profile = window.authState?.profile;
+            const userId = window.authState?.user?.id;
+            
+            if (!profile?.batch_id || !userId) {
+                showGlobalToast('Error: No primary batch found on profile.', 'error');
+                return;
+            }
+            
+            showLoader(true, 'Submitting request...');
+            try {
+                const { error } = await _supabase
+                    .from('cr_requests')
+                    .insert({
+                        user_id: userId,
+                        batch_id: profile.batch_id,
+                        request_note: noteInput.value.trim(),
+                        status: 'pending'
+                    });
+                    
+                if (error) {
+                    if (error.code === '23505') { // unique violation
+                        throw new Error('You already have a pending request.');
+                    }
+                    throw error;
+                }
+                
+                closeCRRequestModal();
+                showGlobalToast('CR Access request submitted successfully!', 'success');
+                window.checkCRRequestStatus(profile.role);
+            } catch (e) {
+                console.error('[SUBMIT CR REQUEST ERROR]', e);
+                showGlobalToast(e.message || 'Failed to submit request', 'error');
+            } finally {
+                forceHideLoader();
+            }
+        };
 
 export const ProfileService = {
     populateProfileDetails: typeof populateProfileDetails !== 'undefined' ? populateProfileDetails : window.populateProfileDetails,

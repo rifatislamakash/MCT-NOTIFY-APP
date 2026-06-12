@@ -301,13 +301,26 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         ? `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-red-100 text-red-600 uppercase">URGENT</span>`
                         : `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-indigo-100 text-[#4226E9] uppercase">GENERAL</span>`;
 
-                    if (n.notice_courses && n.notice_courses.length > 0) {
-                        badgeHtml += n.notice_courses.map(nc => {
+                    let audTag = '';
+                    const aud = n.audience_type;
+                    if (aud === 'all_students') {
+                        audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-indigo-50 border border-indigo-100 text-[#4226E9] uppercase ml-1">ALL STUDENTS</span>`;
+                    } else if (aud === 'all_crs') {
+                        audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-purple-50 border border-purple-100 text-purple-600 uppercase ml-1">ALL CRs</span>`;
+                    } else if (aud === 'batch_students' || aud === 'batch_crs') {
+                        audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-emerald-50 border border-emerald-100 text-emerald-600 uppercase ml-1">Specific Batch</span>`;
+                    } else if ((aud === 'course_students' || aud === 'specific') && n.notice_courses && n.notice_courses.length > 0) {
+                        audTag = n.notice_courses.map(nc => {
                             const c = allCoursesList.find(x => x.id === nc.course_id);
-                            const name = c ? (c.short_name || c.course_name) : 'Specific';
+                            const name = c ? (c.short_name || c.course_name) : 'Course';
                             return `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-blue-100 text-blue-600 uppercase ml-1">${window.sanitizeHTML(name)}</span>`;
                         }).join('');
+                    } else if (aud === 'specific_student') {
+                         audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-yellow-50 border border-yellow-100 text-yellow-600 uppercase ml-1">Specific</span>`;
+                    } else if (!aud || aud === 'general') {
+                         audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-slate-100 text-slate-500 uppercase ml-1">ALL STUDENTS</span>`;
                     }
+                    badgeHtml += audTag;
 
                     const pin = n.is_pinned ? `<i data-lucide="pin" class="w-4.5 h-4.5 text-orange-500 fill-orange-500"></i>` : '';
 
@@ -505,6 +518,33 @@ import { ProfileStore } from './stores/ProfileStore.js';
         }
 
         // --- Create / Edit ---
+        window.populateAudienceDropdown = function() {
+            const select = document.getElementById('notice-audience-type');
+            if (!select) return;
+            
+            const currentVal = select.value;
+            if (window.currentUserRole === 'cr') {
+                select.innerHTML = `
+                    <option value="all_students">All Students</option>
+                    <option value="course_students">Specific Course Students</option>
+                `;
+            } else {
+                select.innerHTML = `
+                    <option value="all_students">All Students</option>
+                    <option value="all_crs">All CRs</option>
+                    <option value="batch_students">Specific Batch Students</option>
+                    <option value="batch_crs">Specific Batch CRs</option>
+                    <option value="course_students">Specific Course Students</option>
+                    <option value="specific_student">Specific Student</option>
+                `;
+            }
+            if (Array.from(select.options).some(o => o.value === currentVal)) {
+                select.value = currentVal;
+            } else {
+                select.value = 'all_students';
+            }
+        };
+
         window.toggleNoticeAudience = async function() {
             const aud = document.getElementById('notice-audience-type').value;
             const tList = document.getElementById('notice-target-selection');
@@ -547,19 +587,27 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 }
             } else if (aud === 'course_students') {
                 tList.classList.remove('hidden');
-                if (!window.currentCoursesList || window.currentCoursesList.length === 0) {
-                    try {
-                        tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4"><span class="inline-block w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>Loading courses...</p>';
-                        const { data: crs, error } = await _supabase.from('courses').select('*').order('course_name');
-                        if (!error) window.currentCoursesList = crs || [];
-                    } catch (e) {}
-                }
-                const crs = window.currentCoursesList || [];
-                if (crs.length === 0) {
-                    tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4">No courses available.</p>';
-                    return;
-                }
-                tList.innerHTML = crs.map(c => {
+                tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4"><span class="inline-block w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>Loading courses...</p>';
+                
+                try {
+                    let query = _supabase.from('courses').select('*, batches(batch_name)').order('course_name');
+                    if (window.currentUserRole === 'cr' && window.authState?.user) {
+                        const { data: crBatches } = await _supabase.from('batch_crs').select('batch_id').eq('user_id', window.authState.user.id).eq('active', true);
+                        if (crBatches && crBatches.length > 0) {
+                            query = query.in('batch_id', crBatches.map(b => b.batch_id));
+                        } else {
+                            query = query.eq('id', '00000000-0000-0000-0000-000000000000'); 
+                        }
+                    }
+                    const { data: crs, error } = await query;
+                    if (error) throw error;
+                    
+                    if (!crs || crs.length === 0) {
+                        tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4">No courses available.</p>';
+                        return;
+                    }
+                    
+                    tList.innerHTML = crs.map(c => {
                     const batchName = c.batches ? c.batches.batch_name : c.batch_id;
                     return `
                     <label class="flex items-center gap-3 p-2.5 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors">
@@ -567,6 +615,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         <span class="text-[13px] text-slate-700 font-semibold">[Batch ${window.sanitizeHTML(batchName)}] ${window.sanitizeHTML(c.course_name)} (${c.course_code || c.short_name || ''})</span>
                     </label>
                 `}).join('');
+                } catch (err) {
+                    console.error("Error loading courses:", err);
+                    tList.innerHTML = '<p class="text-[13px] text-red-500 text-center py-4">Failed to load courses.</p>';
+                }
             } else if (aud === 'specific_student') {
                 tList.classList.remove('hidden');
                 let students = window.adminDirectoryProfiles || [];
@@ -711,6 +763,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 } catch (e) { console.warn("[NOTICE SYSTEM] Course pre-fetch error:", e); }
             }
 
+            window.populateAudienceDropdown();
             await window.toggleNoticeAudience();
             togglePublishDate(true);
             document.getElementById('btn-delete-notice').classList.add('hidden');
@@ -1062,6 +1115,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 document.getElementById('notice-selected-filename').innerText = "Existing File Attached";
                 document.getElementById('notice-selected-filesize').innerText = "Keep or replace";
             }
+
+            window.populateAudienceDropdown();
+            // Force the value to match notice after population
+            document.getElementById('notice-audience-type').value = notice.audience_type;
 
             await window.toggleNoticeAudience();
             if (notice.audience_type === 'specific' && notice.notice_courses) {

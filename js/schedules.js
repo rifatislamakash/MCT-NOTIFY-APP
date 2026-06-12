@@ -452,21 +452,32 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     cardClasses += "bg-white shadow-sm border border-slate-100 hover:border-orange-200 hover:shadow-md";
                 }
 
-                let badgeHtml = s.audience_type === 'all_students'
-                    ? `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-emerald-100 text-emerald-600 uppercase">ALL STUDENTS</span>`
-                    : '';
-                if (s.audience_type === 'specific') {
+                let audTag = '';
+                const aud = s.audience_type;
+                if (aud === 'all_students') {
+                    audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-indigo-50 border border-indigo-100 text-[#4226E9] uppercase ml-1">ALL STUDENTS</span>`;
+                } else if (aud === 'all_crs') {
+                    audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-purple-50 border border-purple-100 text-purple-600 uppercase ml-1">ALL CRs</span>`;
+                } else if (aud === 'batch_students' || aud === 'batch_crs') {
+                    audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-emerald-50 border border-emerald-100 text-emerald-600 uppercase ml-1">Specific Batch</span>`;
+                } else if (aud === 'course_students' || aud === 'specific') {
                     const cIds = scheduleCoursesMap[s.id] || [];
                     if (cIds.length > 0) {
-                        badgeHtml = cIds.map(cid => {
+                        audTag = cIds.map(cid => {
                             const c = allCoursesList.find(x => x.id === cid);
                             const name = c ? (c.short_name || c.course_name) : 'Specific';
                             return `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-blue-100 text-blue-600 uppercase ml-1">${window.sanitizeHTML(name)}</span>`;
                         }).join('');
                     } else {
-                        badgeHtml = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-blue-100 text-blue-600 uppercase">SPECIFIC</span>`;
+                        audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-blue-100 text-blue-600 uppercase">SPECIFIC</span>`;
                     }
+                } else if (aud === 'specific_student') {
+                     audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-yellow-50 border border-yellow-100 text-yellow-600 uppercase ml-1">Specific</span>`;
+                } else if (!aud || aud === 'general') {
+                     audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-slate-100 text-slate-500 uppercase ml-1">ALL STUDENTS</span>`;
                 }
+                
+                let badgeHtml = audTag;
 
                 let dateTimeBadgeHtml = `
                     <div class="flex items-center gap-1 bg-[#4226E9]/10 text-[#4226E9] px-1.5 py-[3px] rounded-[4px] ml-1">
@@ -636,10 +647,38 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (filePreview) filePreview.classList.add('hidden');
 
             // Audience button states
+            window.populateScheduleAudienceDropdown('cs');
             document.getElementById('cs-audience-type').value = 'all_students';
             await window.toggleScheduleAudience('cs');
 
             window.navigate('screen-create-schedule');
+        };
+
+        window.populateScheduleAudienceDropdown = function(prefix) {
+            const select = document.getElementById(`${prefix}-audience-type`);
+            if (!select) return;
+            
+            const currentVal = select.value;
+            if (window.currentUserRole === 'cr') {
+                select.innerHTML = `
+                    <option value="all_students">All Students</option>
+                    <option value="course_students">Specific Course Students</option>
+                `;
+            } else {
+                select.innerHTML = `
+                    <option value="all_students">All Students</option>
+                    <option value="all_crs">All CRs</option>
+                    <option value="batch_students">Specific Batch Students</option>
+                    <option value="batch_crs">Specific Batch CRs</option>
+                    <option value="course_students">Specific Course Students</option>
+                    <option value="specific_student">Specific Student</option>
+                `;
+            }
+            if (Array.from(select.options).some(o => o.value === currentVal)) {
+                select.value = currentVal;
+            } else {
+                select.value = 'all_students';
+            }
         };
 
         window.toggleScheduleAudience = async function(prefix) {
@@ -1155,6 +1194,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                 // Load enrolled courses for audience selection
                 currentEditSelectedCourses = scheduleCoursesMap[selectedScheduleId] || [];
+                window.populateScheduleAudienceDropdown('es');
                 document.getElementById('es-audience-type').value = currentEditAudienceType;
                 await window.toggleScheduleAudience('es');
                 // The checkboxes are rendered asynchronously, we'll check them below if they are courses

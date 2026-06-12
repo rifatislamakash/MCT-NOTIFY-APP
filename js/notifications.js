@@ -276,7 +276,11 @@
                 return;
             }
             if (Notification.permission === 'denied') {
-                window.showGlobalToast("Notifications Blocked", "Please open your Browser Settings (Site Settings) and allow notifications for this site.");
+                if (typeof window.openPermissionGuideModal === 'function') {
+                    window.openPermissionGuideModal();
+                } else {
+                    window.showGlobalToast("Notifications Blocked", "Please open your Browser Settings (Site Settings) and allow notifications for this site.");
+                }
                 return;
             }
             if (typeof window.requestNotificationPermission === 'function') {

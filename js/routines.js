@@ -353,10 +353,18 @@ import { ProfileStore } from './stores/ProfileStore.js';
             // PART 11: Filter by student's enrolled courses (admins see all)
             let filteredRoutineData = routineData;
             if (!crPermissionService.isAdmin() && !crPermissionService.isCR()) {
-                const myCourseIds = (window.currentUserCoursesList || []).map(uc => uc.course_id);
+                const enrolledCourses = window.currentUserCoursesList || [];
+                const myCourseIds = enrolledCourses.map(uc => uc.course_id);
                 filteredRoutineData = routineData.filter(r => {
                     if (!r.course_id || r.room_number === 'Break') return true;
-                    return myCourseIds.includes(r.course_id);
+                    if (!myCourseIds.includes(r.course_id)) return false;
+
+                    const enrolledRecord = enrolledCourses.find(uc => uc.course_id === r.course_id);
+                    if (r.section_name) {
+                        if (!enrolledRecord || !enrolledRecord.section_name) return false;
+                        if (r.section_name.trim().toLowerCase() !== enrolledRecord.section_name.trim().toLowerCase()) return false;
+                    }
+                    return true;
                 });
             } else if (batchVal !== 'all') {
                 filteredRoutineData = routineData.filter(r => r.batch_id === batchVal);
@@ -600,17 +608,32 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 });
 
                 // PART 11: Filter by enrolled courses for students
+                const enrolledCourses = window.currentUserCoursesList || [];
                 if (window.currentUserRole !== 'admin' && window.currentUserRole !== 'cr') {
-                    const myCourseIds = (window.currentUserCoursesList || []).map(uc => uc.course_id);
+                    const myCourseIds = enrolledCourses.map(uc => uc.course_id);
                     todayClasses = todayClasses.filter(r => {
                         if (!r.course_id || r.room_number === 'Break') return true;
-                        return myCourseIds.includes(r.course_id);
+                        if (!myCourseIds.includes(r.course_id)) return false;
+                        
+                        const enrolledRecord = enrolledCourses.find(uc => uc.course_id === r.course_id);
+                        if (r.section_name) {
+                            if (!enrolledRecord || !enrolledRecord.section_name) return false;
+                            if (r.section_name.trim().toLowerCase() !== enrolledRecord.section_name.trim().toLowerCase()) return false;
+                        }
+                        return true;
                     });
                 } else if (window.currentUserRole === 'cr' && !window.isAdminEmail(window.currentUserEmail)) {
                     const allowedCourseIds = window.currentCoursesList.map(c => c.id);
                     todayClasses = todayClasses.filter(r => {
                         if (!r.course_id || r.room_number === 'Break') return true;
-                        return allowedCourseIds.includes(r.course_id);
+                        if (!allowedCourseIds.includes(r.course_id)) return false;
+
+                        const enrolledRecord = enrolledCourses.find(uc => uc.course_id === r.course_id);
+                        if (enrolledRecord && r.section_name) {
+                            if (!enrolledRecord.section_name) return false;
+                            if (r.section_name.trim().toLowerCase() !== enrolledRecord.section_name.trim().toLowerCase()) return false;
+                        }
+                        return true;
                     });
                 } else if (batchVal !== 'all') {
                     todayClasses = todayClasses.filter(r => r.batch_id === batchVal);
