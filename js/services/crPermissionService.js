@@ -177,11 +177,11 @@ export const crPermissionService = {
             console.log('[CR NOTICES] Fetching notices for assigned batches');
             const batchNotices = await batchService.getBatchNotices(this.currentAssignedBatches);
             
-            // Also fetch global and urgent notices
+            // Also fetch global notices (urgent no longer bypasses)
             const { data: globalNotices } = await _supabase
                 .from('notices')
                 .select('*, profiles (id, full_name, profile_url, role), notice_courses (course_id)')
-                .or('audience_type.eq.all,notice_type.eq.urgent');
+                .eq('audience_type', 'all');
                 
             const combined = [...batchNotices];
             if (globalNotices) {

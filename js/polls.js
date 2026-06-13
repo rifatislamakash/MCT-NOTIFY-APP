@@ -8,19 +8,23 @@ export class PollService {
     static async loadPolls() {
         showLoader(true, "Loading polls...");
         try {
-            let query = _supabase
-                .from('notices')
-                .select(`
-                    *,
-                    profiles (id, full_name, profile_url, role)
-                `)
-                .eq('notice_type', 'poll')
-                .order('created_at', { ascending: false });
+            // Await notices load if it's currently loading
+            if (window.isModuleLoading && window.isModuleLoading('notices')) {
+                // simple loop to wait for notices to finish
+                for (let i = 0; i < 50; i++) {
+                    await new Promise(r => setTimeout(r, 100));
+                    if (!window.isModuleLoading('notices')) break;
+                }
+            } else if (!window.currentNoticesList || window.currentNoticesList.length === 0) {
+                // Ensure notices are loaded at least once if empty
+                if (typeof window.loadNotices === 'function') {
+                    await window.loadNotices();
+                }
+            }
 
-            const { data, error } = await query;
-            if (error) throw error;
-
-            this.currentPolls = data || [];
+            // Extract securely filtered polls from the centralized notices list
+            const filteredNotices = window.currentNoticesList || [];
+            this.currentPolls = filteredNotices.filter(n => n.notice_type === 'poll');
             
             // Load votes (reactions) for these polls
             const pollIds = this.currentPolls.map(p => p.id);

@@ -171,13 +171,30 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 // Student visibility filter
                 if (!crPermissionService.isAdmin() && !crPermissionService.isCR()) {
                     const myCourseIds = (window.currentUserCoursesList || []).map(uc => uc.course_id);
-                    const myBatches = [...new Set(myCourseIds.map(cid => {
+                    const courseEnrolledBatches = [...new Set(myCourseIds.map(cid => {
                         const c = (allCoursesList || []).find(x => x.id === cid);
                         return c ? c.batch_id : null;
                     }).filter(Boolean))];
 
+                    const profileBatchId = window.authState?.profile?.batch_id;
+                    const secondaryBatches = window.authState?.profile?.secondary_batches || [];
+                    const ownedBatches = [profileBatchId, ...secondaryBatches].filter(Boolean);
+
                     filteredSchedules = filteredSchedules.filter(s => {
-                        if (s.audience_type === 'all' || s.audience_type === 'all_students') return true;
+                        if (s.audience_type === 'all') return true;
+                        if (s.audience_type === 'all_students') {
+                            const targets = ctMap[s.id] || [];
+                            if (targets.length > 0) {
+                                return targets.some(ct => {
+                                    if (ct.target_type === 'all_students') {
+                                        if (!ct.target_id) return true; // Global admin schedule
+                                        return ownedBatches.includes(ct.target_id) || courseEnrolledBatches.includes(ct.target_id);
+                                    }
+                                    return false;
+                                });
+                            }
+                            return true;
+                        }
                         
                         if (s.audience_type === 'specific') {
                             const tgt = scMap[s.id] || [];
@@ -188,7 +205,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         if (targets.length > 0) {
                             return targets.some(ct => {
                                 if (ct.target_type === 'course_students') return myCourseIds.includes(ct.target_id);
-                                if (ct.target_type === 'batch_students') return myBatches.includes(ct.target_id);
+                                if (ct.target_type === 'batch_students') return ownedBatches.includes(ct.target_id);
                                 if (ct.target_type === 'specific_student') return ct.target_id === window.authState.user.id;
                                 return false;
                             });
@@ -1153,11 +1170,15 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         if (scError) console.warn('[CONTENT TARGETS INSERT WARN]', scError);
                     }
                 } else {
+                    let globalTargetId = null;
+                    if (window.currentUserRole === 'cr' && window.currentUserCRBatches && window.currentUserCRBatches.length > 0) {
+                        globalTargetId = window.currentUserCRBatches[0];
+                    }
                     const scRows = [{
                         content_type: 'schedule',
                         content_id: newSchedule.id,
                         target_type: audience_type,
-                        target_id: null
+                        target_id: globalTargetId
                     }];
                     const { error: scError } = await _supabase.from('content_targets').insert(scRows);
                     if (scError) console.warn('[CONTENT TARGETS INSERT WARN]', scError);

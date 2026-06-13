@@ -138,14 +138,32 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     if (batchFilter) batchFilter.classList.add('hidden');
 
                     const studentCourses = window.currentUserCoursesList.map(uc => uc.course_id);
-                    const studentBatches = [...new Set(studentCourses.map(cid => {
+                    const courseEnrolledBatches = [...new Set(studentCourses.map(cid => {
                         const c = (allCoursesList || []).find(x => x.id === cid);
                         return c ? c.batch_id : null;
                     }).filter(Boolean))];
 
+                    const profileBatchId = window.authState?.profile?.batch_id;
+                    const secondaryBatches = window.authState?.profile?.secondary_batches || [];
+                    const ownedBatches = [profileBatchId, ...secondaryBatches].filter(Boolean);
+
                     window.currentNoticesList = (noticesData || []).filter(n => {
-                        // Global Targets
-                        if (n.audience_type === 'all' || n.audience_type === 'all_students') return true;
+                        // Global Targets & All Students
+                        if (n.audience_type === 'all') return true;
+                        if (n.audience_type === 'all_students') {
+                            // If it has content_targets, check BOTH ownership and course enrollment
+                            if (n.content_targets && n.content_targets.length > 0) {
+                                return n.content_targets.some(ct => {
+                                    if (ct.target_type === 'all_students') {
+                                        if (!ct.target_id) return true; // Global admin notice
+                                        return ownedBatches.includes(ct.target_id) || courseEnrolledBatches.includes(ct.target_id);
+                                    }
+                                    return false;
+                                });
+                            }
+                            // Fallback
+                            return true;
+                        }
                         
                         // Legacy Filter
                         if (n.notice_courses && n.notice_courses.length > 0) {
@@ -155,9 +173,17 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         // New Target Filter
                         if (n.content_targets && n.content_targets.length > 0) {
                             return n.content_targets.some(ct => {
-                                if (ct.target_type === 'course_students') return studentCourses.includes(ct.target_id);
-                                if (ct.target_type === 'batch_students') return studentBatches.includes(ct.target_id);
-                                if (ct.target_type === 'specific_student') return ct.target_id === window.authState.user.id;
+                                if (ct.target_type === 'course_students') {
+                                    return studentCourses.includes(ct.target_id);
+                                }
+                                if (ct.target_type === 'batch_students') {
+                                    // BATCH OWNERSHIP ONLY (Do not use course enrollment)
+                                    return ownedBatches.includes(ct.target_id);
+                                }
+                                if (ct.target_type === 'specific_student') {
+                                    return ct.target_id === window.authState.user.id;
+                                }
+                                // batch_crs is not visible to students
                                 return false;
                             });
                         }
@@ -1061,11 +1087,17 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     }
                 } else {
                     // all_students or all_crs
+                    let globalTargetId = null;
+                    if (window.currentUserRole === 'cr' && window.currentUserCRBatches && window.currentUserCRBatches.length > 0) {
+                        // If CR creates an 'all_students' notice, it is implicitly targeted to their primary batch
+                        globalTargetId = window.currentUserCRBatches[0];
+                    }
+
                     const targetInsert = {
                         content_type: 'notice',
                         content_id: savedNoticeId,
                         target_type: audience_type,
-                        target_id: null
+                        target_id: globalTargetId
                     };
                     console.log("[CONTENT TARGETS] Inserting global target:", targetInsert);
                     const { error: targetError } = await _supabase.from('content_targets').insert([targetInsert]);
