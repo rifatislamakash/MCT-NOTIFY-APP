@@ -32,13 +32,15 @@
 
                 onMessage(messaging, (payload) => {
                     console.log('[FIREBASE FOREGROUND] Message received manually displaying system notification:', payload);
-                    const title = payload.notification?.title || payload.data?.title || "MCT Notify";
-                    const body = payload.notification?.body || payload.data?.body || "You have a new update.";
-                    const icon = payload.notification?.icon || payload.data?.icon || 'https://mctnotify.vercel.app/assets/Logo.png';
-                    
-                    if (window.showGlobalToast) {
-                        window.showGlobalToast(title, body);
-                    }
+                      const title = payload.notification?.title || payload.data?.title || "MCT Notify";
+                      const body = payload.notification?.body || payload.data?.body || "You have a new update.";
+                      const icon = payload.notification?.icon || payload.data?.icon || 'https://mctnotify.vercel.app/assets/Logo.png';
+                      
+                      if (typeof window.showNotificationToast === 'function') {
+                          window.showNotificationToast(title, body, payload);
+                      } else if (window.showGlobalToast) {
+                          window.showGlobalToast(title, body);
+                      }
                     
                     if (Notification.permission === 'granted') {
                         try {

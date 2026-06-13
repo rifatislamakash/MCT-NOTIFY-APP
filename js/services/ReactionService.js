@@ -410,7 +410,7 @@ export class AuthorService {
 
         let timeHtml = '';
         if (displayDateStr) {
-            timeHtml = `<span class="text-[9.5px] text-slate-400 font-medium tracking-wide shrink-0">${displayDateStr}</span>`;
+            timeHtml = `<div class="flex flex-wrap items-center gap-1.5 text-[9.5px] text-slate-400 font-medium tracking-wide shrink-0">${displayDateStr}</div>`;
         }
 
         return `
@@ -425,7 +425,7 @@ export class AuthorService {
                             <span class="text-[8px] font-bold px-1 py-0.5 rounded-[3px] leading-none shrink-0 ${roleClass} flex items-center tracking-wider">${roleIcon}${roleDisplay}</span>
                             ${extraBadgesHtml ? `<div class="flex items-center gap-1 min-w-0 overflow-x-auto scrollbar-hide" style="scrollbar-width: none; -ms-overflow-style: none;">${extraBadgesHtml}</div>` : ''}
                         </div>
-                        <div class="flex items-center gap-1.5 mt-0.5 min-w-0 overflow-hidden">
+                        <div class="flex flex-wrap items-center gap-1.5 mt-0.5 min-w-0 overflow-hidden">
                             ${timeHtml}
                         </div>
                     </div>

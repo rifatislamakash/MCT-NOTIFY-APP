@@ -70,14 +70,26 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             });
                             noticesData.forEach(n => {
                                 n.content_targets = ctMap[n.id] || [];
+                                // Bridge content_targets to notice_courses for legacy compatibility
+                                if (!n.notice_courses || n.notice_courses.length === 0) {
+                                    n.notice_courses = n.content_targets
+                                        .filter(ct => ct.target_type === 'course_students' || ct.target_type === 'specific')
+                                        .map(ct => ({ course_id: ct.target_id }));
+                                }
                             });
                         } else {
-                            noticesData.forEach(n => { n.content_targets = []; });
+                            noticesData.forEach(n => {
+                                n.content_targets = [];
+                                if (!n.notice_courses) n.notice_courses = [];
+                            });
                         }
                         console.log('[TARGET LOAD] Loaded content_targets for notices');
                     } catch (ctErr) {
                         console.warn('[TARGET LOAD] Failed to load content_targets, using empty:', ctErr);
-                        noticesData.forEach(n => { n.content_targets = []; });
+                        noticesData.forEach(n => {
+                            n.content_targets = [];
+                            if (!n.notice_courses) n.notice_courses = [];
+                        });
                     }
                 }
 
@@ -127,7 +139,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                     const studentCourses = window.currentUserCoursesList.map(uc => uc.course_id);
                     const studentBatches = [...new Set(studentCourses.map(cid => {
-                        const c = allCoursesList.find(x => x.id === cid);
+                        const c = (allCoursesList || []).find(x => x.id === cid);
                         return c ? c.batch_id : null;
                     }).filter(Boolean))];
 
@@ -301,41 +313,45 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         ? `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-red-100 text-red-600 uppercase">URGENT</span>`
                         : `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-indigo-100 text-[#4226E9] uppercase">GENERAL</span>`;
 
-                    let audTag = '';
+                    let courseTagsHtml = '';
                     const aud = n.audience_type;
-                    if (aud === 'all_students') {
-                        audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-indigo-50 border border-indigo-100 text-[#4226E9] uppercase ml-1">ALL STUDENTS</span>`;
-                    } else if (aud === 'all_crs') {
-                        audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-purple-50 border border-purple-100 text-purple-600 uppercase ml-1">ALL CRs</span>`;
-                    } else if (aud === 'batch_students' || aud === 'batch_crs') {
-                        audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-emerald-50 border border-emerald-100 text-emerald-600 uppercase ml-1">Specific Batch</span>`;
-                    } else if ((aud === 'course_students' || aud === 'specific') && n.notice_courses && n.notice_courses.length > 0) {
-                        audTag = n.notice_courses.map(nc => {
-                            const c = allCoursesList.find(x => x.id === nc.course_id);
+                    if ((aud === 'course_students' || aud === 'specific') && n.notice_courses && n.notice_courses.length > 0) {
+                        courseTagsHtml = n.notice_courses.map(nc => {
+                            const c = (allCoursesList || []).find(x => x.id === nc.course_id);
                             const name = c ? (c.short_name || c.course_name) : 'Course';
-                            return `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-blue-100 text-blue-600 uppercase ml-1">${window.sanitizeHTML(name)}</span>`;
+                            return `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="book" class="w-3 h-3"></i> ${window.sanitizeHTML(name)}</span>`;
                         }).join('');
+                    } else if (aud === 'all_students' || !aud || aud === 'general') {
+                        badgeHtml += `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-indigo-50 border border-indigo-100 text-[#4226E9] uppercase ml-1">ALL STUDENTS</span>`;
+                    } else if (aud === 'all_crs') {
+                        badgeHtml += `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-purple-50 border border-purple-100 text-purple-600 uppercase ml-1">ALL CRs</span>`;
+                    } else if (aud === 'batch_students' || aud === 'batch_crs') {
+                        badgeHtml += `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-emerald-50 border border-emerald-100 text-emerald-600 uppercase ml-1">Specific Batch</span>`;
                     } else if (aud === 'specific_student') {
-                         audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-yellow-50 border border-yellow-100 text-yellow-600 uppercase ml-1">Specific</span>`;
-                    } else if (!aud || aud === 'general') {
-                         audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-slate-100 text-slate-500 uppercase ml-1">ALL STUDENTS</span>`;
+                         badgeHtml += `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-yellow-50 border border-yellow-100 text-yellow-600 uppercase ml-1">Specific</span>`;
                     }
-                    badgeHtml += audTag;
 
                     const pin = n.is_pinned ? `<i data-lucide="pin" class="w-4.5 h-4.5 text-orange-500 fill-orange-500"></i>` : '';
 
                     let dateStr = '';
+                    let dateTagHtml = '';
+                    let timeTagHtml = '';
                     if (n.notice_date) {
                         const d = new Date(n.notice_date + 'T00:00:00');
                         dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                        dateTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="calendar" class="w-3 h-3"></i> ${dateStr}</span>`;
                     }
                     if (n.notice_time) {
                         const [h, m] = n.notice_time.split(':');
                         const ampm = +h >= 12 ? 'PM' : 'AM';
                         const h12 = +h % 12 || 12;
                         dateStr += (dateStr ? '   ' : '') + `${h12}:${m} ${ampm}`;
+                        timeTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="clock" class="w-3 h-3"></i> ${h12}:${m} ${ampm}</span>`;
                     }
-                    if (!dateStr) dateStr = new Date(n.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                    if (!dateStr) {
+                        dateStr = new Date(n.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                        dateTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="calendar" class="w-3 h-3"></i> ${dateStr}</span>`;
+                    }
 
                     const noticeD = new Date((n.notice_date || todayStr) + 'T' + (n.notice_time || '23:59:00'));
                     const isExpired = noticeD < new Date();
@@ -353,10 +369,12 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     let rightSideHtml = `<div class="flex items-center">`;
                     rightSideHtml += pin;
                     rightSideHtml += `</div>`;
+                    
+                    const displayTagsHtml = `${dateTagHtml}${timeTagHtml}${courseTagsHtml}`;
 
                     return `
                             <div onclick="openNoticeDetails('${window.sanitizeHTML(n.id)}')" class="${cardClasses} relative pb-4 px-4 pt-3 mt-2">
-                                ${window.AuthorService ? window.AuthorService.renderAuthorBlock(n.profiles, dateStr, badgeHtml, rightSideHtml) : ''}
+                                ${window.AuthorService ? window.AuthorService.renderAuthorBlock(n.profiles, displayTagsHtml, badgeHtml, rightSideHtml) : ''}
                                 <div class="mt-1 flex flex-col">
                                     <h4 class="font-extrabold text-[15px] text-slate-900 truncate leading-tight">${window.sanitizeHTML(n.title)}</h4>
                                     <p class="text-[13px] text-slate-500 line-clamp-2 overflow-hidden mt-0.5 leading-snug">${window.sanitizeHTML(n.message)}</p>
@@ -372,11 +390,19 @@ import { ProfileStore } from './stores/ProfileStore.js';
         }
 
         
-        function injectDashboardNotices() {
+        async function injectDashboardNotices() {
+            if (!allCoursesList || allCoursesList.length === 0) {
+                try {
+                    allCoursesList = await CourseStore.getCourses();
+                } catch(e) {
+                    console.warn('[DASHBOARD NOTICES] Course load failed', e);
+                }
+            }
+
             // Top Urgent Notice for dashboard
             const urgentCard = document.getElementById('dashboard-urgent-notice');
             if (urgentCard) {
-                const latestUrgent = window.currentNoticesList.find(n => n.notice_type === 'urgent');
+                const latestUrgent = (window.currentNoticesList || []).find(n => n.notice_type === 'urgent');
                 if (latestUrgent) {
                     
                     urgentCard.classList.remove('hidden');
@@ -451,17 +477,38 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             if (!dateStr) dateStr = new Date(n.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
                             let badgeHtml = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-indigo-100 text-[#4226E9] uppercase">NOTICE</span>`;
+                            
+                            let courseTagsHtml = '';
                             if (n.notice_courses && n.notice_courses.length > 0) {
-                                badgeHtml += n.notice_courses.map(nc => {
-                                    const c = window.currentCoursesList ? window.currentCoursesList.find(x => x.id === nc.course_id) : null;
+                                courseTagsHtml = n.notice_courses.map(nc => {
+                                    const c = (allCoursesList || []).find(x => x.id === nc.course_id);
                                     const name = c ? (c.short_name || c.course_name) : 'Specific';
-                                    return `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-blue-100 text-blue-600 uppercase ml-1">${window.sanitizeHTML(name)}</span>`;
+                                    return `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="book" class="w-3 h-3"></i> ${window.sanitizeHTML(name)}</span>`;
                                 }).join('');
                             }
+                            
+                            let dateTagHtml = '';
+                            let timeTagHtml = '';
+                            if (n.notice_date) {
+                                const d = new Date(n.notice_date + 'T00:00:00');
+                                dateTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="calendar" class="w-3 h-3"></i> ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>`;
+                            }
+                            if (n.notice_time) {
+                                const [h, m] = n.notice_time.split(':');
+                                const ampm = +h >= 12 ? 'PM' : 'AM';
+                                const h12 = +h % 12 || 12;
+                                timeTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="clock" class="w-3 h-3"></i> ${h12}:${m} ${ampm}</span>`;
+                            }
+                            if (!dateTagHtml && !timeTagHtml) {
+                                const d = new Date(n.created_at);
+                                dateTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="calendar" class="w-3 h-3"></i> ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>`;
+                            }
+                            
+                            const displayTagsHtml = `${dateTagHtml}${timeTagHtml}${courseTagsHtml}`;
 
                             return `
                                 <div class="flex flex-col pb-3 px-3 pt-3 bg-white rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer" onclick="openNoticeDetails('${window.sanitizeHTML(n.id)}')">
-                                    ${window.AuthorService ? window.AuthorService.renderAuthorBlock(n.profiles, dateStr, badgeHtml, rightSideHtml) : ''}
+                                    ${window.AuthorService ? window.AuthorService.renderAuthorBlock(n.profiles, displayTagsHtml, badgeHtml, rightSideHtml) : ''}
                                     <div class="mt-1 flex flex-col">
                                         <h4 class="font-bold text-[14px] text-slate-900 leading-tight truncate">${window.sanitizeHTML(n.title)}</h4>
                                         <p class="text-[12px] font-medium text-slate-500 leading-snug line-clamp-2 mt-0.5">${window.sanitizeHTML(n.message)}</p>
@@ -490,17 +537,37 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             const scMap = window.scheduleCoursesMap || {};
                             const courseIds = scMap[s.id] || [];
                             
-                            if (courseIds.length > 0 && window.currentCoursesList) {
-                                courseIds.forEach(cid => {
-                                    const c = window.currentCoursesList.find(x => x.id === cid);
+                            let courseTagsHtml = '';
+                            if (courseIds.length > 0) {
+                                courseTagsHtml = courseIds.map(cid => {
+                                    const c = (allCoursesList || []).find(x => x.id === cid);
                                     const name = c ? (c.short_name || c.course_name) : 'Specific';
-                                    badgeHtml += `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-blue-100 text-blue-600 uppercase ml-1">${window.sanitizeHTML(name)}</span>`;
-                                });
+                                    return `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="book" class="w-3 h-3"></i> ${window.sanitizeHTML(name)}</span>`;
+                                }).join('');
                             }
+                            
+                            let dateTagHtml = '';
+                            let timeTagHtml = '';
+                            if (s.schedule_date) {
+                                const d = new Date(s.schedule_date + 'T00:00:00');
+                                dateTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="calendar" class="w-3 h-3"></i> ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>`;
+                            }
+                            if (s.schedule_time) {
+                                const [h, m] = s.schedule_time.split(':');
+                                const ampm = +h >= 12 ? 'PM' : 'AM';
+                                const h12 = +h % 12 || 12;
+                                timeTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="clock" class="w-3 h-3"></i> ${h12}:${m} ${ampm}</span>`;
+                            }
+                            if (!dateTagHtml && !timeTagHtml) {
+                                const d = new Date(s.created_at);
+                                dateTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="calendar" class="w-3 h-3"></i> ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>`;
+                            }
+                            
+                            const displayTagsHtml = `${dateTagHtml}${timeTagHtml}${courseTagsHtml}`;
 
                             return `
                                 <div class="flex flex-col pb-3 px-3 pt-3 bg-white rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer" onclick="openScheduleDetails('${window.sanitizeHTML(s.id)}')">
-                                    ${window.AuthorService ? window.AuthorService.renderAuthorBlock(s.profiles, dateStr, badgeHtml, rightSideHtml) : ''}
+                                    ${window.AuthorService ? window.AuthorService.renderAuthorBlock(s.profiles, displayTagsHtml, badgeHtml, rightSideHtml) : ''}
                                     <div class="mt-1 flex flex-col">
                                         <h4 class="font-bold text-[14px] text-slate-900 leading-tight truncate">${window.sanitizeHTML(s.title)}</h4>
                                         <p class="text-[12px] font-medium text-slate-500 leading-snug line-clamp-2 mt-0.5">${window.sanitizeHTML(s.message)}</p>

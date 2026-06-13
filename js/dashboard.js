@@ -157,6 +157,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     return;
                 }
 
+                if (!window.currentCoursesList && typeof window.fetchCourseList === 'function') {
+                    await window.fetchCourseList();
+                }
+
                 let todayClasses = (todayClassesData || []).sort((a, b) => {
                     if (a.class_order !== b.class_order) return (a.class_order || 0) - (b.class_order || 0);
                     return (a.start_time || '').localeCompare(b.start_time || '');
@@ -164,7 +168,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                 const enrolledCourses = window.currentUserCoursesList || [];
 
-                if (window.currentUserRole !== 'admin' && window.currentUserRole !== 'cr') {
+                if (window.currentUserRole !== 'admin') {
                     const enrolledCourseIds = enrolledCourses.map(uc => uc.course_id);
                     todayClasses = todayClasses.filter(c => {
                         if (!c.course_id || c.room_number === 'Break') return true;
@@ -172,21 +176,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         
                         const enrolledRecord = enrolledCourses.find(uc => uc.course_id === c.course_id);
                         if (c.section_name) {
-                            if (!enrolledRecord || !enrolledRecord.section_name) return false;
-                            if (c.section_name.trim().toLowerCase() !== enrolledRecord.section_name.trim().toLowerCase()) return false;
-                        }
-                        return true;
-                    });
-                } else if (window.currentUserRole === 'cr' && !window.isAdminEmail(window.currentUserEmail)) {
-                    const allowedCourseIds = (window.currentCoursesList || []).map(c => c.id);
-                    todayClasses = todayClasses.filter(c => {
-                        if (!c.course_id || c.room_number === 'Break') return true;
-                        if (!allowedCourseIds.includes(c.course_id)) return false;
-
-                        const enrolledRecord = enrolledCourses.find(uc => uc.course_id === c.course_id);
-                        if (enrolledRecord && c.section_name) {
-                            if (!enrolledRecord.section_name) return false;
-                            if (c.section_name.trim().toLowerCase() !== enrolledRecord.section_name.trim().toLowerCase()) return false;
+                            if (!enrolledRecord || !enrolledRecord.section_name) return true;
+                            
+                            const userSecs = window.parseSectionsName(enrolledRecord.section_name).map(s => s.toLowerCase());
+                            const classSections = window.parseSectionsName(c.section_name).map(s => s.toLowerCase());
+                            if (classSections.length > 0 && !userSecs.some(us => classSections.includes(us))) return false;
                         }
                         return true;
                     });
@@ -229,6 +223,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             const sameCourse = current.course_id === next.course_id;
                             const sameFaculty = current.faculty_id === next.faculty_id;
                             const sameDay = current.day_name === next.day_name;
+                            const currentSecs = window.parseSectionsName(current.section_name).map(s => s.toLowerCase()).sort().join(',');
+                            const nextSecs = window.parseSectionsName(next.section_name).map(s => s.toLowerCase()).sort().join(',');
+                            const sameSection = currentSecs === nextSecs;
 
                             // Parse times
                             const [currHH, currMM] = current.start_time.split(':').map(Number);
@@ -239,7 +236,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             const timeDiff = nextMins - currMins;
                             const expectedDiff = current.durationHrs * 60;
 
-                            if (sameCourse && sameFaculty && sameDay && timeDiff === expectedDiff) {
+                            if (sameCourse && sameFaculty && sameDay && sameSection && timeDiff === expectedDiff) {
                                 current.durationHrs += 1.5;
                                 current.isMerged = true;
                                 i++; // merge it (advance pointer)

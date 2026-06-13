@@ -143,6 +143,11 @@ let isRegistering = false;
                     
                     const timeoutPromise = new Promise(resolve => setTimeout(resolve, 10000));
                     await Promise.race([Promise.all(tasks), timeoutPromise]);
+                    
+                    // Force a synchronized re-render of Recent Updates once both Notices and Schedules are fully loaded
+                    if (typeof window.renderNoticesList === 'function') {
+                        window.renderNoticesList();
+                    }
                 } finally {
                     if (typeof window.showLoader === 'function') window.showLoader(false);
                     if (typeof window.updateGlobalAvatars === 'function') setTimeout(window.updateGlobalAvatars, 1000);

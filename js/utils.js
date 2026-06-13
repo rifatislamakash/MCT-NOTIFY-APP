@@ -22,6 +22,46 @@ import { _supabase } from './supabase-client.js';
             }
         }
 
+        export function showNotificationToast(title, body, payload = null) {
+            const toast = document.getElementById('notification-toast');
+            if (!toast) return;
+
+            document.getElementById('nt-title').innerText = title || 'Notification';
+            document.getElementById('nt-desc').innerText = body || '';
+
+            const tagsContainer = document.getElementById('nt-tags');
+            tagsContainer.innerHTML = '';
+            
+            // Reconstruct tags if provided by payload (from Supabase Edge Function)
+            if (payload && payload.data) {
+                // If notice_courses, schedule_date, etc are passed in data
+                const dateStr = payload.data.date || new Date().toLocaleDateString(undefined, {month: 'short', day: 'numeric'});
+                const timeStr = payload.data.time || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                const typeStr = payload.data.type ? payload.data.type.toUpperCase() : 'UPDATE';
+                
+                let tagsHtml = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-indigo-100 text-[#4226E9] uppercase">${window.sanitizeHTML(typeStr)}</span>`;
+                tagsHtml += `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="calendar" class="w-3 h-3"></i> ${dateStr} ${timeStr}</span>`;
+                
+                if (payload.data.course_names) {
+                    const courses = payload.data.course_names.split(',');
+                    courses.forEach(c => {
+                        tagsHtml += `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="book" class="w-3 h-3"></i> ${window.sanitizeHTML(c.trim())}</span>`;
+                    });
+                }
+                tagsContainer.innerHTML = tagsHtml;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+
+            toast.style.transform = 'translateY(0)';
+            toast.style.opacity = '1';
+            
+            // Auto dismiss after 5 seconds
+            setTimeout(() => {
+                toast.style.transform = 'translateY(-150%)';
+                toast.style.opacity = '0';
+            }, 5000);
+        }
+
         export function showLoader(show, text = 'Loading...') {
             let loaderEl = document.getElementById('global-dynamic-loader');
             if (!loaderEl) {

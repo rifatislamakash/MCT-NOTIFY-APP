@@ -361,9 +361,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                     const enrolledRecord = enrolledCourses.find(uc => uc.course_id === r.course_id);
                     if (r.section_name) {
-                        if (!enrolledRecord || !enrolledRecord.section_name) return false;
-                        if (r.section_name.trim().toLowerCase() !== enrolledRecord.section_name.trim().toLowerCase()) return false;
-                    }
+                         if (!enrolledRecord || !enrolledRecord.section_name) return true;
+                         const userSecs = window.parseSectionsName(enrolledRecord.section_name).map(s => s.toLowerCase());
+                         const classSections = window.parseSectionsName(r.section_name).map(s => s.toLowerCase());
+                         if (classSections.length > 0 && !userSecs.some(us => classSections.includes(us))) return false;
+                     }
                     return true;
                 });
             } else if (batchVal !== 'all') {
@@ -617,8 +619,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         
                         const enrolledRecord = enrolledCourses.find(uc => uc.course_id === r.course_id);
                         if (r.section_name) {
-                            if (!enrolledRecord || !enrolledRecord.section_name) return false;
-                            if (r.section_name.trim().toLowerCase() !== enrolledRecord.section_name.trim().toLowerCase()) return false;
+                            if (!enrolledRecord || !enrolledRecord.section_name) return true;
+                            const userSecs = window.parseSectionsName(enrolledRecord.section_name).map(s => s.toLowerCase());
+                            const classSections = window.parseSectionsName(r.section_name).map(s => s.toLowerCase());
+                            if (classSections.length > 0 && !userSecs.some(us => classSections.includes(us))) return false;
                         }
                         return true;
                     });
@@ -626,14 +630,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     const allowedCourseIds = window.currentCoursesList.map(c => c.id);
                     todayClasses = todayClasses.filter(r => {
                         if (!r.course_id || r.room_number === 'Break') return true;
-                        if (!allowedCourseIds.includes(r.course_id)) return false;
-
-                        const enrolledRecord = enrolledCourses.find(uc => uc.course_id === r.course_id);
-                        if (enrolledRecord && r.section_name) {
-                            if (!enrolledRecord.section_name) return false;
-                            if (r.section_name.trim().toLowerCase() !== enrolledRecord.section_name.trim().toLowerCase()) return false;
-                        }
-                        return true;
+                        return allowedCourseIds.includes(r.course_id);
                     });
                 } else if (batchVal !== 'all') {
                     todayClasses = todayClasses.filter(r => r.batch_id === batchVal);

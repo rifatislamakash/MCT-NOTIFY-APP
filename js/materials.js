@@ -33,7 +33,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     materialsData = await fetchWithRetry(async (signal) => {
                         const { data, error } = await _supabase
                             .from('materials')
-                            .select('*, courses(course_name)')
+                            .select('*, courses(course_name, short_name)')
                             .order('created_at', { ascending: false })
                             .abortSignal(signal);
 
@@ -58,7 +58,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         const ucData = await fetchWithRetry(async (ucSignal) => {
                             const { data, error } = await _supabase
                                 .from('user_courses')
-                                .select('course_id')
+                                .select('*')
                                 .eq('user_id', window.authState.user.id)
                                 .abortSignal(ucSignal);
                             if (error) throw error;
@@ -157,7 +157,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
             container.innerHTML = materials.map(m => {
                 const isAdmin = ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail));
-                const courseName = (m.courses && m.courses.course_name) ? m.courses.course_name : 'Unknown Course';
+                const courseName = (m.courses && (m.courses.short_name || m.courses.course_name)) ? (m.courses.short_name || m.courses.course_name) : 'Unknown Course';
 
                 let iconName, iconBgClass, iconColorClass, badgeClass;
 
@@ -176,9 +176,6 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const safeDesc = window.sanitizeHTML(m.description || '');
 
                 let badgeHtml = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide uppercase ${badgeClass}">${badgeText}</span>`;
-                if (safeCourse && safeCourse !== 'General' && safeCourse !== 'Unknown') {
-                    badgeHtml += `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-blue-100 text-blue-600 uppercase ml-1">${safeCourse}</span>`;
-                }
 
                 let rightSideHtml = `<div class="flex items-center">`;
                 rightSideHtml += `<div class="w-7 h-7 rounded-full ${iconBgClass} ${iconColorClass} flex items-center justify-center shrink-0 ml-1">
@@ -186,17 +183,25 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                   </div>`;
                 rightSideHtml += `</div>`;
 
-                let dateStr = '';
+                let dateTagHtml = '';
                 if (m.created_at) {
-                    dateStr = new Date(m.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                    const d = new Date(m.created_at);
+                    dateTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="calendar" class="w-3 h-3"></i> ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>`;
                 }
-                
+
+                let courseTagsHtml = '';
+                if (safeCourse && safeCourse !== 'General' && safeCourse !== 'Unknown' && safeCourse !== 'Unknown Course') {
+                    courseTagsHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="book" class="w-3 h-3"></i> ${safeCourse}</span>`;
+                }
+
+                const displayTagsHtml = `${dateTagHtml}${courseTagsHtml}`;
+
                 console.log(`[MATERIAL AUTHOR] ID: ${m.id}, Author: ${m.profiles ? m.profiles.full_name : 'Unknown'}`);
                 console.log(`[MATERIAL CARD] Title: ${m.title}`);
 
                 return `
                         <div class="flex flex-col pb-3 px-3 pt-3 bg-white rounded-[16px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 transition-all active:scale-[0.98] cursor-pointer hover:border-[#4226E9]/30 hover:shadow-md relative" onclick="openMaterialDetails('${m.id}')">
-                            ${window.AuthorService ? window.AuthorService.renderAuthorBlock(m.profiles, dateStr, badgeHtml, rightSideHtml) : ''}
+                            ${window.AuthorService ? window.AuthorService.renderAuthorBlock(m.profiles, displayTagsHtml, badgeHtml, rightSideHtml) : ''}
                             <div class="mt-1 flex flex-col min-w-0">
                                 <h4 class="font-bold text-[14px] text-slate-900 truncate leading-tight">${safeTitle}</h4>
                                 ${safeDesc ? `<p class="text-[12px] font-medium text-slate-500 leading-snug line-clamp-2 mt-0.5">${safeDesc}</p>` : ''}

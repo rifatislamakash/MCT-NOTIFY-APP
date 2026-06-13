@@ -95,7 +95,7 @@ messaging.onBackgroundMessage((payload) => {
         body: notificationBody,
         icon: icon,
         badge: badge,
-        ...(image && { image: image }),
+        // image payload completely removed to ensure no large popup images ever show natively
         requireInteraction: true,
         tag: 'mct-notify',
 

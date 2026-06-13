@@ -145,6 +145,14 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         ctData.forEach(row => {
                             if (!ctMap[row.content_id]) ctMap[row.content_id] = [];
                             ctMap[row.content_id].push(row);
+                            
+                            // Bridge content_targets to scheduleCoursesMap for course tags
+                            if (row.target_type === 'course_students' || row.target_type === 'specific') {
+                                if (!scMap[row.content_id]) scMap[row.content_id] = [];
+                                if (!scMap[row.content_id].includes(row.target_id)) {
+                                    scMap[row.content_id].push(row.target_id);
+                                }
+                            }
                         });
                     }
                     return { rawSchedules: schedulesData, scMap, ctMap };
@@ -164,7 +172,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 if (!crPermissionService.isAdmin() && !crPermissionService.isCR()) {
                     const myCourseIds = (window.currentUserCoursesList || []).map(uc => uc.course_id);
                     const myBatches = [...new Set(myCourseIds.map(cid => {
-                        const c = allCoursesList.find(x => x.id === cid);
+                        const c = (allCoursesList || []).find(x => x.id === cid);
                         return c ? c.batch_id : null;
                     }).filter(Boolean))];
 
@@ -275,6 +283,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 filterSchedulesUI();
                 // Update schedule hub badge count
                 if (typeof window.updateScheduleBadgeCount === 'function') window.updateScheduleBadgeCount();
+                if (window.NoticeService && typeof window.NoticeService.injectDashboardNotices === 'function') window.NoticeService.injectDashboardNotices();
 
             } catch (err) {
                 if (err.name === 'AbortError' || (err.message && err.message.includes('AbortError'))) {
@@ -464,9 +473,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     const cIds = scheduleCoursesMap[s.id] || [];
                     if (cIds.length > 0) {
                         audTag = cIds.map(cid => {
-                            const c = allCoursesList.find(x => x.id === cid);
-                            const name = c ? (c.short_name || c.course_name) : 'Specific';
-                            return `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-blue-100 text-blue-600 uppercase ml-1">${window.sanitizeHTML(name)}</span>`;
+                            const c = (allCoursesList || []).find(x => x.id === cid);
+                            const name = c ? (c.short_name || c.course_name) : 'Course';
+                            return `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="book" class="w-3 h-3"></i> ${window.sanitizeHTML(name)}</span>`;
                         }).join('');
                     } else {
                         audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-blue-100 text-blue-600 uppercase">SPECIFIC</span>`;
@@ -479,17 +488,36 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 
                 let badgeHtml = audTag;
 
-                let dateTimeBadgeHtml = `
-                    <div class="flex items-center gap-1 bg-[#4226E9]/10 text-[#4226E9] px-1.5 py-[3px] rounded-[4px] ml-1">
-                        <i data-lucide="calendar-days" class="w-[9px] h-[9px]"></i>
-                        <span class="text-[8.5px] font-bold tracking-wide leading-none">${formatScheduleDate(s.schedule_date)}</span>
-                    </div>
-                    <div class="flex items-center gap-1 bg-amber-50 text-amber-600 px-1.5 py-[3px] rounded-[4px] ml-1">
-                        <i data-lucide="clock" class="w-[9px] h-[9px]"></i>
-                        <span class="text-[8.5px] font-bold tracking-wide leading-none">${formatScheduleTime(s.schedule_time)}</span>
-                    </div>
-                `;
-                badgeHtml = badgeHtml + dateTimeBadgeHtml;
+                let dateTagHtml = '';
+                let timeTagHtml = '';
+                if (s.schedule_date) {
+                    dateTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="calendar" class="w-3 h-3"></i> ${formatScheduleDate(s.schedule_date)}</span>`;
+                }
+                if (s.schedule_time) {
+                    timeTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="clock" class="w-3 h-3"></i> ${formatScheduleTime(s.schedule_time)}</span>`;
+                }
+                if (!dateTagHtml && !timeTagHtml) {
+                    const d = new Date(s.created_at);
+                    dateTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="calendar" class="w-3 h-3"></i> ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>`;
+                }
+
+                let courseTagsHtml = '';
+                const cIds = scheduleCoursesMap[s.id] || [];
+                if (cIds.length > 0 && !badgeHtml.includes('bg-blue-50')) { // if they aren't already generated above
+                    courseTagsHtml = cIds.map(cid => {
+                        const c = (allCoursesList || []).find(x => x.id === cid);
+                        const name = c ? (c.short_name || c.course_name) : 'Course';
+                        return `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="book" class="w-3 h-3"></i> ${window.sanitizeHTML(name)}</span>`;
+                    }).join('');
+                }
+
+                // If audTag already built course tags (like for course_students or specific), use that for courseTagsHtml instead of duplicating
+                if (aud === 'course_students' || aud === 'specific') {
+                    courseTagsHtml = audTag;
+                    badgeHtml = ''; // Clear badgeHtml since it's just course tags now
+                }
+
+                const displayTagsHtml = `${dateTagHtml}${timeTagHtml}${courseTagsHtml}`;
 
                 const pin = isPinned ? `<i data-lucide="pin" class="w-3 h-3 text-orange-500 fill-orange-500 ml-1"></i>` : '';
                 const attach = hasAttachment ? `<i data-lucide="paperclip" class="w-3.5 h-3.5 text-indigo-500 ml-1"></i>` : '';
@@ -500,7 +528,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                 return `
                     <div onclick="openScheduleDetails('${s.id}')" class="${cardClasses} relative pb-4 px-4 pt-3 mt-2">
-                        ${window.AuthorService ? window.AuthorService.renderAuthorBlock(s.profiles, '', badgeHtml, rightSideHtml) : ''}
+                        ${window.AuthorService ? window.AuthorService.renderAuthorBlock(s.profiles, displayTagsHtml, badgeHtml, rightSideHtml) : ''}
                         <div class="mt-1 flex flex-col">
                             <h4 class="font-extrabold text-[15px] text-slate-900 truncate leading-tight">${window.sanitizeHTML(s.title || 'Untitled')}</h4>
                             <p class="text-[13px] text-slate-500 line-clamp-2 overflow-hidden mt-0.5 leading-snug">${window.sanitizeHTML(s.message || '')}</p>
@@ -562,7 +590,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     }
                     if (coursesList) {
                         coursesList.innerHTML = courseIds.map(cid => {
-                            const course = allCoursesList.find(c => c.id === cid);
+                            const course = (allCoursesList || []).find(c => c.id === cid);
                             const label = course ? (course.short_name || course.course_name) : cid;
                             return `<span class="px-2.5 py-1 bg-indigo-100 text-[#4226E9] text-[11px] font-bold rounded-full">${label}</span>`;
                         }).join('');
@@ -915,7 +943,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (isCR) {
                 if (audience_type === 'course_students') {
                     for (const cid of checkedCbs) {
-                        const c = allCoursesList.find(x => x.id === cid);
+                        const c = (allCoursesList || []).find(x => x.id === cid);
                         if (c && !window.crPermissionService.canAccessBatch(c.batch_id)) {
                             window.showGlobalToast('Validation', 'You can only target courses in your assigned batches.');
                             return;
@@ -1377,7 +1405,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 
                 if (audience_type === 'course_students') {
                     for (const cid of checkedCbs) {
-                        const c = allCoursesList.find(x => x.id === cid);
+                        const c = (allCoursesList || []).find(x => x.id === cid);
                         if (c && !window.crPermissionService.canAccessBatch(c.batch_id)) {
                             console.log(`[CR PERMISSION DENIED] Attempted to post schedule for unassigned course ${cid}`);
                             window.showGlobalToast("Access Denied", "You can only post schedules to courses in your assigned batches.");

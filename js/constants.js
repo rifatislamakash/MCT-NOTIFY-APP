@@ -25,4 +25,32 @@
             return strUrl;
         };
 
+        window.parseSectionsName = function(sectionsName) {
+            if (!sectionsName) return [];
+            let sectionsArray = [];
+            try {
+                if (typeof sectionsName === 'string') {
+                    // Try parsing as JSON first
+                    const parsed = JSON.parse(sectionsName);
+                    if (Array.isArray(parsed)) {
+                        sectionsArray = parsed;
+                    } else {
+                        sectionsArray = sectionsName.split(',').map(s => s.trim()).filter(s => s);
+                    }
+                } else if (Array.isArray(sectionsName)) {
+                    sectionsArray = sectionsName;
+                } else {
+                    sectionsArray = [String(sectionsName)];
+                }
+            } catch(e) {
+                sectionsArray = String(sectionsName).split(',').map(s => s.trim()).filter(s => s);
+            }
+            return sectionsArray.map(sec => {
+                if (typeof sec === 'string') {
+                    return sec.replace(/[\[\]"]/g, '').trim();
+                }
+                return String(sec).trim();
+            }).filter(Boolean);
+        };
+
 console.log("[ARCHITECTURE]\nconstants loaded");

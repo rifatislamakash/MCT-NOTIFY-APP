@@ -48,7 +48,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         const isAdminCheck = window.currentUserRole === 'admin' || window.isAdminEmail(emailStr);
                         if (!isAdminCheck) {
                             const coursesPromise = deduplicateRequest('user_courses_boot', async () => {
-                                const sdkPromise = _supabase.from('user_courses').select('course_id').eq('user_id', window.authState.user.id);
+                                const sdkPromise = _supabase.from('user_courses').select('*').eq('user_id', window.authState.user.id);
                                 const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('sdk_timeout')), 2000));
                                 try {
                                     const { data, error } = await Promise.race([sdkPromise, timeout]);
@@ -56,7 +56,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                     return data;
                                 } catch (e) {
                                     if (e.message === 'sdk_timeout') {
-                                        const url = `${_supabase.supabaseUrl}/rest/v1/user_courses?user_id=eq.${window.authState.user.id}&select=course_id`;
+                                        const url = `${_supabase.supabaseUrl}/rest/v1/user_courses?user_id=eq.${window.authState.user.id}&select=*`;
                                         const res = await fetch(url, {
                                             headers: {
                                                 'apikey': _supabase.supabaseKey,
