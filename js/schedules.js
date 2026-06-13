@@ -1049,43 +1049,78 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     } else if (noticeData && noticeData.length > 0) {
                         console.log("[SCHEDULE] Automatically created linked notice:", noticeData[0].id);
                         
-                        // Fix 1: Auto-link targets
-                        if (isTargetSpecific && checkedCbs.length > 0) {
-                            const targetLinks = checkedCbs.map(tid => ({
-                                content_type: 'notice',
-                                content_id: noticeData[0].id,
-                                target_type: audience_type,
-                                target_id: tid
-                            }));
-                            const { error: ncError } = await _supabase.from('content_targets').insert(targetLinks);
-                            if (ncError) console.error("[SCHEDULE] Notice targets link error:", ncError);
-                        } else {
-                            const targetLinks = [{
-                                content_type: 'notice',
-                                content_id: noticeData[0].id,
-                                target_type: audience_type,
-                                target_id: null
-                            }];
-                            await _supabase.from('content_targets').insert(targetLinks);
-                        }
 
-                        // Fix 2: Auto-queue notification for the notice
-                        const noticePayload = {
-                            parent_type: 'notice',
-                            parent_id: noticeData[0].id,
-                            reminder_title: title,
-                            reminder_message: message,
-                            sent: false,
-                            created_by: window.authState.user?.id || null,
-                            reminder_time: new Date(Date.now() + 60000).toISOString()
-                        };
-                        console.log('[QUEUE INSERT PAYLOAD]', noticePayload);
-                        const { error: notifError } = await _supabase.from('notification_reminders').insert([noticePayload]);
-                        if (notifError) console.error("[SCHEDULE] Notice push queue error:", notifError);
                     }
                 }
 
-                // Task 3: Insert Reminders and Automatic Push Notification
+                // Insert content_targets rows for Schedule FIRST to prevent race condition
+                if (isTargetSpecific) {
+                    let scRows = [];
+                    if (checkedCbs.length > 0) {
+                        scRows = checkedCbs.map(tid => ({
+                            content_type: 'schedule',
+                            content_id: newSchedule.id,
+                            target_type: audience_type,
+                            target_id: tid
+                        }));
+                    }
+                    if (scRows.length > 0) {
+                        const { error: scError } = await _supabase.from('content_targets').insert(scRows);
+                        if (scError) console.warn('[CONTENT TARGETS INSERT WARN]', scError);
+                    }
+                } else {
+                    let globalTargetId = null;
+                    if (window.currentUserRole === 'cr' && window.currentUserCRBatches && window.currentUserCRBatches.length > 0) {
+                        globalTargetId = window.currentUserCRBatches[0];
+                    }
+                    const scRows = [{
+                        content_type: 'schedule',
+                        content_id: newSchedule.id,
+                        target_type: audience_type,
+                        target_id: globalTargetId
+                    }];
+                    const { error: scError } = await _supabase.from('content_targets').insert(scRows);
+                    if (scError) console.warn('[CONTENT TARGETS INSERT WARN]', scError);
+                }
+
+                // If notice was auto-created, link its targets before queuing its notification
+                if (alsoSendNotice && typeof noticeData !== 'undefined' && noticeData.length > 0) {
+                    // Auto-link targets for the notice
+                    if (isTargetSpecific && checkedCbs.length > 0) {
+                        const targetLinks = checkedCbs.map(tid => ({
+                            content_type: 'notice',
+                            content_id: noticeData[0].id,
+                            target_type: audience_type,
+                            target_id: tid
+                        }));
+                        const { error: ncError } = await _supabase.from('content_targets').insert(targetLinks);
+                        if (ncError) console.error("[SCHEDULE] Notice targets link error:", ncError);
+                    } else {
+                        const targetLinks = [{
+                            content_type: 'notice',
+                            content_id: noticeData[0].id,
+                            target_type: audience_type,
+                            target_id: null
+                        }];
+                        await _supabase.from('content_targets').insert(targetLinks);
+                    }
+
+                    // Auto-queue notification for the notice ONLY after targets are inserted
+                    const noticePayload = {
+                        parent_type: 'notice',
+                        parent_id: noticeData[0].id,
+                        reminder_title: title,
+                        reminder_message: message,
+                        sent: false,
+                        created_by: window.authState.user?.id || null,
+                        reminder_time: new Date(Date.now() + 60000).toISOString()
+                    };
+                    console.log('[QUEUE INSERT PAYLOAD]', noticePayload);
+                    const { error: notifError } = await _supabase.from('notification_reminders').insert([noticePayload]);
+                    if (notifError) console.error("[SCHEDULE] Notice push queue error:", notifError);
+                }
+
+                // Task 3: Insert Reminders and Automatic Push Notification for Schedule AFTER targets are securely saved
                 try {
                     const reminderRows = [];
                     // Automatically queue push notification immediately for schedule
@@ -1152,36 +1187,6 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 } catch (remErr) {
                     console.error("[REMINDERS] Exception during schedule reminder calculation or insert:", remErr);
                     window.showGlobalToast("Warning", "Schedule saved, but reminders calculation failed.");
-                }
-
-                // Insert content_targets rows for Schedule
-                if (isTargetSpecific) {
-                    let scRows = [];
-                    if (checkedCbs.length > 0) {
-                        scRows = checkedCbs.map(tid => ({
-                            content_type: 'schedule',
-                            content_id: newSchedule.id,
-                            target_type: audience_type,
-                            target_id: tid
-                        }));
-                    }
-                    if (scRows.length > 0) {
-                        const { error: scError } = await _supabase.from('content_targets').insert(scRows);
-                        if (scError) console.warn('[CONTENT TARGETS INSERT WARN]', scError);
-                    }
-                } else {
-                    let globalTargetId = null;
-                    if (window.currentUserRole === 'cr' && window.currentUserCRBatches && window.currentUserCRBatches.length > 0) {
-                        globalTargetId = window.currentUserCRBatches[0];
-                    }
-                    const scRows = [{
-                        content_type: 'schedule',
-                        content_id: newSchedule.id,
-                        target_type: audience_type,
-                        target_id: globalTargetId
-                    }];
-                    const { error: scError } = await _supabase.from('content_targets').insert(scRows);
-                    if (scError) console.warn('[CONTENT TARGETS INSERT WARN]', scError);
                 }
 
                 window.showGlobalToast('Published', 'Schedule created successfully!');

@@ -401,9 +401,14 @@ export class PollService {
                         _supabase.functions.invoke('send-notification', {
                             body: {
                                 tokens: tokens,
-                                title: "New Batch Poll",
-                                body: `New Batch Poll: ${title}`,
-                                data: { type: "poll", id: data[0].id }
+                                data: { 
+                                    title: "New Batch Poll",
+                                    body: `New Batch Poll: ${title}`,
+                                    type: "poll", 
+                                    id: data[0].id,
+                                    target_type: "batch_students",
+                                    target_id: batch
+                                }
                             }
                         }).catch(e => console.error("FCM Edge Invoke Error:", e));
                     }

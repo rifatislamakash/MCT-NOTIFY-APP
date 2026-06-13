@@ -55,9 +55,60 @@ const messaging = firebase.messaging();
 // BACKGROUND NOTIFICATION
 // ======================
 
-messaging.onBackgroundMessage((payload) => {
+messaging.onBackgroundMessage(async (payload) => {
 
     console.log('[FCM BACKGROUND]', payload);
+
+    // SECURITY TRACE: Fetch student credentials from Cache Storage
+    let accessGranted = true;
+    const target_type = payload?.data?.target_type;
+    const target_id = payload?.data?.target_id;
+
+    if (target_type) {
+        accessGranted = false; // Default strictly deny if target data is present
+        try {
+            const cache = await caches.open('mct-profile-rules');
+            const res = await cache.match('/rules.json');
+            if (res) {
+                const rules = await res.json();
+                
+                console.log('[SW SECURITY TRACE]', {
+                    studentMainBatch: rules.profileBatchId,
+                    targetType: target_type,
+                    targetId: target_id
+                });
+                
+                if (target_type === 'course_students') {
+                    if (rules.studentCourses && rules.studentCourses.includes(target_id)) accessGranted = true;
+                } else if (target_type === 'batch_students') {
+                    // STRICT BATCH OWNERSHIP ONLY
+                    if (rules.ownedBatches && rules.ownedBatches.includes(target_id)) accessGranted = true;
+                } else if (target_type === 'all_students') {
+                    if (!target_id) {
+                        accessGranted = true; // Global admin notice
+                    } else if (
+                        (rules.ownedBatches && rules.ownedBatches.includes(target_id)) || 
+                        (rules.courseEnrolledBatches && rules.courseEnrolledBatches.includes(target_id))
+                    ) {
+                        accessGranted = true;
+                    }
+                } else if (target_type === 'specific_student') {
+                    if (rules.userId && rules.userId === target_id) accessGranted = true;
+                } else if (target_type === 'all') {
+                    accessGranted = true;
+                }
+            } else {
+                console.warn('[SW SECURITY TRACE] Cache rules missing. Access strictly denied by default.');
+            }
+        } catch (e) {
+            console.warn('[SW SECURITY TRACE] Evaluation error:', e);
+        }
+    }
+
+    if (!accessGranted) {
+        console.log('[SW SECURITY TRACE] Access Denied. Payload dropped.');
+        return;
+    }
 
     const notificationTitle =
         payload?.data?.title ||

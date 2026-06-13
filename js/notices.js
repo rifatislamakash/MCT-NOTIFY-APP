@@ -147,48 +147,72 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     const secondaryBatches = window.authState?.profile?.secondary_batches || [];
                     const ownedBatches = [profileBatchId, ...secondaryBatches].filter(Boolean);
 
+                    // --- SEND TO SERVICE WORKER VIA CACHE ---
+                    if ('caches' in window) {
+                        caches.open('mct-profile-rules').then(cache => {
+                            cache.put('/rules.json', new Response(JSON.stringify({
+                                profileBatchId,
+                                ownedBatches,
+                                courseEnrolledBatches,
+                                studentCourses,
+                                userId: window.authState?.user?.id
+                            })));
+                        }).catch(e => console.warn('[CACHE] Failed to save profile rules:', e));
+                    }
+
                     window.currentNoticesList = (noticesData || []).filter(n => {
+                        let evaluationResult = false;
+                        let target_type = null;
+                        let target_id = null;
+
                         // Global Targets & All Students
-                        if (n.audience_type === 'all') return true;
-                        if (n.audience_type === 'all_students') {
-                            // If it has content_targets, check BOTH ownership and course enrollment
+                        if (n.audience_type === 'all') {
+                            evaluationResult = true;
+                            target_type = 'all';
+                        } else if (n.audience_type === 'all_students') {
                             if (n.content_targets && n.content_targets.length > 0) {
-                                return n.content_targets.some(ct => {
+                                evaluationResult = n.content_targets.some(ct => {
                                     if (ct.target_type === 'all_students') {
+                                        target_type = ct.target_type;
+                                        target_id = ct.target_id;
                                         if (!ct.target_id) return true; // Global admin notice
                                         return ownedBatches.includes(ct.target_id) || courseEnrolledBatches.includes(ct.target_id);
                                     }
                                     return false;
                                 });
+                            } else {
+                                evaluationResult = true;
                             }
-                            // Fallback
-                            return true;
-                        }
-                        
-                        // Legacy Filter
-                        if (n.notice_courses && n.notice_courses.length > 0) {
-                            if (n.notice_courses.some(nc => studentCourses.includes(nc.course_id))) return true;
-                        }
-                        
-                        // New Target Filter
-                        if (n.content_targets && n.content_targets.length > 0) {
-                            return n.content_targets.some(ct => {
+                        } else if (n.notice_courses && n.notice_courses.length > 0) {
+                            evaluationResult = n.notice_courses.some(nc => studentCourses.includes(nc.course_id));
+                        } else if (n.content_targets && n.content_targets.length > 0) {
+                            evaluationResult = n.content_targets.some(ct => {
+                                target_type = ct.target_type;
+                                target_id = ct.target_id;
                                 if (ct.target_type === 'course_students') {
                                     return studentCourses.includes(ct.target_id);
                                 }
                                 if (ct.target_type === 'batch_students') {
-                                    // BATCH OWNERSHIP ONLY (Do not use course enrollment)
+                                    // STRICT BATCH OWNERSHIP ONLY
                                     return ownedBatches.includes(ct.target_id);
                                 }
                                 if (ct.target_type === 'specific_student') {
                                     return ct.target_id === window.authState.user.id;
                                 }
-                                // batch_crs is not visible to students
                                 return false;
                             });
                         }
                         
-                        return false;
+                        console.log('[SECURITY TRACE]', { 
+                            noticeId: n.id,
+                            title: n.title,
+                            studentMainBatch: profileBatchId, 
+                            targetType: target_type || n.audience_type, 
+                            targetId: target_id, 
+                            accessGranted: evaluationResult 
+                        });
+                        
+                        return evaluationResult;
                     });
                 }
 
@@ -984,7 +1008,56 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     savedNoticeId = data[0].id;
                 }
 
-                // Task 3: Insert/Update Reminders and Automatic Push Notification
+
+
+                // Handle Audience Targeting via content_targets FIRST to prevent race condition
+                // Delete old targets
+                await _supabase.from('content_targets').delete().eq('content_type', 'notice').eq('content_id', savedNoticeId);
+                console.log("[TARGET SAVE] Old targets deleted.");
+
+                const isTargetSpecific = ['batch_students', 'batch_crs', 'course_students', 'specific_student'].includes(audience_type);
+                
+                if (isTargetSpecific) {
+                    const cbs = document.querySelectorAll('.notice-target-cb:checked');
+                    const selectedIds = Array.from(cbs).map(cb => cb.value);
+
+                    if (selectedIds.length > 0) {
+                        const targetInserts = selectedIds.map(tid => ({
+                            content_type: 'notice',
+                            content_id: savedNoticeId,
+                            target_type: audience_type,
+                            target_id: tid
+                        }));
+                        console.log("[CONTENT TARGETS] Inserting targets:", targetInserts);
+                        const { error: targetError } = await _supabase.from('content_targets').insert(targetInserts);
+                        if (targetError) {
+                            console.error("[TARGET SAVE] content_targets insert error:", targetError);
+                            throw targetError;
+                        }
+                    }
+                } else {
+                    // all_students or all_crs
+                    let globalTargetId = null;
+                    if (window.currentUserRole === 'cr' && window.currentUserCRBatches && window.currentUserCRBatches.length > 0) {
+                        // If CR creates an 'all_students' notice, it is implicitly targeted to their primary batch
+                        globalTargetId = window.currentUserCRBatches[0];
+                    }
+
+                    const targetInsert = {
+                        content_type: 'notice',
+                        content_id: savedNoticeId,
+                        target_type: audience_type,
+                        target_id: globalTargetId
+                    };
+                    console.log("[CONTENT TARGETS] Inserting global target:", targetInsert);
+                    const { error: targetError } = await _supabase.from('content_targets').insert([targetInsert]);
+                    if (targetError) {
+                        console.error("[TARGET SAVE] content_targets global insert error:", targetError);
+                        throw targetError;
+                    }
+                }
+
+                // Task 3: Insert/Update Reminders and Automatic Push Notification AFTER targets are securely saved
                 try {
                     // Always delete old reminders first when saving (handles both update and insert safely)
                     console.log("[REMINDERS] Cleaning up old reminders for notice ID:", savedNoticeId);
@@ -1058,53 +1131,6 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 } catch (remErr) {
                     console.error("[REMINDERS] Exception during reminder calculation or insert:", remErr);
                     window.showGlobalToast("Warning", "Notice saved, but reminders calculation failed.");
-                }
-
-                // Handle Audience Targeting via content_targets
-                // Delete old targets
-                await _supabase.from('content_targets').delete().eq('content_type', 'notice').eq('content_id', savedNoticeId);
-                console.log("[TARGET SAVE] Old targets deleted.");
-
-                const isTargetSpecific = ['batch_students', 'batch_crs', 'course_students', 'specific_student'].includes(audience_type);
-                
-                if (isTargetSpecific) {
-                    const cbs = document.querySelectorAll('.notice-target-cb:checked');
-                    const selectedIds = Array.from(cbs).map(cb => cb.value);
-
-                    if (selectedIds.length > 0) {
-                        const targetInserts = selectedIds.map(tid => ({
-                            content_type: 'notice',
-                            content_id: savedNoticeId,
-                            target_type: audience_type,
-                            target_id: tid
-                        }));
-                        console.log("[CONTENT TARGETS] Inserting targets:", targetInserts);
-                        const { error: targetError } = await _supabase.from('content_targets').insert(targetInserts);
-                        if (targetError) {
-                            console.error("[TARGET SAVE] content_targets insert error:", targetError);
-                            throw targetError;
-                        }
-                    }
-                } else {
-                    // all_students or all_crs
-                    let globalTargetId = null;
-                    if (window.currentUserRole === 'cr' && window.currentUserCRBatches && window.currentUserCRBatches.length > 0) {
-                        // If CR creates an 'all_students' notice, it is implicitly targeted to their primary batch
-                        globalTargetId = window.currentUserCRBatches[0];
-                    }
-
-                    const targetInsert = {
-                        content_type: 'notice',
-                        content_id: savedNoticeId,
-                        target_type: audience_type,
-                        target_id: globalTargetId
-                    };
-                    console.log("[CONTENT TARGETS] Inserting global target:", targetInsert);
-                    const { error: targetError } = await _supabase.from('content_targets').insert([targetInsert]);
-                    if (targetError) {
-                        console.error("[TARGET SAVE] content_targets global insert error:", targetError);
-                        throw targetError;
-                    }
                 }
 
                 window.showGlobalToast("Success", "Notice saved successfully.");
