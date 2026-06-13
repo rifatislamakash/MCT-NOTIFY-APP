@@ -1252,6 +1252,27 @@ import { ProfileStore } from './stores/ProfileStore.js';
             document.getElementById('notice-audience-type').value = notice.audience_type;
 
             await window.toggleNoticeAudience();
+            
+            // Query content_targets to populate specific targets correctly
+            try {
+                const { data: targets, error: targetError } = await _supabase
+                    .from('content_targets')
+                    .select('target_id')
+                    .eq('content_type', 'notice')
+                    .eq('content_id', notice.id);
+                    
+                if (!targetError && targets && targets.length > 0) {
+                    const targetIds = targets.map(t => t.target_id);
+                    const cbs = document.querySelectorAll('.notice-target-cb');
+                    cbs.forEach(cb => {
+                        if (targetIds.includes(cb.value)) cb.checked = true;
+                    });
+                }
+            } catch (e) {
+                console.error("[EDIT NOTICE] Failed to load targets:", e);
+            }
+
+            // Backward compatibility for old architecture if needed
             if (notice.audience_type === 'specific' && notice.notice_courses) {
                 const cbs = document.querySelectorAll('.notice-course-cb');
                 const courseIds = notice.notice_courses.map(nc => nc.course_id);
