@@ -140,6 +140,20 @@ let isRegistering = false;
                     if (typeof window.loadNotices === 'function') tasks.push(window.loadNotices().catch(console.warn));
                     if (typeof window.loadDashboardTodayRoutine === 'function') tasks.push(window.loadDashboardTodayRoutine().catch(console.warn));
                     if (typeof window.loadScheduleList === 'function') tasks.push(window.loadScheduleList().catch(console.warn));
+                    if (window.PollService && typeof window.PollService.loadPolls === 'function') {
+                        tasks.push(window.PollService.loadPolls().then(() => {
+                            if (window.currentUserRole === 'student' && typeof window.PollService?.checkAndShowPopup === 'function') {
+                                window.PollService.checkAndShowPopup();
+                            }
+                        }).catch(console.warn));
+                    }
+                    const currentPrefRole = sessionStorage.getItem('crPreferredRole') || window.authState?.profile?.role || 'student';
+                    const isActualAdmin = window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail);
+                    const isCR = window.currentUserRole === 'cr';
+
+                    if (isActualAdmin || (isCR && currentPrefRole === 'cr')) {
+                        if (typeof window.loadAdminReports === 'function') tasks.push(window.loadAdminReports().catch(console.warn));
+                    }
                     
                     const timeoutPromise = new Promise(resolve => setTimeout(resolve, 10000));
                     await Promise.race([Promise.all(tasks), timeoutPromise]);

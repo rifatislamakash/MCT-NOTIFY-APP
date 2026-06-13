@@ -163,3 +163,11 @@ window.updateBottomNavHighlights = DashboardService.updateBottomNavHighlights;
 
 window.simulateReload = DashboardService.simulateReload;
 
+import { PollService } from './js/polls.js';
+window.PollService = PollService;
+window.loadPolls = PollService.loadPolls.bind(PollService);
+
+import { ReportService } from './js/reports.js';
+window.ReportService = ReportService;
+window.loadMyReports = ReportService.loadMyReports.bind(ReportService);
+window.loadAdminReports = ReportService.loadAdminReports.bind(ReportService);

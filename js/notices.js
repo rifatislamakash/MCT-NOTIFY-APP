@@ -236,6 +236,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const q = document.getElementById('notices-search')?.value.toLowerCase() || '';
 
             let filtered = window.currentNoticesList.filter(n => {
+                if (n.notice_type === 'poll') return false; // Exclude polls from the general Notices list
                 const matchQuery = n.title.toLowerCase().includes(q) || n.message.toLowerCase().includes(q);
                 const matchType = currentNoticeFilter === 'all' || n.notice_type === currentNoticeFilter;
                 
@@ -431,7 +432,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const recentContainer = document.getElementById('dashboard-recent-notices');
             if (recentContainer) {
                 // Collect Notices
-                const noticesArray = (window.currentNoticesList || []).filter(n => n.notice_type === 'general').map(n => {
+                const noticesArray = (window.currentNoticesList || []).filter(n => n.notice_type === 'general' || n.notice_type === 'poll').map(n => {
                     const noticeD = new Date((n.notice_date || n.created_at.split('T')[0]) + 'T' + (n.notice_time || '23:59:00'));
                     return { ...n, __type: 'notice', sortDate: noticeD };
                 });
@@ -447,7 +448,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     .sort((a, b) => {
                         if (a.is_pinned && !b.is_pinned) return -1;
                         if (!a.is_pinned && b.is_pinned) return 1;
-                        return b.sortDate - a.sortDate;
+                        // Sort by created_at so newest polls/notices appear exactly at the top
+                        return new Date(b.created_at) - new Date(a.created_at);
                     })
                     .slice(0, 3);
                 
@@ -476,7 +478,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             }
                             if (!dateStr) dateStr = new Date(n.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
-                            let badgeHtml = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-indigo-100 text-[#4226E9] uppercase">NOTICE</span>`;
+                            const isPoll = n.notice_type === 'poll';
+                            let badgeHtml = isPoll 
+                                ? `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-indigo-100 text-[#4226E9] uppercase">POLL</span>` 
+                                : `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-indigo-100 text-[#4226E9] uppercase">NOTICE</span>`;
                             
                             let courseTagsHtml = '';
                             if (n.notice_courses && n.notice_courses.length > 0) {
@@ -505,16 +510,17 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             }
                             
                             const displayTagsHtml = `${dateTagHtml}${timeTagHtml}${courseTagsHtml}`;
+                            const clickAction = isPoll ? `window.PollService.openPollDetails('${window.sanitizeHTML(n.id)}')` : `openNoticeDetails('${window.sanitizeHTML(n.id)}')`;
 
                             return `
-                                <div class="flex flex-col pb-3 px-3 pt-3 bg-white rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer" onclick="openNoticeDetails('${window.sanitizeHTML(n.id)}')">
+                                <div class="flex flex-col pb-3 px-3 pt-3 bg-white rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer" onclick="${clickAction}">
                                     ${window.AuthorService ? window.AuthorService.renderAuthorBlock(n.profiles, displayTagsHtml, badgeHtml, rightSideHtml) : ''}
                                     <div class="mt-1 flex flex-col">
                                         <h4 class="font-bold text-[14px] text-slate-900 leading-tight truncate">${window.sanitizeHTML(n.title)}</h4>
                                         <p class="text-[12px] font-medium text-slate-500 leading-snug line-clamp-2 mt-0.5">${window.sanitizeHTML(n.message)}</p>
                                     </div>
                                     <div class="mt-3">
-                                        ${window.ReactionService ? window.ReactionService.renderReactionBlock('notice', n.id) : ''}
+                                        ${window.ReactionService ? window.ReactionService.renderReactionBlock(isPoll ? 'poll' : 'notice', n.id) : ''}
                                     </div>
                                 </div>
                             `;

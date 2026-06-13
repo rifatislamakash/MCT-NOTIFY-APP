@@ -843,8 +843,15 @@
                                         </div>
                                         <span class="text-[9px] font-bold text-slate-700 leading-none mt-1">Faculty</span>
                                     </div>
-                                    <div id="qa-edit-profile" class="flex flex-col items-center text-center space-y-1 cursor-pointer group relative" onclick="navigate('screen-edit-profile'); if(window.populateEditProfileForm) window.populateEditProfileForm();">
+                                    <div id="qa-polls" class="flex flex-col items-center text-center space-y-1 cursor-pointer group relative" onclick="onFeatureClick('polls', 'Polls', () => { navigate('screen-polls-list'); loadPolls(); })">
                                         <div class="w-[52px] h-[52px] bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shadow-2xs transition-all duration-200 group-hover:scale-110 group-hover:shadow-md group-hover:-translate-y-1">
+                                            <i data-lucide="pie-chart" class="w-5.5 h-5.5"></i>
+                                        </div>
+                                        <span class="text-[9px] font-bold text-slate-700 leading-none mt-1">Polls</span>
+                                    </div>
+                                    <!-- Row 3 -->
+                                    <div id="qa-edit-profile" class="flex flex-col items-center text-center space-y-1 cursor-pointer group relative" onclick="navigate('screen-edit-profile'); if(window.populateEditProfileForm) window.populateEditProfileForm();">
+                                        <div class="w-[52px] h-[52px] bg-slate-50 text-slate-600 rounded-2xl flex items-center justify-center shadow-2xs transition-all duration-200 group-hover:scale-110 group-hover:shadow-md group-hover:-translate-y-1">
                                             <i data-lucide="user-cog" class="w-5.5 h-5.5"></i>
                                         </div>
                                         <span class="text-[9px] font-bold text-slate-700 leading-none mt-1">Edit Profile</span>
@@ -1464,6 +1471,27 @@
                                         </div>
                                         <span class="text-[9px] font-bold text-slate-700 leading-none mt-1">Upload</span>
                                     </div>
+
+                                    <!-- Row 4 -->
+                                    <div class="qa-polls flex flex-col items-center text-center space-y-1 relative cursor-pointer group" onclick="onFeatureClick('polls', 'Batch Polls', () => { navigate('screen-polls-list'); loadPolls(); })">
+                                        <div class="w-[52px] h-[52px] bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shadow-2xs transition-all duration-200 group-hover:scale-110 group-hover:shadow-md group-hover:-translate-y-1 relative">
+                                            <i data-lucide="pie-chart" class="w-5.5 h-5.5"></i>
+                                        </div>
+                                        <span class="text-[9px] font-bold text-slate-700 leading-none mt-1">Polls List</span>
+                                    </div>
+                                    <div class="qa-polls hide-on-disable flex flex-col items-center text-center space-y-1 relative cursor-pointer group" onclick="onFeatureClick('polls', 'Create Poll', () => { navigate('screen-poll-creation'); window.PollService.setupPollCreation(); })">
+                                        <div class="w-[52px] h-[52px] bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center shadow-2xs transition-all duration-200 group-hover:scale-110 group-hover:shadow-md group-hover:-translate-y-1 relative">
+                                            <div class="absolute -right-1.5 -top-1.5 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center text-[12px] text-white font-bold z-10 shadow-sm pb-[1px]">+</div>
+                                            <i data-lucide="bar-chart" class="w-5.5 h-5.5"></i>
+                                        </div>
+                                        <span class="text-[9px] font-bold text-slate-700 leading-none mt-1">Create Poll</span>
+                                    </div>
+                                    <div onclick="navigate('screen-admin-view-reports'); window.ReportService.loadAdminReports();" class="flex flex-col items-center text-center space-y-1 relative cursor-pointer group">
+                                        <div class="w-[52px] h-[52px] bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shadow-2xs transition-all duration-200 group-hover:scale-110 group-hover:shadow-md group-hover:-translate-y-1 relative">
+                                            <i data-lucide="clipboard-list" class="w-5.5 h-5.5"></i>
+                                        </div>
+                                        <span class="text-[9px] font-bold text-slate-700 leading-none mt-1">Check Reports</span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1512,6 +1540,21 @@
                                         </div>
                                         <label class="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" id="cm-faculty_directory" checked onchange="saveContentSetting('faculty_directory', this.checked)" class="sr-only peer">
+                                            <div class="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#4226E9]"></div>
+                                        </label>
+                                    </div>
+                                    <div class="bg-white p-3 rounded-2xl flex items-center justify-between border border-slate-100 shadow-xs">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                                                <i data-lucide="pie-chart" class="w-4.5 h-4.5"></i>
+                                            </div>
+                                            <div>
+                                                <h5 class="font-bold text-xs text-slate-900 leading-tight">Batch Polls</h5>
+                                                <p class="text-[9px] text-slate-400">Enable or disable polls feature</p>
+                                            </div>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="cm-polls" checked onchange="saveContentSetting('polls', this.checked)" class="sr-only peer">
                                             <div class="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#4226E9]"></div>
                                         </label>
                                     </div>
@@ -1607,6 +1650,8 @@
                                     </div>
                                 </div>
                             </div>
+
+
                         </div>
 
                         <div class="absolute bottom-0 inset-x-0 h-20 bg-[#070B19] text-white flex items-center justify-around px-2 z-30 select-none border-t border-slate-900">
@@ -4184,6 +4229,196 @@
                         </div>
                     </div>
 
+                    <!-- ========================================== -->
+                    <!-- SCREEN: POLLS LIST                         -->
+                    <!-- ========================================== -->
+                    <div id="screen-polls-list" class="screen bg-[#F5F6F8] flex flex-col justify-between overflow-hidden">
+                        <div class="px-6 pt-12 pb-4 flex items-center justify-between bg-white border-b border-slate-100 shrink-0">
+                            <div class="flex items-center gap-3">
+                                <button onclick="goHome()" class="w-9 h-9 bg-slate-50 hover:bg-slate-100 transition rounded-full flex items-center justify-center text-slate-700">
+                                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                                </button>
+                                <h2 class="text-[19px] font-black text-slate-900 tracking-tight">Polls Hub</h2>
+                            </div>
+                            <button id="btn-create-poll" onclick="navigate('screen-poll-creation')" class="hidden w-9 h-9 bg-indigo-50 hover:bg-indigo-100 transition rounded-full flex items-center justify-center text-indigo-600">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <div class="flex-1 overflow-y-auto px-6 py-6 pb-24 scrollbar-hide">
+                            <div id="polls-list-container" class="space-y-4">
+                                <!-- Polls injected here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- SCREEN: POLL CREATION                      -->
+                    <!-- ========================================== -->
+                    <div id="screen-poll-creation" class="screen bg-[#F5F6F8] flex flex-col overflow-hidden">
+                        <div class="px-6 pt-12 pb-4 flex items-center gap-3 bg-white border-b border-slate-100 shrink-0">
+                            <button onclick="navigate('screen-polls-list')" class="w-9 h-9 bg-slate-50 hover:bg-slate-100 transition rounded-full flex items-center justify-center text-slate-700">
+                                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                            </button>
+                            <h2 class="text-[19px] font-black text-slate-900 tracking-tight">Create Poll</h2>
+                        </div>
+                        <div class="flex-1 overflow-y-auto px-6 py-6 pb-24 scrollbar-hide">
+                            <form id="poll-creation-form" class="space-y-5" onsubmit="event.preventDefault(); window.PollService.submitPoll();">
+                                <div>
+                                    <label class="block text-[13px] font-bold text-slate-900 mb-1.5">Poll Title <span class="text-red-500">*</span></label>
+                                    <input type="text" id="poll-title" required class="w-full px-4 py-3 rounded-[12px] border border-slate-200 bg-white text-[14px] font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#4226E9] shadow-xs" placeholder="What's your question?">
+                                </div>
+                                <div>
+                                    <label class="block text-[13px] font-bold text-slate-900 mb-1.5">Description (Optional)</label>
+                                    <textarea id="poll-description" rows="2" class="w-full px-4 py-3 rounded-[12px] border border-slate-200 bg-white text-[14px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#4226E9] shadow-xs" placeholder="Add more details..."></textarea>
+                                </div>
+                                
+                                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <label class="text-[13px] font-bold text-slate-900">Options <span class="text-xs text-slate-400 font-medium">(2 to 5)</span></label>
+                                        <button type="button" onclick="window.PollService.addOptionField()" id="poll-add-option-btn" class="text-xs font-bold text-[#4226E9] hover:underline bg-indigo-50 px-2 py-1 rounded-md transition">+ Add Option</button>
+                                    </div>
+                                    <div id="poll-options-container" class="space-y-2">
+                                        <!-- Dynamic inputs injected here -->
+                                        <div class="flex items-center gap-2">
+                                            <input type="text" required class="poll-option-input flex-1 px-3 py-2 rounded-[8px] border border-slate-200 bg-slate-50 text-[13px] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4226E9]" placeholder="Option 1">
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <input type="text" required class="poll-option-input flex-1 px-3 py-2 rounded-[8px] border border-slate-200 bg-slate-50 text-[13px] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4226E9]" placeholder="Option 2">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-slate-900">Allow Multiple Selection</h4>
+                                            <p class="text-[10px] text-slate-500">Voters can pick more than one option</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="poll-allow-multiple" class="sr-only peer">
+                                            <div class="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#4226E9]"></div>
+                                        </label>
+                                    </div>
+                                    <div class="flex items-center justify-between border-t border-slate-100 pt-4">
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-slate-900">Release Results</h4>
+                                            <p class="text-[10px] text-slate-500">Show percentages immediately</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="poll-result-released" class="sr-only peer">
+                                            <div class="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#4226E9]"></div>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div id="poll-targeting-container" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+                                    <h4 class="text-[13px] font-bold text-slate-900">Targeting</h4>
+                                    <div id="poll-batch-select-wrap">
+                                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Batch <span class="text-red-500">*</span></label>
+                                        <select id="poll-batch-id" required class="w-full px-3 py-2 rounded-[8px] border border-slate-200 bg-slate-50 text-[13px] font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#4226E9]">
+                                            <option value="global">Global (All Batches)</option>
+                                        </select>
+                                    </div>
+                                    <div id="poll-course-select-wrap">
+                                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Course (Optional)</label>
+                                        <select id="poll-course-id" class="w-full px-3 py-2 rounded-[8px] border border-slate-200 bg-slate-50 text-[13px] font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#4226E9]">
+                                            <option value="">All Courses</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="w-full py-3.5 bg-[#4226E9] text-white rounded-xl font-bold shadow-lg shadow-indigo-600/30 active:scale-[0.98] transition">Create Poll & Notify</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- SCREEN: ADMIN VIEW REPORTS                 -->
+                    <!-- ========================================== -->
+                    <div id="screen-admin-view-reports" class="screen bg-[#F5F6F8] flex flex-col overflow-hidden">
+                        <div class="px-6 pt-12 pb-4 flex items-center justify-between bg-white border-b border-slate-100 shrink-0">
+                            <div class="flex items-center gap-3">
+                                <button onclick="navigate('screen-admin-dashboard')" class="w-9 h-9 bg-slate-50 hover:bg-slate-100 transition rounded-full flex items-center justify-center text-slate-700">
+                                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                                </button>
+                                <div>
+                                    <h2 class="text-[19px] font-black text-slate-900 tracking-tight">Check Reports</h2>
+                                    <p class="text-[11px] font-medium text-slate-500">Department Bug & Suggestion Logs</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex-1 overflow-y-auto px-6 py-6 pb-24 scrollbar-hide">
+                            <div id="admin-department-reports-list" class="space-y-3">
+                                <div class="flex flex-col items-center justify-center py-6 text-slate-400">
+                                    <div class="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-2"></div>
+                                    <p class="text-[10px] font-semibold">Loading reports...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Floating Action Button for CRs -->
+                        <button id="cr-fab-report" onclick="navigate('screen-report-portal')" class="hidden absolute bottom-24 right-6 w-14 h-14 bg-[#4226E9] hover:bg-[#341BC5] text-white rounded-full shadow-xl items-center justify-center transition-transform hover:scale-105 active:scale-95 z-40">
+                            <i data-lucide="plus" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                    <!-- ========================================== -->
+                    <!-- SCREEN: REPORT BUG / SUGGESTION            -->
+                    <!-- ========================================== -->
+                    <div id="screen-report-portal" class="screen bg-[#F5F6F8] flex flex-col overflow-hidden">
+                        <div class="px-6 pt-12 pb-4 flex items-center gap-3 bg-white border-b border-slate-100 shrink-0">
+                            <button onclick="goHome()" class="w-9 h-9 bg-slate-50 hover:bg-slate-100 transition rounded-full flex items-center justify-center text-slate-700">
+                                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                            </button>
+                            <h2 class="text-[19px] font-black text-slate-900 tracking-tight">Report Portal</h2>
+                        </div>
+                        <div class="flex-1 overflow-y-auto px-6 py-6 pb-24 scrollbar-hide space-y-6">
+                            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+                                <h3 class="text-[15px] font-bold text-slate-900 mb-4">Submit Feedback</h3>
+                                <form id="report-submission-form" class="space-y-4" onsubmit="event.preventDefault(); window.ReportService.submitReport();">
+                                    <div>
+                                        <label class="block text-[12px] font-bold text-slate-600 mb-1">Category <span class="text-red-500">*</span></label>
+                                        <select id="report-category" required class="w-full px-3 py-2.5 rounded-[10px] border border-slate-200 bg-slate-50 text-[13px] font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#4226E9]">
+                                            <option value="bug">Report a Bug</option>
+                                            <option value="suggestion">System Suggestion</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[12px] font-bold text-slate-600 mb-1">Title <span class="text-red-500">*</span></label>
+                                        <input type="text" id="report-title" required class="w-full px-3 py-2.5 rounded-[10px] border border-slate-200 bg-white text-[13px] font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#4226E9]" placeholder="Brief summary">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[12px] font-bold text-slate-600 mb-1">Details <span class="text-red-500">*</span></label>
+                                        <textarea id="report-details" required rows="4" class="w-full px-3 py-2.5 rounded-[10px] border border-slate-200 bg-white text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#4226E9]" placeholder="Describe the issue or suggestion..."></textarea>
+                                    </div>
+                                    <button type="submit" class="w-full py-3 bg-rose-50 text-rose-600 border border-rose-100 rounded-xl font-bold active:scale-[0.98] transition hover:bg-rose-100">Submit Report</button>
+                                </form>
+                            </div>
+
+                            <div class="pt-4">
+                                <h3 class="text-[14px] font-bold text-slate-500 mb-3 uppercase tracking-tight">My Past Reports</h3>
+                                <div id="my-reports-list" class="space-y-3">
+                                    <div class="text-center py-4 text-slate-400 text-xs">Loading reports...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- POLL POPUP MODAL (App Launch) -->
+                    <div id="poll-popup-modal" class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+                        <div class="bg-white w-full max-w-[340px] rounded-[24px] shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col max-h-[85vh]">
+                            <div class="bg-[#4226E9] px-5 py-4 flex items-center justify-between shrink-0">
+                                <h3 class="text-white font-black text-[16px] flex items-center gap-2">
+                                    <i data-lucide="pie-chart" class="w-5 h-5 text-indigo-200"></i> Active Poll
+                                </h3>
+                                <button onclick="window.PollService.closePollPopup()" class="text-white/70 hover:text-white transition bg-white/10 w-7 h-7 rounded-full flex items-center justify-center">
+                                    <i data-lucide="x" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            <div class="p-5 overflow-y-auto flex-1 bg-slate-50" id="poll-popup-content">
+                                <!-- Poll participation UI injected here -->
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- SCREEN LOADING OVERLAY -->
                     <div id="loading-overlay" class="absolute inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
                         <!-- Normal loading state -->
@@ -4560,6 +4795,7 @@
             upload: false,
             support_contact: true,
             alerts: true,
+            polls: true,
             maintenance_mode: false
         };
         let contentSettingsRowId = null; // the row ID in content_management table
@@ -4584,6 +4820,7 @@
                         upload: data.upload === true,
                         support_contact: data.support_contact !== false,
                         alerts: data.alerts !== false,
+                        polls: data.polls !== false,
                         maintenance_mode: data.maintenance_mode === true
                     };
                 }
@@ -4597,7 +4834,7 @@
         // Apply settings to: admin toggles, student quick-access, maintenance modal
         function applyContentSettingsToUI() {
             // Sync admin toggle checkboxes
-            const keys = ['notices_center', 'schedule_hub', 'faculty_directory', 'material_center', 'my_courses', 'upload', 'support_contact', 'alerts', 'maintenance_mode'];
+            const keys = ['notices_center', 'schedule_hub', 'faculty_directory', 'material_center', 'my_courses', 'upload', 'support_contact', 'alerts', 'polls', 'maintenance_mode'];
             keys.forEach(key => {
                 const el = document.getElementById('cm-' + key);
                 if (el) el.checked = contentSettings[key];
@@ -4617,18 +4854,23 @@
         }
 
         function applyFeatureGrayState(key, enabled) {
-            const el = document.getElementById('qa-' + key);
-            if (!el) return;
-            const iconBox = el.querySelector('div');
-            const label = el.querySelector('span');
-            if (enabled) {
-                el.classList.remove('opacity-50', 'grayscale', 'pointer-events-none');
-                if (iconBox) iconBox.classList.remove('!bg-slate-100', '!text-slate-400');
-                if (label) label.classList.remove('!text-slate-400');
-            } else {
-                el.classList.add('opacity-50', 'grayscale');
-                el.classList.remove('pointer-events-none'); // keep clickable so we can show the popup
-            }
+            const els = document.querySelectorAll('#qa-' + key + ', .qa-' + key);
+            els.forEach(el => {
+                const iconBox = el.querySelector('div');
+                const label = el.querySelector('span');
+                if (enabled) {
+                    el.classList.remove('hidden', 'opacity-50', 'grayscale', 'pointer-events-none');
+                    if (iconBox) iconBox.classList.remove('!bg-slate-100', '!text-slate-400');
+                    if (label) label.classList.remove('!text-slate-400');
+                } else {
+                    if (el.classList.contains('hide-on-disable')) {
+                        el.classList.add('hidden');
+                    } else {
+                        el.classList.add('opacity-50', 'grayscale');
+                        el.classList.remove('pointer-events-none'); // keep clickable so we can show the popup
+                    }
+                }
+            });
         }
 
         // Called when any quick-access button is tapped
