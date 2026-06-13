@@ -1261,11 +1261,21 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     .eq('content_type', 'notice')
                     .eq('content_id', notice.id);
                     
+                console.log("[EDIT NOTICE] Target Rows fetched from DB:", targets);
+                    
                 if (!targetError && targets && targets.length > 0) {
-                    const targetIds = targets.map(t => t.target_id);
-                    const cbs = document.querySelectorAll('.notice-target-cb');
-                    cbs.forEach(cb => {
-                        if (targetIds.includes(cb.value)) cb.checked = true;
+                    const targetIds = targets.map(t => String(t.target_id).trim());
+                    const checkboxes = document.querySelectorAll('.notice-target-cb');
+                    
+                    console.log(`[EDIT NOTICE] Found ${checkboxes.length} checkboxes on UI. Attempting to map states...`);
+                    
+                    checkboxes.forEach(checkbox => {
+                        const cbVal = String(checkbox.value).trim();
+                        // If a checkbox's value matches a batch identifier returned from our database query, explicitly set its state to true:
+                        if (targetIds.includes(cbVal)) {
+                            checkbox.checked = true;
+                            console.log(`[EDIT NOTICE] Mapped and checked target: ${cbVal}`);
+                        }
                     });
                 }
             } catch (e) {
