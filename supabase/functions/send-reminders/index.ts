@@ -50,12 +50,6 @@ serve(async (req) => {
       });
     }
 
-    const { data: devices, error: dbError } = await supabaseClient.from('device_tokens').select('token');
-    if (dbError) throw dbError;
-    if (!devices || devices.length === 0) throw new Error("No devices found to notify.");
-
-    const uniqueTokens = [...new Set(devices.map((d: any) => d.token).filter(Boolean))];
-
     const serviceAccountStr = Deno.env.get('FIREBASE_SERVICE_ACCOUNT');
     if (!serviceAccountStr) throw new Error("Missing FIREBASE_SERVICE_ACCOUNT secret.");
     const serviceAccount = JSON.parse(serviceAccountStr);
@@ -65,7 +59,7 @@ serve(async (req) => {
       key: serviceAccount.private_key,
       scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
     });
-    const tokens = await jwtClient.authorize();
+    const authTokens = await jwtClient.authorize();
     const projectId = serviceAccount.project_id;
 
     let successCount = 0;
@@ -84,6 +78,72 @@ serve(async (req) => {
       // Fix array access to target_type and target_id
       const targetType = targets && targets.length > 0 ? targets[0].target_type : "all_students";
       const targetId = targets && targets.length > 0 ? targets[0].target_id : "global";
+
+      // Dynamically fetch and filter tokens based on audience criteria
+      let uniqueTokens: string[] = [];
+
+      if (targetType === 'batch_students' && targetId && targetId !== 'global') {
+        // Query specific batch student IDs
+        const { data: profiles, error: profileErr } = await supabaseClient
+          .from('profiles')
+          .select('id')
+          .eq('batch_id', targetId);
+
+        if (!profileErr && profiles && profiles.length > 0) {
+          const profileIds = profiles.map((p: any) => p.id);
+          const { data: devices, error: deviceErr } = await supabaseClient
+            .from('device_tokens')
+            .select('token')
+            .in('user_id', profileIds);
+
+          if (!deviceErr && devices) {
+            uniqueTokens = [...new Set(devices.map((d: any) => d.token).filter(Boolean))];
+          }
+        }
+      } else if (targetType === 'course_students' && targetId && targetId !== 'global') {
+          // Query students enrolled in the course
+          const { data: enrollments, error: enrollErr } = await supabaseClient
+            .from('course_enrollments')
+            .select('user_id')
+            .eq('course_id', targetId);
+          
+          if (!enrollErr && enrollments && enrollments.length > 0) {
+            const enrollIds = enrollments.map((e: any) => e.user_id);
+            const { data: devices, error: deviceErr } = await supabaseClient
+              .from('device_tokens')
+              .select('token')
+              .in('user_id', enrollIds);
+
+            if (!deviceErr && devices) {
+              uniqueTokens = [...new Set(devices.map((d: any) => d.token).filter(Boolean))];
+            }
+          }
+      } else if (targetType === 'specific_student' && targetId && targetId !== 'global') {
+          // Query specific student
+          const { data: devices, error: deviceErr } = await supabaseClient
+            .from('device_tokens')
+            .select('token')
+            .eq('user_id', targetId);
+
+          if (!deviceErr && devices) {
+            uniqueTokens = [...new Set(devices.map((d: any) => d.token).filter(Boolean))];
+          }
+      } else {
+        // Global broadcast (all_students or fallback)
+        const { data: devices, error: deviceErr } = await supabaseClient
+          .from('device_tokens')
+          .select('token');
+        
+        if (!deviceErr && devices) {
+          uniqueTokens = [...new Set(devices.map((d: any) => d.token).filter(Boolean))];
+        }
+      }
+
+      if (uniqueTokens.length === 0) {
+          console.warn(`No tokens found for reminder ${reminder.id} (Target: ${targetType} - ${targetId})`);
+          sentReminderIds.push(reminder.id);
+          continue;
+      }
 
       for (const token of uniqueTokens) {
         // PURE DATA-ONLY ARCHITECTURE (Completely stripped visible notification blocks to bypass OS display)
@@ -112,7 +172,7 @@ serve(async (req) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${tokens.access_token}`
+            'Authorization': `Bearer ${authTokens.access_token}`
           },
           body: JSON.stringify(fcmPayload)
         });
