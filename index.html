@@ -2272,7 +2272,7 @@
                                     <p class="text-[13px] text-slate-400 mt-0.5">Directory & Enrollments</p>
                                 </div>
                             </div>
-                            <button onclick="navigate('screen-admin-cr-requests'); if(typeof loadAdminCRRequests === 'function') loadAdminCRRequests();" class="relative w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-colors shadow-sm ml-2">
+                            <button id="admin-cr-req-btn" onclick="navigate('screen-admin-cr-requests'); if(typeof loadAdminCRRequests === 'function') loadAdminCRRequests();" class="relative w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-colors shadow-sm ml-2 hidden">
                                 <i data-lucide="shield-alert" class="w-5 h-5 text-white"></i>
                                 <span id="admin-cr-req-badge" class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full hidden border-2 border-[#0F172A] shadow-xs">0</span>
                             </button>
@@ -6906,7 +6906,20 @@
                 // Determine if we should check (only admin/cr)
                 if (!window.authState || !window.authState.profile) return;
                 const role = window.authState.profile.role;
-                if (role !== 'admin' && role !== 'cr' && !window.isAdminEmail(window.authState.profile.email)) return;
+                const isAdmin = role === 'admin' || window.isAdminEmail(window.authState.profile.email);
+                
+                // Toggle admin button visibility
+                const btn = document.getElementById('admin-cr-req-btn');
+                if (btn) {
+                    if (isAdmin) {
+                        btn.classList.remove('hidden');
+                    } else {
+                        btn.classList.add('hidden');
+                    }
+                }
+                
+                // Only admin fetches count
+                if (!isAdmin) return;
                 
                 const { count, error } = await _supabase
                     .from('cr_requests')
