@@ -8665,9 +8665,12 @@
                 });
             } else if (batchVal !== 'all') {
                 viewableGroups = currentGroupsList.filter(g => {
-                    if (!g.course_id) return true; // Show general/link groups globally or wait, maybe hide them? Let's show them.
+                    if (!g.course_id) return true;
+                    if (g.courses && g.courses.batch_id) {
+                        return String(g.courses.batch_id) === String(batchVal);
+                    }
                     const c = (window.allCoursesList || []).find(x => x.id === g.course_id);
-                    return c && c.batch_id === batchVal;
+                    return c && String(c.batch_id) === String(batchVal);
                 });
             }
 

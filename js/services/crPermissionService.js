@@ -244,7 +244,7 @@ export const crPermissionService = {
      */
     async getVisibleGroups() {
         if (this.isAdmin()) {
-            const { data } = await _supabase.from('groups').select('*, courses(course_name, short_name, course_code)').order('created_at', { ascending: false });
+            const { data } = await _supabase.from('groups').select('*, courses(batch_id, course_name, short_name, course_code)').order('created_at', { ascending: false });
             return data || [];
         }
         if (this.isCR()) {
