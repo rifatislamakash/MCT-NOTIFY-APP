@@ -6689,7 +6689,6 @@
                 const { data: requests, error } = await _supabase
                     .from('cr_requests')
                     .select('*, profiles!user_id(full_name, email, profile_url), batches!batch_id(batch_name)')
-                    .eq('status', 'pending')
                     .order('created_at', { ascending: false });
 
                 if (error) throw error;
@@ -6700,8 +6699,8 @@
                             <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
                                 <i data-lucide="check-circle" class="w-8 h-8 text-slate-300"></i>
                             </div>
-                            <h3 class="text-[15px] font-bold text-slate-900 leading-tight">All Caught Up</h3>
-                            <p class="text-[12px] text-slate-500 mt-1">There are no pending CR requests.</p>
+                            <h3 class="text-[15px] font-bold text-slate-900 leading-tight">No Requests Found</h3>
+                            <p class="text-[12px] text-slate-500 mt-1">There are no CR requests yet.</p>
                         </div>
                     `;
                     lucide.createIcons();
@@ -6719,6 +6718,37 @@
                         ? `<div class="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-100 text-[12px] text-slate-600 font-medium">"${req.request_note}"</div>` 
                         : '';
                         
+                    let statusBadge = '';
+                    let actionButtons = '';
+
+                    if (req.status === 'pending') {
+                        statusBadge = `<span class="px-2 py-0.5 bg-amber-50 border border-amber-100 text-amber-600 text-[10px] font-black uppercase tracking-wider rounded-lg shrink-0">PENDING</span>`;
+                        actionButtons = `
+                            <div class="flex gap-2 mt-4 pt-4 border-t border-slate-50">
+                                <button onclick="rejectCRRequest('${req.id}', '${req.user_id}')" class="flex-1 py-2.5 bg-white border border-red-200 hover:bg-red-50 text-red-600 text-[12px] font-bold rounded-xl transition-colors active:scale-[0.98]">
+                                    Overrule
+                                </button>
+                                <button onclick="approveCRRequest('${req.id}', '${req.user_id}', '${req.batch_id}')" class="flex-1 py-2.5 bg-[#4226E9] hover:bg-[#341BC5] text-white text-[12px] font-bold rounded-xl transition-all shadow-sm active:scale-[0.98]">
+                                    Approve & Assign
+                                </button>
+                            </div>
+                        `;
+                    } else if (req.status === 'approved') {
+                        statusBadge = `<span class="px-2 py-0.5 bg-emerald-50 border border-emerald-100 text-emerald-600 text-[10px] font-black uppercase tracking-wider rounded-lg shrink-0">APPROVED</span>`;
+                    } else if (req.status === 'rejected') {
+                        statusBadge = `<span class="px-2 py-0.5 bg-red-50 border border-red-100 text-red-600 text-[10px] font-black uppercase tracking-wider rounded-lg shrink-0">OVERRULED</span>`;
+                        if (req.reject_note) {
+                            actionButtons = `
+                                <div class="mt-4 pt-4 border-t border-slate-50">
+                                    <div class="p-3 bg-red-50 text-red-600 text-[11px] rounded-xl border border-red-100 font-medium">
+                                        <span class="font-bold uppercase tracking-wider block mb-1">Reason for Rejection:</span>
+                                        ${req.reject_note}
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+
                     html += `
                         <div class="bg-white rounded-[24px] p-5 shadow-sm border border-slate-100 relative overflow-hidden group hover:border-indigo-100 transition-colors">
                             <div class="absolute -right-4 -top-4 w-16 h-16 bg-indigo-50/50 rounded-full blur-xl"></div>
@@ -6733,22 +6763,17 @@
                                             <h3 class="font-bold text-[15px] text-slate-900 leading-tight truncate">${req.profiles?.full_name || 'Unknown User'}</h3>
                                             <p class="text-[11px] text-slate-500 font-medium truncate">${req.profiles?.email || 'No email'}</p>
                                         </div>
-                                        <span class="px-2 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-black uppercase tracking-wider rounded-lg whitespace-nowrap shrink-0">
-                                            ${req.batches?.batch_name || 'Unknown Batch'}
-                                        </span>
+                                        <div class="flex flex-col items-end gap-1.5 shrink-0">
+                                            <span class="px-2 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-black uppercase tracking-wider rounded-lg whitespace-nowrap">
+                                                ${req.batches?.batch_name || 'Unknown Batch'}
+                                            </span>
+                                            ${statusBadge}
+                                        </div>
                                     </div>
                                     ${noteHtml}
                                 </div>
                             </div>
-                            
-                            <div class="flex gap-2 mt-4 pt-4 border-t border-slate-50">
-                                <button onclick="rejectCRRequest('${req.id}', '${req.user_id}')" class="flex-1 py-2.5 bg-white border border-red-200 hover:bg-red-50 text-red-600 text-[12px] font-bold rounded-xl transition-colors active:scale-[0.98]">
-                                    Overrule
-                                </button>
-                                <button onclick="approveCRRequest('${req.id}', '${req.user_id}', '${req.batch_id}')" class="flex-1 py-2.5 bg-[#4226E9] hover:bg-[#341BC5] text-white text-[12px] font-bold rounded-xl transition-all shadow-sm active:scale-[0.98]">
-                                    Approve & Assign
-                                </button>
-                            </div>
+                            ${actionButtons}
                         </div>
                     `;
                 });
@@ -6766,25 +6791,13 @@
         window.approveCRRequest = async function(reqId, userId, batchId) {
             showLoader(true, 'Approving and assigning role...');
             try {
-                // 1. Update cr_requests status to approved
-                const { error: reqError } = await _supabase
-                    .from('cr_requests')
-                    .update({ status: 'approved' })
-                    .eq('id', reqId);
-                if (reqError) throw reqError;
+                const { data, error } = await _supabase.rpc('approve_cr_request_rpc', {
+                    req_id: reqId,
+                    target_user_id: userId,
+                    target_batch_id: batchId
+                });
 
-                // 2. Update profiles role to cr
-                const { error: profileError } = await _supabase
-                    .from('profiles')
-                    .update({ role: 'cr' })
-                    .eq('id', userId);
-                if (profileError) throw profileError;
-
-                // 3. Upsert into batch_crs
-                const { error: batchError } = await _supabase
-                    .from('batch_crs')
-                    .upsert({ user_id: userId, batch_id: batchId, active: true }, { onConflict: 'user_id,batch_id' });
-                if (batchError) throw batchError;
+                if (error) throw error;
 
                 showGlobalToast('CR successfully assigned!', 'success');
                 loadAdminCRRequests();
@@ -7222,48 +7235,16 @@
                     return;
                 }
 
-                // Step 2: Check for existing record to Upsert safely
-                console.log(`[CR ASSIGN] Checking existing record for user ${crTargetStudentId} in batch ${batchId}`);
-                const { data: existingRecord, error: checkExistingErr } = await _supabase
-                    .from('batch_crs')
-                    .select('id')
-                    .eq('batch_id', batchId)
-                    .eq('user_id', crTargetStudentId)
-                    .maybeSingle();
-
-                if (checkExistingErr) throw checkExistingErr;
-
-                if (existingRecord) {
-                    console.log(`[CR ASSIGN] Updating existing record ${existingRecord.id} to active`);
-                    const { error: updateErr } = await _supabase
-                        .from('batch_crs')
-                        .update({ 
-                            active: true,
-                            assigned_by: window.authState.user.id
-                        })
-                        .eq('id', existingRecord.id);
-                    if (updateErr) throw updateErr;
-                } else {
-                    console.log(`[CR ASSIGN] Inserting new CR for user ${crTargetStudentId} in batch ${batchId}`);
-                    const { error: insertErr } = await _supabase
-                        .from('batch_crs')
-                        .insert([{
-                            batch_id: batchId,
-                            user_id: crTargetStudentId,
-                            assigned_by: window.authState.user.id,
-                            active: true
-                        }]);
-                    if (insertErr) throw insertErr;
-                }
-
-                console.log(`[CR ROLE UPDATE] Updating profile role to 'cr' for user ${crTargetStudentId}`);
-                // Step 3: Update profiles.role
-                const { error: roleErr } = await _supabase
-                    .from('profiles')
-                    .update({ role: 'cr' })
-                    .eq('id', crTargetStudentId);
+                // Step 2 & 3: Upsert into batch_crs and Update profiles.role safely using the backend RPC
+                console.log(`[CR ROLE UPDATE] Calling RPC for user ${crTargetStudentId}`);
                 
-                if (roleErr) throw roleErr;
+                const { data: rpcData, error: rpcError } = await _supabase.rpc('assign_cr_secure_rpc', {
+                    target_user_id: crTargetStudentId,
+                    target_batch_id: batchId,
+                    admin_id: window.authState.user.id
+                });
+                
+                if (rpcError) throw rpcError;
 
                 showGlobalToast("Success", "Class Representative assigned successfully.");
                 closeCRModal('modal-assign-cr');
@@ -7289,34 +7270,13 @@
             showLoader(true, "Removing CR access...");
             try {
                 console.log(`[CR REMOVE] Marking batch_crs active=false for user ${crTargetStudentId}`);
-                // Step 1: Update batch_crs
-                const { error: updateErr } = await _supabase
-                    .from('batch_crs')
-                    .update({ active: false })
-                    .eq('user_id', crTargetStudentId)
-                    .eq('active', true);
-
-                if (updateErr) throw updateErr;
-
-                // Step 2: Fallback check
-                const { data: remainingCRs, error: remainingErr } = await _supabase
-                    .from('batch_crs')
-                    .select('id')
-                    .eq('user_id', crTargetStudentId)
-                    .eq('active', true);
+                console.log(`[CR REMOVE] Calling RPC to remove CR access for user ${crTargetStudentId}`);
                 
-                if (remainingErr) throw remainingErr;
-
-                if (!remainingCRs || remainingCRs.length === 0) {
-                    console.log(`[CR ROLE UPDATE] No active CR roles left. Reverting user ${crTargetStudentId} to 'student'`);
-                    const { error: roleErr } = await _supabase
-                        .from('profiles')
-                        .update({ role: 'student' })
-                        .eq('id', crTargetStudentId);
-                    if (roleErr) throw roleErr;
-                } else {
-                    console.log(`[CR ROLE UPDATE] User ${crTargetStudentId} is still CR for other batches. Keeping role 'cr'.`);
-                }
+                const { error: rpcError } = await _supabase.rpc('remove_cr_secure_rpc', {
+                    target_user_id: crTargetStudentId
+                });
+                
+                if (rpcError) throw rpcError;
 
                 showGlobalToast("Success", "CR Access removed successfully.");
                 closeCRModal('modal-remove-cr');
