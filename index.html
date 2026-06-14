@@ -1907,9 +1907,14 @@
                                     <p class="text-[13px] text-slate-400 mt-0.5">Manage system courses</p>
                                 </div>
                             </div>
-                            <button onclick="navigate('screen-create-course'); loadCreateCourseDropdowns();" class="w-10 h-10 bg-[#4226E9] rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform">
-                                <i data-lucide="plus" class="w-5 h-5 text-white"></i>
-                            </button>
+                            <div class="flex items-center gap-3">
+                                <select id="admin-courses-batch-filter" onchange="if(typeof window.filterAdminCoursesByBatch === 'function') window.filterAdminCoursesByBatch()" class="hidden w-[95px] h-[36px] px-2.5 rounded-xl bg-white/10 border border-white/10 text-slate-300 text-[11px] font-semibold focus:outline-none appearance-none cursor-pointer">
+                                    <option value="all" class="text-black">All Batches</option>
+                                </select>
+                                <button onclick="navigate('screen-create-course'); loadCreateCourseDropdowns();" class="w-10 h-10 bg-[#4226E9] rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform">
+                                    <i data-lucide="plus" class="w-5 h-5 text-white"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="flex-1 overflow-y-auto pb-24 px-6 pt-6 scrollbar-hide space-y-3" id="admin-courses-list">
                             <!-- Dynamically Renders Courses Here -->
@@ -5214,13 +5219,34 @@
                     return;
                 }
 
+                // Populate Batch Filter
+                const batchFilter = document.getElementById('admin-courses-batch-filter');
+                if (batchFilter) {
+                    batchFilter.classList.remove('hidden');
+                    let optionsHTML = '<option value="all" class="text-black">All Batches</option>';
+                    if (currentBatchesList && currentBatchesList.length > 0) {
+                        const sortedBatches = [...currentBatchesList].sort((a, b) => a.batch_name.localeCompare(b.batch_name));
+                        optionsHTML += sortedBatches.map(b => `<option value="${b.id}" class="text-black">${b.batch_name}</option>`).join('');
+                    }
+                    // preserve selected value
+                    const currentVal = batchFilter.value || 'all';
+                    batchFilter.innerHTML = optionsHTML;
+                    batchFilter.value = currentVal;
+                }
+
                 if (window.crPermissionService && window.crPermissionService.isCR()) {
                     const assignedBatches = window.crPermissionService.currentAssignedBatches || [];
                     data = data.filter(c => assignedBatches.includes(c.batch_id));
+                    // hide filter for CR since they only see their batches anyway
+                    if (batchFilter) batchFilter.classList.add('hidden');
                 }
 
                 allCoursesList = data;
-                currentCoursesList = data || [];
+                
+                // Apply the batch filter
+                const selectedBatch = batchFilter ? batchFilter.value : 'all';
+                currentCoursesList = selectedBatch === 'all' ? allCoursesList : allCoursesList.filter(c => c.batch_id === selectedBatch);
+                
                 renderAdminCoursesList();
             } catch (err) {
                 if (err.name === 'AbortError') {
@@ -5241,6 +5267,19 @@
                 showLoader(false);
             }
         }
+
+        // Apply Batch Filter
+        window.filterAdminCoursesByBatch = function() {
+            const batchFilter = document.getElementById('admin-courses-batch-filter');
+            const selectedBatch = batchFilter ? batchFilter.value : 'all';
+            
+            if (selectedBatch === 'all') {
+                currentCoursesList = allCoursesList;
+            } else {
+                currentCoursesList = allCoursesList.filter(c => c.batch_id === selectedBatch);
+            }
+            renderAdminCoursesList();
+        };
 
         // Render Courses List
         function renderAdminCoursesList() {
