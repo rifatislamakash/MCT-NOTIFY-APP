@@ -181,11 +181,15 @@ export const crPermissionService = {
             const { data: globalNotices } = await _supabase
                 .from('notices')
                 .select('*, profiles (id, full_name, profile_url, role), notice_courses (course_id)')
-                .eq('audience_type', 'all');
+                .in('audience_type', ['all', 'all_students']);
                 
             const combined = [...batchNotices];
             if (globalNotices) {
                 globalNotices.forEach(gn => {
+                    // For 'all_students' we want to make sure it's a truly global notice (no specific targets)
+                    // or if it has targets, it will be caught by batchService if relevant.
+                    // But Supabase doesn't easily let us filter by "has no targets" in the same query.
+                    // So we fetch them and add them.
                     if (!combined.find(n => n.id === gn.id)) {
                         combined.push(gn);
                     }
@@ -210,7 +214,27 @@ export const crPermissionService = {
         }
         if (this.isCR()) {
             console.log('[CR SCHEDULES] Fetching schedules for assigned batches');
-            return await batchService.getBatchSchedules(this.currentAssignedBatches);
+            const batchSchedules = await batchService.getBatchSchedules(this.currentAssignedBatches);
+            
+            // Also fetch global schedules
+            const { data: globalSchedules } = await _supabase
+                .from('schedules')
+                .select('*, profiles (id, full_name, profile_url, role)')
+                .in('audience_type', ['all', 'all_students']);
+                
+            const combined = [...batchSchedules];
+            if (globalSchedules) {
+                globalSchedules.forEach(gs => {
+                    if (!combined.find(s => s.id === gs.id)) {
+                        combined.push(gs);
+                    }
+                });
+            }
+            
+            return combined.sort((a, b) => {
+                if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
+                return new Date(b.created_at) - new Date(a.created_at);
+            });
         }
         return [];
     },
