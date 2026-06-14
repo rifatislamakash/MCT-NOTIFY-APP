@@ -194,7 +194,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     return;
                 }
 
-                routineData = routineList || [];
+                routineData = (routineList || []).filter(r => r.room_number !== 'Break');
                 console.log(`[ROUTINE] Successfully loaded ${routineData.length} records.`);
 
                 // batchLabel update moved to renderWeeklyTimetable / renderDailyRoutineView
@@ -357,12 +357,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const myCourseIds = enrolledCourses.map(uc => uc.course_id);
                 
                 const profileBatchId = window.authState?.profile?.batch_id;
-                const secondaryBatches = window.authState?.profile?.secondary_batches || [];
-                const myBatchIds = [profileBatchId, ...secondaryBatches].filter(Boolean);
 
                 filteredRoutineData = routineData.filter(r => {
                     if (!r.course_id || r.room_number === 'Break') {
-                        return myBatchIds.includes(r.batch_id);
+                        return String(r.batch_id) === String(profileBatchId);
                     }
                     if (!myCourseIds.includes(r.course_id)) return false;
 
@@ -382,8 +380,12 @@ import { ProfileStore } from './stores/ProfileStore.js';
             // Update batch label based on filtered data
             const batchLabel = document.getElementById('wr-batch-label');
             if (batchLabel) {
-                const firstBatch = filteredRoutineData.find(r => r.batches)?.batches;
-                batchLabel.textContent = firstBatch?.batch_name || window.authState?.profile?.batches?.batch_name || 'Current Batch';
+                if (window.currentUserRole === 'student') {
+                    batchLabel.textContent = window.authState?.profile?.batches?.batch_name || 'Current Batch';
+                } else {
+                    const firstBatch = filteredRoutineData.find(r => r.batches)?.batches;
+                    batchLabel.textContent = firstBatch?.batch_name || window.authState?.profile?.batches?.batch_name || 'Current Batch';
+                }
             }
 
             // Build lookup map: day -> start_time -> array of entries
@@ -485,8 +487,15 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 const section = window.sanitizeHTML(entry.section_name || '');
                                 const sectionHtml = section ? `<span class="text-[8px] font-bold text-slate-600 bg-slate-100 px-1.5 rounded-full mb-0.5 border border-slate-200">Sec: ${section}</span>` : '';
                                 
+                                let batchTagHtml = '';
+                                if (window.currentUserRole === 'student' && entry.batch_id && String(entry.batch_id) !== String(window.authState?.profile?.batch_id)) {
+                                    const bName = entry.batches?.batch_name ? window.sanitizeHTML(entry.batches.batch_name) : 'Other';
+                                    batchTagHtml = `<span class="text-[7px] font-black text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 mb-0.5 w-full text-center leading-none tracking-wide">${bName} Batch</span>`;
+                                }
+
                                 html += `
                                     <div class="flex flex-col gap-0.5 items-center py-0.5 ${isAdmin ? 'cursor-pointer active:scale-95 transition-transform' : ''}" ${isAdmin ? `onclick="openRoutineDetails('${entry.id}')"` : ''}>
+                                        ${batchTagHtml}
                                         <span class="text-[10px] font-black text-slate-900 px-1.5 py-0.5 rounded-md ${colors.badge} leading-tight text-center w-full mb-0.5">${shortName}</span>
                                         ${sectionHtml}
                                         <span class="text-[9px] font-bold text-slate-500 px-1.5 py-0.5 rounded bg-white/80 w-full text-center leading-none">${initial}</span>
@@ -597,7 +606,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     <p class="text-xs font-semibold text-slate-400">Loading ${showingToday ? 'today' : 'tomorrow'}'s classes...</p>
                 </div>`;
 
-            // Always fetch fresh from Supabase \u2014 most reliable approach
+            // Always fetch fresh from Supabase — most reliable approach
             let todayClasses = [];
             try {
                 const { data, error } = await _supabase
@@ -605,14 +614,15 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     .select(`
                             id, batch_id, day_name, start_time, section_name, room_number, course_id, faculty_id,
                             courses ( id, course_name, short_name ),
-                            faculty ( id, faculty_name, teacher_initial )
+                            faculty ( id, faculty_name, teacher_initial ),
+                            batches ( id, batch_name )
                         `)
                     .eq('day_name', targetDay)
                     .order('start_time', { ascending: true });
 
                 if (error) throw error;
 
-                todayClasses = (data || []).sort((a, b) => {
+                todayClasses = (data || []).filter(r => r.room_number !== 'Break').sort((a, b) => {
                     return (a.start_time || '').localeCompare(b.start_time || '');
                 });
 
@@ -620,8 +630,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const enrolledCourses = window.currentUserCoursesList || [];
                 if (window.currentUserRole !== 'admin' && window.currentUserRole !== 'cr') {
                     const myCourseIds = enrolledCourses.map(uc => uc.course_id);
+                    const profileBatchId = window.authState?.profile?.batch_id;
                     todayClasses = todayClasses.filter(r => {
-                        if (!r.course_id || r.room_number === 'Break') return true;
+                        if (!r.course_id || r.room_number === 'Break') {
+                            return String(r.batch_id) === String(profileBatchId);
+                        }
                         if (!myCourseIds.includes(r.course_id)) return false;
                         
                         const enrolledRecord = enrolledCourses.find(uc => uc.course_id === r.course_id);
@@ -635,8 +648,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     });
                 } else if (window.currentUserRole === 'cr' && !window.isAdminEmail(window.currentUserEmail)) {
                     const allowedCourseIds = window.currentCoursesList.map(c => c.id);
+                    const crBatches = window.currentAssignedBatches || [];
                     todayClasses = todayClasses.filter(r => {
-                        if (!r.course_id || r.room_number === 'Break') return true;
+                        if (!r.course_id || r.room_number === 'Break') {
+                            return crBatches.includes(r.batch_id);
+                        }
                         return allowedCourseIds.includes(r.course_id);
                     });
                 } else if (batchVal !== 'all') {
@@ -736,7 +752,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                         <p class="text-[10px] font-black text-[#4226E9] leading-none whitespace-nowrap">${endTimeDisplay}</p>
                                     </div>
                                     <div class="min-w-0 flex-1">
-                                        <div class="flex items-center gap-1.5 mb-0.5">
+                                        <div class="flex items-center flex-wrap gap-1.5 mb-0.5">
+                                            ${(window.currentUserRole === 'student' && cls.batch_id && String(cls.batch_id) !== String(window.authState?.profile?.batch_id)) ? `<span class="text-[8px] font-black bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded border border-rose-200 whitespace-nowrap">${cls.batches?.batch_name ? window.sanitizeHTML(cls.batches.batch_name) : 'Other'} Batch</span>` : ''}
                                             <span class="text-[9px] font-black bg-indigo-50 text-[#4226E9] px-1.5 py-0.5 rounded">${shortName}</span>
                                             ${cls.section_name ? `<span class="text-[9px] font-black bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">Sec: ${window.sanitizeHTML(cls.section_name)}</span>` : ''}
                                             <span class="text-[9px] text-slate-400">\u2022</span>
@@ -1110,6 +1127,201 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 await RoutineStore.refresh();
                 await loadWeeklyRoutine();
             } catch (err) {
+}
+
+                // Populate day
+                const daySel = document.getElementById('edit-routine-day');
+                if (daySel) daySel.value = entry.day_name || 'Saturday';
+
+                // Populate time
+                const timeInput = document.getElementById('edit-routine-time');
+                if (timeInput) timeInput.value = entry.start_time ? entry.start_time.substring(0, 5) : '';
+
+                // Populate section
+                const sectionContainer = document.getElementById('edit-routine-section-container');
+                const sectionSel = document.getElementById('edit-routine-section');
+                if (entry.course_id) {
+                    const course = routineCoursesList.find(c => c.id === entry.course_id);
+                    if (course && course.sections_name) {
+                        try {
+                            const sections = JSON.parse(course.sections_name);
+                            if (Array.isArray(sections) && sections.length > 1) {
+                                if (sectionContainer) sectionContainer.classList.remove('hidden');
+                                if (sectionSel) {
+                                    let opts = '<option value="" disabled selected hidden>Select section</option>';
+                                    sections.forEach(sec => opts += `<option value="${sec}">Section ${sec}</option>`);
+                                    sectionSel.innerHTML = opts;
+                                    sectionSel.value = entry.section_name || '';
+                                }
+                            } else {
+                                if (sectionContainer) sectionContainer.classList.add('hidden');
+                            }
+                        } catch(e) { if (sectionContainer) sectionContainer.classList.add('hidden'); }
+                    } else {
+                        if (sectionContainer) sectionContainer.classList.add('hidden');
+                    }
+                } else {
+                    if (sectionContainer) sectionContainer.classList.add('hidden');
+                }
+
+                // Call batch change manually
+                if (batchSel && batchSel.value) {
+                    window.onRoutineBatchChange(batchSel, 'edit');
+                    const courseSel = document.getElementById('edit-routine-course');
+                    if (courseSel) {
+                        if (!entry.course_id && entry.room_number === 'Break') {
+                            courseSel.value = '__BREAK__';
+                        } else {
+                            courseSel.value = entry.course_id || '';
+                        }
+                        onRoutineCourseChange(courseSel, 'edit');
+                    }
+                }
+
+                // Populate faculty
+                const facSel = document.getElementById('edit-routine-faculty');
+                if (facSel) {
+                    facSel.innerHTML = routineFacultyList.map(f => `<option value="${f.id}" ${f.id === entry.faculty_id ? 'selected' : ''}>${window.sanitizeHTML(f.faculty_name)}${f.teacher_initial ? ' [' + f.teacher_initial + ']' : ''}</option>`).join('');
+                    facSel.value = entry.faculty_id || '';
+                }
+
+                // Populate room
+                const roomInput = document.getElementById('edit-routine-room');
+                if (roomInput) roomInput.value = entry.room_number || '';
+
+                // Admin controls visibility
+                const adminActions = document.getElementById('routine-edit-admin-actions');
+                const subtitle = document.getElementById('rd-subtitle');
+                if ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr')) {
+                    if (adminActions) adminActions.classList.remove('hidden');
+                    if (subtitle) subtitle.textContent = 'Edit or delete this class';
+                    // Enable all fields
+                    ['edit-routine-batch', 'edit-routine-day', 'edit-routine-time', 'edit-routine-section', 'edit-routine-course', 'edit-routine-faculty', 'edit-routine-room'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.disabled = false;
+                    });
+                } else {
+                    if (adminActions) adminActions.classList.add('hidden');
+                    if (subtitle) subtitle.textContent = 'View class information';
+                    // Disable all fields for read-only
+                    ['edit-routine-batch', 'edit-routine-day', 'edit-routine-time', 'edit-routine-section', 'edit-routine-course', 'edit-routine-faculty', 'edit-routine-room'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.disabled = true;
+                    });
+                }
+
+                window.navigate('screen-routine-details');
+            } catch (err) {
+                console.error('[OPEN ROUTINE DETAILS ERROR]', err);
+                window.showGlobalToast('Error', 'Could not load routine details.');
+            } finally {
+                window.showLoader(false);
+            }
+        }
+
+        // ---- UPDATE ROUTINE ----
+        let isUpdatingRoutine = false;
+        export async function handleUpdateRoutine(e) {
+            e.preventDefault();
+            if (!(await window.verifyAdminStatus())) { window.showGlobalToast("Error", "Admin check failed."); return; }
+            if ((window.currentUserRole !== 'admin' && window.currentUserRole !== 'cr') || !selectedRoutineId) return;
+            if (isUpdatingRoutine) return;
+            isUpdatingRoutine = true;
+
+            const batchId = document.getElementById('edit-routine-batch')?.value;
+            const day = document.getElementById('edit-routine-day')?.value;
+            const time = document.getElementById('edit-routine-time')?.value;
+            const section = document.getElementById('edit-routine-section')?.value || null;
+            const courseId = document.getElementById('edit-routine-course')?.value;
+            const facultyId = document.getElementById('edit-routine-faculty')?.value;
+            const room = document.getElementById('edit-routine-room')?.value?.trim();
+
+            if (window.crPermissionService && window.crPermissionService.isCR()) {
+                const originalRoutine = routineData.find(r => r.id === selectedRoutineId);
+                const originalBatchId = originalRoutine?.batch_id;
+                
+                if (originalBatchId && !window.crPermissionService.canAccessBatch(originalBatchId)) {
+                    console.log(`[CR PERMISSION DENIED] Attempted to update routine for unassigned batch`);
+                    window.showGlobalToast("Access Denied", "You can only edit routines from your assigned batches.");
+                    isUpdatingRoutine = false;
+                    return;
+                }
+                if (batchId && !window.crPermissionService.canAccessBatch(batchId)) {
+                    console.log(`[CR PERMISSION DENIED] Attempted to move routine to unassigned batch`);
+                    window.showGlobalToast("Access Denied", "You can only assign routines to your assigned batches.");
+                    isUpdatingRoutine = false;
+                    return;
+                }
+                console.log(`[CR ACCESS CHECK] Validating routine update - PASSED`);
+                console.log(`[CR UPDATE] Routine ${selectedRoutineId}`);
+            }
+
+            window.showLoader(true, 'Updating routine...');
+            try {
+                const { error } = await _supabase.from('weekly_routines').update({
+                    batch_id: batchId,
+                    day_name: day,
+                    start_time: time,
+                    section_name: section,
+                    course_id: courseId,
+                    faculty_id: facultyId,
+                    room_number: room
+                }).eq('id', selectedRoutineId);
+
+                if (error) throw error;
+
+                window.showGlobalToast('Success', 'Routine updated successfully!');
+                window.navigate('screen-weekly-routine');
+                await RoutineStore.refresh();
+                await loadWeeklyRoutine();
+            } catch (err) {
+                console.error('[UPDATE ROUTINE ERROR]', err);
+                window.showGlobalToast('Error', err.message || 'Failed to update routine.');
+            } finally {
+                isUpdatingRoutine = false;
+                window.showLoader(false);
+            }
+        }
+
+        // ---- DELETE ROUTINE ----
+        let isDeletingRoutine = false;
+        export async function handleDeleteRoutine() {
+            if (!(await window.verifyAdminStatus())) { window.showGlobalToast("Error", "Admin check failed."); return; }
+            if ((window.currentUserRole !== 'admin' && window.currentUserRole !== 'cr') || !selectedRoutineId) return;
+
+            if (window.crPermissionService && window.crPermissionService.isCR()) {
+                const originalRoutine = routineData.find(r => r.id === selectedRoutineId);
+                const originalBatchId = originalRoutine?.batch_id;
+                
+                if (originalBatchId && !window.crPermissionService.canAccessBatch(originalBatchId)) {
+                    console.log(`[CR PERMISSION DENIED] Attempted to delete routine for unassigned batch`);
+                    window.showGlobalToast("Access Denied", "You can only delete routines from your assigned batches.");
+                    return;
+                }
+                console.log(`[CR ACCESS CHECK] Validating routine delete - PASSED`);
+                console.log(`[CR DELETE] Routine ${selectedRoutineId}`);
+            }
+
+            if (!confirm('Delete this class from routine? This action cannot be undone.')) return;
+            if (isDeletingRoutine) return;
+            isDeletingRoutine = true;
+
+            window.showLoader(true, 'Deleting class...');
+            try {
+                // Delete content_reactions
+                try {
+                    await _supabase.from('content_reactions').delete().eq('content_type', 'routine').eq('content_id', selectedRoutineId);
+                } catch (e) { console.warn("[ROUTINE DELETE] Reactions cleanup error:", e); }
+
+                const { error } = await _supabase.from('weekly_routines').delete().eq('id', selectedRoutineId);
+                if (error) throw error;
+
+                window.showGlobalToast('Deleted', 'Class removed from routine.');
+                selectedRoutineId = null;
+                window.navigate('screen-weekly-routine');
+                await RoutineStore.refresh();
+                await loadWeeklyRoutine();
+            } catch (err) {
                 console.error('[DELETE ROUTINE ERROR]', err);
                 window.showGlobalToast('Error', err.message || 'Failed to delete routine.');
             } finally {
@@ -1118,10 +1330,6 @@ import { ProfileStore } from './stores/ProfileStore.js';
             }
         }
 
-        // Expose for global access
-        
-        
-        
         window.onRoutineBatchChange = function(sel, mode) {
             const batchId = sel.value;
             const prefix = mode === 'add' ? 'add' : 'edit';
@@ -1129,14 +1337,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (courseSel) {
                 const filteredCourses = routineCoursesList.filter(c => c.batch_id === batchId);
                 const prevVal = courseSel.value;
-                courseSel.innerHTML = '<option value="" disabled selected hidden>Select course or break</option>' +
-                    '<option value="__BREAK__" style="font-weight:700;color:#d97706;">☕ Break Time</option>' +
+                courseSel.innerHTML = '<option value="" disabled selected hidden>Select course</option>' +
                     filteredCourses.map(c => `<option value="${c.id}">${window.sanitizeHTML(c.course_name)}${c.short_name ? ' (' + c.short_name + ')' : ''}</option>`).join('');
                 
                 // Try to keep selection if still valid
-                if (prevVal === '__BREAK__') {
-                    courseSel.value = '__BREAK__';
-                } else if (filteredCourses.some(c => c.id === prevVal)) {
+                if (filteredCourses.some(c => c.id === prevVal)) {
                     courseSel.value = prevVal;
                 } else {
                     courseSel.value = '';
