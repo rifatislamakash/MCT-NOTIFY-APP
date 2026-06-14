@@ -23,7 +23,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                 // CRITICAL SECURITY CHECK: Verify this is a brand-new registration event, 
                 // and ensure they haven't already received this specific welcome card.
-                if (window.authState.isFirstTimeRegistration && !hasBeenNotified) {
+                const isFirstTimeRegistration = sessionStorage.getItem('isFirstTimeRegistration') === 'true';
+                if (isFirstTimeRegistration && !hasBeenNotified) {
                     console.log("[ONBOARDING] Brand new registration detected. Queueing one-time welcome push...");
                     
                     if (typeof window.triggerImmediateNotification === 'function') {
@@ -195,7 +196,6 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 }
 
                 let todayClasses = (todayClassesData || []).sort((a, b) => {
-                    if (a.class_order !== b.class_order) return (a.class_order || 0) - (b.class_order || 0);
                     return (a.start_time || '').localeCompare(b.start_time || '');
                 });
 

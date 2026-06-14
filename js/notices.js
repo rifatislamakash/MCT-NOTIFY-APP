@@ -1070,7 +1070,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         reminderRows.push({
                             parent_type: 'notice',
                             parent_id: savedNoticeId,
-                            reminder_time: new Date(Date.now() + 5000).toISOString(),
+                            reminder_time: new Date(Date.now() + 30000).toISOString(),
                             sent: false,
                             reminder_title: title,
                             reminder_message: message,

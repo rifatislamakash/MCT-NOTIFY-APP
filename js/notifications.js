@@ -291,6 +291,7 @@
                     let tableName = 'notices';
                     if (type === 'schedule') tableName = 'schedules';
                     if (type === 'routine') tableName = 'routines';
+                    if (type === 'material') tableName = 'materials';
 
                     const { data } = await window._supabase.from(tableName).select('*').eq('id', id).single();
                     
@@ -306,8 +307,7 @@
                 const payload = {
                     parent_type: type,
                     parent_id: id,
-                    // Use -5000 so the Webhook fires it instantly, ignoring the old 60-second trap!
-                    reminder_time: new Date(Date.now() - 5000).toISOString(), 
+                    reminder_time: new Date(Date.now() + 30000).toISOString(), 
                     sent: false,
                     reminder_title: safeTitle,
                     reminder_message: safeMessage || '',

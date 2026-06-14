@@ -464,6 +464,9 @@ let isRegistering = false;
                 localStorage.removeItem('pending_signup_email');
                 localStorage.removeItem('pending_signup_phone');
                 
+                // Set flag for the welcome notification in the dashboard
+                sessionStorage.setItem('isFirstTimeRegistration', 'true');
+                
                 // Navigation handled automatically by onAuthStateChange background listener
             } catch (err) {
                 console.error("[AUTH] Verify OTP error:", err);

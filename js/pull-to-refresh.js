@@ -24,25 +24,38 @@
                 return;
             }
 
-            // Check if we are touching a scrollable element or the body
-            const scrollContainer = e.target.closest('.overflow-y-auto, .overflow-y-scroll, .screen') || document.documentElement;
-            touchStartScrollTop = scrollContainer.scrollTop || 0;
-            
-            // Only initiate pull if we are at the very top
-            if (touchStartScrollTop <= 0) {
-                startY = e.touches[0].clientY;
-                startX = e.touches[0].clientX;
-                currentY = startY;
-                isPulling = true;
-                isHorizontalSwipe = false;
-                ptrSpinner.style.transition = 'none';
+            // Robust check: Ensure all scrollable parent containers are at scrollTop 0
+            let isAtTop = true;
+            let el = e.target;
+            while (el && el !== document.body && el !== document.documentElement) {
+                if (el.nodeType === 1) { // Element node
+                    const style = window.getComputedStyle(el);
+                    const overflowY = style.overflowY;
+                    if (overflowY === 'auto' || overflowY === 'scroll' || el.classList.contains('overflow-y-auto')) {
+                        if (el.scrollTop > 0) {
+                            isAtTop = false;
+                            break;
+                        }
+                    }
+                }
+                el = el.parentNode;
             }
+
+            if (!isAtTop) return;
+            if (document.documentElement.scrollTop > 0 || document.body.scrollTop > 0) return;
+
+            startY = e.touches[0].clientY;
+            startX = e.touches[0].clientX;
+            currentY = startY;
+            isPulling = true;
+            isHorizontalSwipe = false;
+            ptrSpinner.style.transition = 'none';
         }, { passive: true });
 
         document.addEventListener('touchmove', (e) => {
             if (!isPulling) return;
             currentY = e.touches[0].clientY;
-            currentX = e.touches[0].clientX;
+            const currentX = e.touches[0].clientX;
             
             let dy = currentY - startY;
             let dx = Math.abs(currentX - startX);
@@ -57,11 +70,18 @@
 
             // Only pull if pulling down significantly
             if (dy > 15 && !isHorizontalSwipe) {
+                // Prevent default scrolling when we are actively pulling down
+                if (e.cancelable) e.preventDefault();
+                
                 // Visual pull effect with resistance
-                let pullDistance = Math.min((dy - 15) * 0.35, 75); 
+                let pullDistance = Math.min((dy - 15) * 0.4, 80); 
                 ptrSpinner.style.transform = `translateY(${pullDistance - 64}px)`;
+            } else if (dy < 0) {
+                // Scrolled up, cancel pull
+                isPulling = false;
+                ptrSpinner.style.transform = 'translateY(-100%)';
             }
-        }, { passive: true });
+        }, { passive: false });
 
         document.addEventListener('touchend', () => {
             if (!isPulling) return;
@@ -72,8 +92,8 @@
             let dy = currentY - startY;
             ptrSpinner.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
 
-            // Increased threshold to 150px to prevent accidental reloading
-            if (dy > 150) {
+            // Trigger threshold tuned to 100px for a solid pull
+            if (dy > 100) {
                 ptrSpinner.style.transform = 'translateY(16px)';
                 if (typeof showLoader === 'function') {
                     showLoader(true, "Refreshing...");
@@ -82,7 +102,7 @@
                     window.location.reload(true);
                 }, 300);
             } else {
-                // Snap back
+                // Snap back on low pull / miss pull
                 ptrSpinner.style.transform = 'translateY(-100%)';
             }
             

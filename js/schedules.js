@@ -1113,7 +1113,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         reminder_message: message,
                         sent: false,
                         created_by: window.authState.user?.id || null,
-                        reminder_time: new Date(Date.now() + 60000).toISOString()
+                        reminder_time: new Date(Date.now() + 30000).toISOString()
                     };
                     console.log('[QUEUE INSERT PAYLOAD]', noticePayload);
                     const { error: notifError } = await _supabase.from('notification_reminders').insert([noticePayload]);
@@ -1127,7 +1127,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     reminderRows.push({
                         parent_type: 'schedule',
                         parent_id: newSchedule.id,
-                        reminder_time: new Date(Date.now() + 60000).toISOString(),
+                        reminder_time: new Date(Date.now() + 30000).toISOString(),
                         sent: false,
                         reminder_title: title,
                         reminder_message: message,
