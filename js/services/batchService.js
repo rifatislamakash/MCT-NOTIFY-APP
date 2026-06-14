@@ -25,7 +25,27 @@ export const batchService = {
     async getBatchStudents(batchIds) {
         if (!batchIds || batchIds.length === 0) return [];
         console.log('[BATCH STUDENTS] Fetching students for batches:', batchIds);
-        const { data, error } = await _supabase
+        
+        const uniqueStudents = [];
+        const seenIds = new Set();
+
+        // 1. Fetch students whose primary batch is in batchIds
+        const { data: primaryData, error: primaryErr } = await _supabase
+            .from('profiles')
+            .select('*')
+            .in('batch_id', batchIds);
+            
+        if (!primaryErr && primaryData) {
+            primaryData.forEach(p => {
+                if (!seenIds.has(p.id)) {
+                    seenIds.add(p.id);
+                    uniqueStudents.push(p);
+                }
+            });
+        }
+
+        // 2. Fetch students enrolled in courses belonging to these batches
+        const { data: courseData, error: courseErr } = await _supabase
             .from('user_courses')
             .select(`
                 user_id,
@@ -34,20 +54,18 @@ export const batchService = {
             `)
             .in('courses.batch_id', batchIds);
             
-        if (error) {
-            console.error('[BATCH STUDENTS] Error:', error);
-            return [];
+        if (courseErr) {
+            console.error('[BATCH STUDENTS] Course error:', courseErr);
         }
         
-        // Deduplicate students by user_id
-        const uniqueStudents = [];
-        const seenIds = new Set();
-        (data || []).forEach(record => {
-            if (record.profiles && !seenIds.has(record.user_id)) {
-                seenIds.add(record.user_id);
-                uniqueStudents.push(record.profiles);
-            }
-        });
+        if (!courseErr && courseData) {
+            courseData.forEach(record => {
+                if (record.profiles && !seenIds.has(record.user_id)) {
+                    seenIds.add(record.user_id);
+                    uniqueStudents.push(record.profiles);
+                }
+            });
+        }
         
         return uniqueStudents;
     },

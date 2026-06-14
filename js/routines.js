@@ -773,7 +773,12 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
         // ---- OPEN ADD ROUTINE FORM ----
         export async function openAddRoutine(prefillDay = null, prefillTime = null) {
-            if (window.currentUserRole !== 'admin' && window.currentUserRole !== 'cr') return;
+            const role = String(window.currentUserRole || '').toLowerCase();
+            if (role !== 'admin' && role !== 'cr') return;
+            
+            // Prevent event objects from being used as prefill values
+            if (prefillDay && typeof prefillDay !== 'string') prefillDay = null;
+            if (prefillTime && typeof prefillTime !== 'string') prefillTime = null;
             window.showLoader(true, 'Preparing form...');
             try {
                 await fetchRoutineDependencies();
@@ -1172,4 +1177,10 @@ export const RoutineService = {
     handleDeleteRoutine: typeof handleDeleteRoutine !== 'undefined' ? handleDeleteRoutine : window.handleDeleteRoutine,
     onRoutineBatchChange: typeof onRoutineBatchChange !== 'undefined' ? onRoutineBatchChange : window.onRoutineBatchChange
 };
+
+// Directly attach critical handlers to window to ensure HTML onclick bindings work immediately
+window.openAddRoutine = openAddRoutine;
+window.openRoutineDetails = openRoutineDetails;
+window.switchRoutineView = switchRoutineView;
+
 console.log("[ARCHITECTURE]\nroutines loaded");

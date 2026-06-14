@@ -6437,6 +6437,8 @@
             // 1. Filter by Batch
             if (selectedBatchId !== 'all') {
                 filteredProfiles = filteredProfiles.filter(st => {
+                    if (String(st.batch_id) === String(selectedBatchId)) return true;
+                    if (Array.isArray(st.secondary_batches) && st.secondary_batches.some(b => String(b) === String(selectedBatchId))) return true;
                     const mappedCourses = st.mapped_courses || [];
                     return mappedCourses.some(c => String(c.batch_id) === String(selectedBatchId));
                 });
