@@ -282,17 +282,47 @@
             try {
                 if (!window.authState || !window.authState.user) return;
                 console.log(`[PUSH] Triggering immediate push notification for ${type} ${id}`);
+
+                let safeTitle = typeof title === 'string' ? title : null;
+                let safeMessage = typeof message === 'string' ? message : null;
+
+                // If the title is an object (like '{}'), missing, or undefined, fetch it safely from the database!
+                if (!safeTitle || safeTitle === '[object Object]' || typeof title === 'object') {
+                    let tableName = 'notices';
+                    if (type === 'schedule') tableName = 'schedules';
+                    if (type === 'routine') tableName = 'routines';
+
+                    const { data } = await window._supabase.from(tableName).select('*').eq('id', id).single();
+                    
+                    if (data) {
+                        safeTitle = data.title || data.course_title || data.subject || 'MCT Update';
+                        safeMessage = data.message || data.description || data.room_no || 'Check the app for details.';
+                    } else {
+                        safeTitle = 'MCT Update';
+                        safeMessage = 'New notification received.';
+                    }
+                }
+
                 const payload = {
                     parent_type: type,
                     parent_id: id,
-                    reminder_time: new Date(Date.now() + 60000).toISOString(), // now + 1 min
+                    // Use -5000 so the Webhook fires it instantly, ignoring the old 60-second trap!
+                    reminder_time: new Date(Date.now() - 5000).toISOString(), 
                     sent: false,
-                    reminder_title: title,
-                    reminder_message: message,
+                    reminder_title: safeTitle,
+                    reminder_message: safeMessage || '',
                     created_by: window.authState.user.id
                 };
-                const { error } = await _supabase.from('notification_reminders').insert([payload]);
-                if (error) console.error("[PUSH] Failed to trigger immediate notification:", error);
+
+                const { error } = await window._supabase.from('notification_reminders').insert([payload]);
+                
+                if (error) {
+                    console.error("[PUSH] Failed to trigger immediate notification:", error);
+                    if (window.showGlobalToast) window.showGlobalToast("Error", "Failed to send notification.");
+                } else {
+                    console.log("[PUSH] Immediate notification queued successfully.");
+                    if (window.showGlobalToast) window.showGlobalToast("Sent", "Notification sent successfully.");
+                }
             } catch (err) {
                 console.error("[PUSH] Exception triggering immediate notification:", err);
             }
