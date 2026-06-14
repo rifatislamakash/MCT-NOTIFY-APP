@@ -355,8 +355,15 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (!crPermissionService.isAdmin() && !crPermissionService.isCR()) {
                 const enrolledCourses = window.currentUserCoursesList || [];
                 const myCourseIds = enrolledCourses.map(uc => uc.course_id);
+                
+                const profileBatchId = window.authState?.profile?.batch_id;
+                const secondaryBatches = window.authState?.profile?.secondary_batches || [];
+                const myBatchIds = [profileBatchId, ...secondaryBatches].filter(Boolean);
+
                 filteredRoutineData = routineData.filter(r => {
-                    if (!r.course_id || r.room_number === 'Break') return true;
+                    if (!r.course_id || r.room_number === 'Break') {
+                        return myBatchIds.includes(r.batch_id);
+                    }
                     if (!myCourseIds.includes(r.course_id)) return false;
 
                     const enrolledRecord = enrolledCourses.find(uc => uc.course_id === r.course_id);
@@ -376,7 +383,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const batchLabel = document.getElementById('wr-batch-label');
             if (batchLabel) {
                 const firstBatch = filteredRoutineData.find(r => r.batches)?.batches;
-                batchLabel.textContent = firstBatch?.batch_name || 'Current Batch';
+                batchLabel.textContent = firstBatch?.batch_name || window.authState?.profile?.batches?.batch_name || 'Current Batch';
             }
 
             // Build lookup map: day -> start_time -> array of entries
