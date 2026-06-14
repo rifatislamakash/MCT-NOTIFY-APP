@@ -15,6 +15,39 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (studentEl) studentEl.textContent = greet;
             if (adminEl) adminEl.textContent = greet;
             if (typeof window.silentNotificationInit === 'function') window.silentNotificationInit();
+
+            // --- ONE-TIME NEW REGISTRATION WELCOME PUSH NOTIFICATION ---
+            if (window.authState && window.authState.user) {
+                const welcomeStorageKey = `welcome_notified_${window.authState.user.id}`;
+                const hasBeenNotified = localStorage.getItem(welcomeStorageKey);
+
+                // CRITICAL SECURITY CHECK: Verify this is a brand-new registration event, 
+                // and ensure they haven't already received this specific welcome card.
+                if (window.authState.isFirstTimeRegistration && !hasBeenNotified) {
+                    console.log("[ONBOARDING] Brand new registration detected. Queueing one-time welcome push...");
+                    
+                    if (typeof window.triggerImmediateNotification === 'function') {
+                        // 1.5-second safety delay ensures the fresh device token transaction 
+                        // is fully committed to the database before the edge function tries to read it.
+                        setTimeout(() => {
+                            window.triggerImmediateNotification(
+                                'notice',
+                                window.authState.user.id,
+                                '🚀 Welcome to MCT Notify!',
+                                'Your campus feed is live. What you get:\n\n• ⚡ Instant Alerts (No delays)\n• 🗓️ Batch Feeds (No clutter)\n• 🎯 Zero Spam (Only essentials)\n\nKeep notifications enabled to stay in the loop!'
+                            );
+                            
+                            // Instantly lock the local storage key so a standard login or page refresh can never trigger it again
+                            localStorage.setItem(welcomeStorageKey, 'true');
+                            console.log("[ONBOARDING] Welcome notification successfully delivered and locked.");
+                        }, 1500);
+                    } else {
+                        console.warn("[ONBOARDING] window.triggerImmediateNotification function is missing.");
+                    }
+                } else {
+                    console.log("[ONBOARDING] Standard login or returning session detected. Skipping onboarding welcome push.");
+                }
+            }
         }
 
 
