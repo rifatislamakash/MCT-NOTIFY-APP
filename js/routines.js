@@ -772,7 +772,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
         }
 
         // ---- OPEN ADD ROUTINE FORM ----
-        export async function openAddRoutine(prefillDay = null, prefillTime = null) {
+                export async function openAddRoutine(prefillDay = null, prefillTime = null) {
             const role = String(window.currentUserRole || '').toLowerCase();
             if (role !== 'admin' && role !== 'cr') return;
             
@@ -782,6 +782,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
             window.showLoader(true, 'Preparing form...');
             try {
                 await fetchRoutineDependencies();
+
+                // Reset form first before setting dynamic values
+                const form = document.getElementById('form-add-routine');
+                if (form) form.reset();
 
                 // Populate batches
                 const batchSel = document.getElementById('add-routine-batch');
@@ -812,9 +816,6 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         routineFacultyList.map(f => `<option value="${f.id}">${window.sanitizeHTML(f.faculty_name)}${f.teacher_initial ? ' [' + f.teacher_initial + ']' : ''}</option>`).join('');
                 }
 
-                // Reset form but keep break-info hidden
-                const form = document.getElementById('form-add-routine');
-                if (form) form.reset();
                 // After reset, force courseSel placeholder
                 const cSel = document.getElementById('add-routine-course');
                 if (cSel) cSel.value = '';
@@ -837,26 +838,27 @@ import { ProfileStore } from './stores/ProfileStore.js';
         // ---- SAVE NEW ROUTINE ----
         let isSavingRoutine = false;
         export async function handleSaveRoutine(e) {
-            e.preventDefault();
-            if (!(await window.verifyAdminStatus())) { window.showGlobalToast("Error", "Admin check failed."); return; }
-            if (window.currentUserRole !== 'admin' && window.currentUserRole !== 'cr') return;
-            if (isSavingRoutine) return;
-            isSavingRoutine = true;
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    if (!(await window.verifyAdminStatus())) { window.showGlobalToast('Error', 'Admin check failed.'); return; }
+    const role = String(window.currentUserRole || '').toLowerCase();
+    if (role !== 'admin' && role !== 'cr') return;
+    if (isSavingRoutine) return;
+    isSavingRoutine = true;
 
-            const batchId = document.getElementById('add-routine-batch')?.value;
-            const day = document.getElementById('add-routine-day')?.value;
-            const time = document.getElementById('add-routine-time')?.value;
-            const courseId = document.getElementById('add-routine-course')?.value;
-            const isBreak = courseId === '__BREAK__';
-            const section = isBreak ? null : (document.getElementById('add-routine-section')?.value || null);
-            const facultyId = isBreak ? null : (document.getElementById('add-routine-faculty')?.value || null);
-            const room = document.getElementById('add-routine-room')?.value?.trim() || null;
+        const batchId = document.getElementById('add-routine-batch')?.value;
+        const day = document.getElementById('add-routine-day')?.value;
+        const time = document.getElementById('add-routine-time')?.value;
+        const courseId = document.getElementById('add-routine-course')?.value;
+        const isBreak = courseId === '__BREAK__';
+        const section = isBreak ? null : (document.getElementById('add-routine-section')?.value || null);
+        const facultyId = isBreak ? null : (document.getElementById('add-routine-faculty')?.value || null);
+        const room = document.getElementById('add-routine-room')?.value?.trim() || null;
 
-            if (!batchId || !day || !time || !courseId) {
-                window.showGlobalToast('Validation Error', 'Please fill Batch, Day, Time and Course.');
-                isSavingRoutine = false;
-                return;
-            }
+        if (!batchId || !day || !time || !courseId) {
+            window.showGlobalToast('Validation Error', 'Please fill Batch, Day, Time and Course.');
+            isSavingRoutine = false;
+            return;
+        }
             if (!isBreak && (!facultyId || !room)) {
                 window.showGlobalToast('Validation Error', 'Please fill Faculty and Room for non-break slots.');
                 isSavingRoutine = false;

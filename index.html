@@ -3300,7 +3300,7 @@
                                 <div>
                                     <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 tracking-wider uppercase">Batch <span class="text-red-500">*</span></label>
                                     <div class="relative">
-                                        <select id="add-routine-batch" onchange="if(typeof window.onRoutineBatchChange === 'function') window.onRoutineBatchChange(this, 'add')" required class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-700 appearance-none shadow-sm">
+                                        <select id="add-routine-batch" onchange="if(typeof window.onRoutineBatchChange === 'function') window.onRoutineBatchChange(this, 'add')" class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-700 appearance-none shadow-sm">
                                             <option value="" disabled selected hidden>Select Batch</option>
                                         </select>
                                         <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
@@ -3311,7 +3311,7 @@
                                 <div>
                                     <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 tracking-wider uppercase">Day <span class="text-red-500">*</span></label>
                                     <div class="relative">
-                                        <select id="add-routine-day" required class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-700 appearance-none shadow-sm">
+                                        <select id="add-routine-day" class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-700 appearance-none shadow-sm">
                                             <option value="" disabled selected hidden>Select day</option>
                                             <option value="Saturday">Saturday</option>
                                             <option value="Sunday">Sunday</option>
@@ -3328,14 +3328,14 @@
                                 <!-- Start Time -->
                                 <div>
                                     <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 tracking-wider uppercase">Start Time <span class="text-red-500">*</span></label>
-                                    <input type="time" id="add-routine-time" required class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-800 shadow-sm">
+                                    <input type="time" id="add-routine-time" class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-800 shadow-sm">
                                 </div>
 
                                 <!-- Course (Break option first) -->
                                 <div>
                                     <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 tracking-wider uppercase">Course / Slot Type <span class="text-red-500">*</span></label>
                                     <div class="relative">
-                                        <select id="add-routine-course" required onchange="onRoutineCourseChange(this, 'add')" class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-700 appearance-none shadow-sm">
+                                        <select id="add-routine-course" onchange="onRoutineCourseChange(this, 'add')" class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-700 appearance-none shadow-sm">
                                             <option value="" disabled selected hidden>Select course</option>
                                         </select>
                                         <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
@@ -3357,7 +3357,7 @@
                                 <div id="add-routine-faculty-section">
                                     <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 tracking-wider uppercase">Faculty <span class="text-red-500">*</span></label>
                                     <div class="relative">
-                                        <select id="add-routine-faculty" required class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-700 appearance-none shadow-sm">
+                                        <select id="add-routine-faculty" class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-700 appearance-none shadow-sm">
                                             <option value="" disabled selected hidden>Select faculty</option>
                                         </select>
                                         <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
@@ -3367,7 +3367,7 @@
                                 <!-- Room Number -->
                                 <div id="add-routine-room-section">
                                     <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 tracking-wider uppercase">Room Number <span class="text-red-500">*</span></label>
-                                    <input type="text" id="add-routine-room" required placeholder="e.g. 412, 1018..." class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-800 shadow-sm placeholder:text-slate-400">
+                                    <input type="text" id="add-routine-room" placeholder="e.g. 412, 1018..." class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-800 shadow-sm placeholder:text-slate-400">
                                 </div>
 
                                 <button type="submit" class="w-full mt-6 py-3.5 bg-[#4226E9] hover:bg-[#341BC5] text-white rounded-[14px] font-bold text-[16px] shadow-md shadow-indigo-600/20 transition-all active:scale-[0.98]">

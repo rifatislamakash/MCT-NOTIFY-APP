@@ -201,8 +201,8 @@ let isRegistering = false;
 
                 try {
                     if (isActualAdmin || (isCR && preferredRole === 'cr')) {
-                        window.authState.profile.role = isActualAdmin ? 'admin' : 'cr';
-                        window.currentUserRole = window.authState.profile.role;
+                        window.authState.profile.role = (isActualAdmin ? 'admin' : 'cr');
+                        window.currentUserRole = String(window.authState.profile.role).toLowerCase();
                         window.navigate('screen-admin-dashboard');
                         window.updateDashboardGreetings();
                         if (window.DashboardService && window.DashboardService.applyCRDashboardRestrictions) {
