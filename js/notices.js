@@ -450,12 +450,12 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 }
             }
 
-            // Top Urgent Notice for dashboard
+            // Top Urgent Notice for dashboard (Student)
             const urgentCard = document.getElementById('dashboard-urgent-notice');
+            const latestUrgent = (window.currentNoticesList || []).find(n => n.notice_type === 'urgent');
+
             if (urgentCard) {
-                const latestUrgent = (window.currentNoticesList || []).find(n => n.notice_type === 'urgent');
                 if (latestUrgent) {
-                    
                     urgentCard.classList.remove('hidden');
                     const dashTitle = document.getElementById('dash-urgent-title');
                     const dashDesc = document.getElementById('dash-urgent-desc');
@@ -468,12 +468,14 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     }
                     urgentCard.onclick = () => openNoticeDetails(latestUrgent.id);
                 } else {
-                    
                     urgentCard.classList.add('hidden');
                 }
-                
-                if (typeof window.triggerUrgentPopupModal === 'function') {
-                    window._urgentNoticeForPopup = latestUrgent;
+            }
+            
+            // Trigger popup globally for ALL users (Admins, CRs, and Students)
+            if (typeof window.triggerUrgentPopupModal === 'function') {
+                window._urgentNoticeForPopup = latestUrgent || null;
+                if (latestUrgent) {
                     triggerUrgentPopupModal();
                 }
             }

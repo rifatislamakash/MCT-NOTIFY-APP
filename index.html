@@ -7302,74 +7302,20 @@
             console.log("[USER DELETE] Initiating cascading delete for student ID:", studentIdToDelete);
             showLoader(true, "Deleting student...");
             try {
-                // Step 1: Delete relational rows from user_courses
-                console.log("[USER DELETE] Step 1: Deleting user_courses relations...");
-                const { error: ucError } = await _supabase.from('user_courses').delete().eq('user_id', studentIdToDelete);
-                if (ucError) {
-                    console.error("[USER DELETE] user_courses delete failed:", ucError);
-                    throw new Error(`Failed to delete course enrollments: ${ucError.message}`);
+                console.log(`[USER DELETE] Calling secure RPC to delete user ${studentIdToDelete}`);
+                
+                const { error: rpcError } = await _supabase.rpc('delete_student_rpc', {
+                    target_user_id: studentIdToDelete
+                });
+                
+                if (rpcError) {
+                    console.error("[USER DELETE] RPC failed:", rpcError);
+                    throw new Error(`Failed to delete student: ${rpcError.message}`);
                 }
-                console.log("[USER DELETE] Mapped user_courses deleted successfully.");
+                
+                console.log("[USER DELETE] Student deleted successfully via RPC.");
 
-                // Step 2: Delete relational rows from device_tokens
-                console.log("[USER DELETE] Step 2: Deleting device_tokens relations...");
-                const { error: dtError } = await _supabase.from('device_tokens').delete().eq('user_id', studentIdToDelete);
-                if (dtError) {
-                    console.warn("[USER DELETE] device_tokens delete warning (non-fatal):", dtError);
-                } else {
-                    console.log("[USER DELETE] device_tokens deleted successfully.");
-                }
-
-                // Step 3: Delete profile row
-                console.log("[USER DELETE] Step 3: Deleting profile row...");
-                const { data: deleteData, error: profileError } = await _supabase
-                    .from('profiles')
-                    .delete()
-                    .eq('id', studentIdToDelete)
-                    .select();
-
-                if (profileError) {
-                    console.error("[USER DELETE] profiles delete error:", profileError);
-                    throw new Error(`Failed to delete profile: ${profileError.message}`);
-                }
-
-                // Step 4: Verify deletion with read-back query to prevent fake success messages
-                console.log("[USER DELETE] Step 4: Verifying profiles deletion via read-back check...");
-                const { data: checkData, error: checkError } = await _supabase
-                    .from('profiles')
-                    .select('id')
-                    .eq('id', studentIdToDelete)
-                    .maybeSingle();
-
-                if (checkError) {
-                    console.warn("[USER DELETE] Verification query failed:", checkError);
-                }
-
-                if (checkData) {
-                    console.error("[USER DELETE] Verification failed. Profile row still exists in DB!");
-                    throw new Error("Deletion failed. The profile row still exists in the database (possibly blocked by RLS policies).");
-                }
-                console.log("[USER DELETE] Profile row deletion verified successfully.");
-
-                // Step 5: Properly delete auth user if architecture supports admin delete
-                console.log("[USER DELETE] Step 5: Checking if auth user delete is supported...");
-                try {
-                    if (_supabase.auth.admin && typeof _supabase.auth.admin.deleteUser === 'function') {
-                        console.log("[USER DELETE] Attempting to delete auth user via admin API...");
-                        const { error: authDeleteError } = await _supabase.auth.admin.deleteUser(studentIdToDelete);
-                        if (authDeleteError) {
-                            console.warn("[USER DELETE] Auth user delete failed (expected if not using service_role key):", authDeleteError.message);
-                        } else {
-                            console.log("[USER DELETE] Auth user deleted successfully.");
-                        }
-                    } else {
-                        console.log("[USER DELETE] supabase.auth.admin.deleteUser is not available.");
-                    }
-                } catch (authErr) {
-                    console.warn("[USER DELETE] Non-fatal auth deletion catch:", authErr);
-                }
-
-                // Step 6: Remove deleted user from frontend state array
+                // Remove deleted user from frontend state array
                 if (typeof adminDirectoryProfiles !== 'undefined' && Array.isArray(adminDirectoryProfiles)) {
                     console.log("[USER DELETE] Step 6: Removing deleted user from local state array...");
                     adminDirectoryProfiles = adminDirectoryProfiles.filter(st => st.id !== studentIdToDelete);
