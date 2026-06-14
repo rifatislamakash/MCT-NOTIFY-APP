@@ -8522,7 +8522,7 @@
                     result = await fetchWithRetry(async (signal) => {
                         const { data, error } = await _supabase
                             .from('groups')
-                            .select('*, courses(course_name, short_name, course_code)')
+                            .select('*, courses(batch_id, course_name, short_name, course_code)')
                             .order('created_at', { ascending: false })
                             .abortSignal(signal);
                         if (error) {
@@ -8664,11 +8664,21 @@
                     return myCourseIds.includes(g.course_id);
                 });
             } else if (batchVal !== 'all') {
+                console.log("[DEBUG GROUPS] batchVal:", batchVal);
+                console.log("[DEBUG GROUPS] Sample group:", currentGroupsList[0]);
                 viewableGroups = currentGroupsList.filter(g => {
                     if (!g.course_id) return true;
-                    if (g.courses && g.courses.batch_id) {
-                        return String(g.courses.batch_id) === String(batchVal);
+                    
+                    let gBatchId = null;
+                    if (g.courses) {
+                        if (Array.isArray(g.courses) && g.courses.length > 0) gBatchId = g.courses[0].batch_id;
+                        else if (g.courses.batch_id) gBatchId = g.courses.batch_id;
                     }
+                    
+                    if (gBatchId) {
+                        return String(gBatchId) === String(batchVal);
+                    }
+                    
                     const c = (window.allCoursesList || []).find(x => x.id === g.course_id);
                     return c && String(c.batch_id) === String(batchVal);
                 });
