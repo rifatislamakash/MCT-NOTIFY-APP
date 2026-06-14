@@ -11,6 +11,7 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
+  console.log('[EDGE FUNCTION INVOKED] Request received at:', new Date().toISOString());
 
   try {
     const supabaseClient = createClient(
@@ -23,9 +24,10 @@ serve(async (req) => {
     
     try {
       const body = await req.json();
-      if (body && body.parent_id) {
+      const payload = body.record ? body.record : body;
+      if (payload && payload.parent_id) {
         isManualTrigger = true;
-        targetParentId = body.parent_id;
+        targetParentId = payload.parent_id;
       }
     } catch (e) {
       // Running as normal automated cron schedule
@@ -81,6 +83,11 @@ serve(async (req) => {
 
       // Dynamically fetch and filter tokens based on audience criteria
       let uniqueTokens: string[] = [];
+      let profileIdsLog: string[] = [];
+      let tokenIdsLog: string[] = [];
+
+      console.log(`\n[TARGET TYPE]\n${targetType}`);
+      console.log(`\n[TARGET ID]\n${targetId}`);
 
       if (targetType === 'batch_students' && targetId && targetId !== 'global') {
         // Query specific batch student IDs
@@ -89,15 +96,27 @@ serve(async (req) => {
           .select('id')
           .eq('batch_id', targetId);
 
+        console.log('[PROFILE ERROR]', profileErr);
+        console.log('[PROFILE RESULT COUNT]', profiles ? profiles.length : 0);
+        console.log('[TARGET UUID]', targetId);
+
+        const { data: testProfiles } = await supabaseClient
+          .from('profiles')
+          .select('id, batch_id')
+          .limit(5);
+        console.log('[PROFILE SAMPLE]', testProfiles);
+
         if (!profileErr && profiles && profiles.length > 0) {
           const profileIds = profiles.map((p: any) => p.id);
+          profileIdsLog = profileIds;
           const { data: devices, error: deviceErr } = await supabaseClient
             .from('device_tokens')
             .select('token')
             .in('user_id', profileIds);
 
           if (!deviceErr && devices) {
-            uniqueTokens = [...new Set(devices.map((d: any) => d.token).filter(Boolean))];
+            tokenIdsLog = devices.map((d: any) => d.token).filter(Boolean);
+            uniqueTokens = [...new Set(tokenIdsLog)];
           }
         }
       } else if (targetType === 'course_students' && targetId && targetId !== 'global') {
@@ -109,35 +128,50 @@ serve(async (req) => {
           
           if (!enrollErr && enrollments && enrollments.length > 0) {
             const enrollIds = enrollments.map((e: any) => e.user_id);
+            profileIdsLog = enrollIds;
             const { data: devices, error: deviceErr } = await supabaseClient
               .from('device_tokens')
               .select('token')
               .in('user_id', enrollIds);
 
             if (!deviceErr && devices) {
-              uniqueTokens = [...new Set(devices.map((d: any) => d.token).filter(Boolean))];
+              tokenIdsLog = devices.map((d: any) => d.token).filter(Boolean);
+              uniqueTokens = [...new Set(tokenIdsLog)];
             }
           }
       } else if (targetType === 'specific_student' && targetId && targetId !== 'global') {
           // Query specific student
+          profileIdsLog = [targetId];
           const { data: devices, error: deviceErr } = await supabaseClient
             .from('device_tokens')
             .select('token')
             .eq('user_id', targetId);
 
           if (!deviceErr && devices) {
-            uniqueTokens = [...new Set(devices.map((d: any) => d.token).filter(Boolean))];
+            tokenIdsLog = devices.map((d: any) => d.token).filter(Boolean);
+            uniqueTokens = [...new Set(tokenIdsLog)];
           }
       } else {
         // Global broadcast (all_students or fallback)
         const { data: devices, error: deviceErr } = await supabaseClient
           .from('device_tokens')
-          .select('token');
+          .select('user_id, token');
         
         if (!deviceErr && devices) {
-          uniqueTokens = [...new Set(devices.map((d: any) => d.token).filter(Boolean))];
+          profileIdsLog = [...new Set(devices.map((d: any) => d.user_id).filter(Boolean))];
+          tokenIdsLog = devices.map((d: any) => d.token).filter(Boolean);
+          uniqueTokens = [...new Set(tokenIdsLog)];
         }
       }
+
+      console.log(`\n[ELIGIBLE USERS] (Profile IDs mapped from audience)`);
+      console.log(JSON.stringify(profileIdsLog, null, 2));
+      
+      console.log(`\n[DEVICE TOKEN IDS] (Raw tokens pulled from device_tokens before deduplication)`);
+      console.log(JSON.stringify(tokenIdsLog, null, 2));
+
+      console.log(`\n[TOKENS FOUND]`);
+      console.log(uniqueTokens.length);
 
       if (uniqueTokens.length === 0) {
           console.warn(`No tokens found for reminder ${reminder.id} (Target: ${targetType} - ${targetId})`);
@@ -197,6 +231,7 @@ serve(async (req) => {
     });
 
   } catch (error: any) {
+    console.error('[FATAL EDGE FUNCTION ERROR]', error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,

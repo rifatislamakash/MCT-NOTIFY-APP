@@ -1066,11 +1066,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     const reminderRows = [];
                     
                     // Automatically queue push notification immediately for notice creation
-                    if (!id) {
+                    if (!id || publish_now) {
                         reminderRows.push({
                             parent_type: 'notice',
                             parent_id: savedNoticeId,
-                            reminder_time: new Date(Date.now() + 60000).toISOString(),
+                            reminder_time: new Date(Date.now() + 5000).toISOString(),
                             sent: false,
                             reminder_title: title,
                             reminder_message: message,
