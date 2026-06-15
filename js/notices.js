@@ -439,7 +439,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                     <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.sanitizeHTML(n.title)}</h4>
                                     <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.sanitizeHTML(n.message)}</p>
                                 </div>
-                                <div class="flex justify-between items-end w-full mt-[12px]">
+                                <div class="w-full mt-[12px] !flex !flex-wrap !justify-between !items-center !gap-[8px]">
                                     <div class="flex-1">${bottomEventTagsHtml}</div>
                                     <div class="shrink-0 ml-3">
                                         ${window.ReactionService ? window.ReactionService.renderReactionBlock('notice', n.id) : ''}
@@ -591,7 +591,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                         <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.sanitizeHTML(n.title)}</h4>
                                         <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.sanitizeHTML(n.message)}</p>
                                     </div>
-                                    <div class="flex justify-between items-end w-full mt-[12px]">
+                                    <div class="w-full mt-[12px] !flex !flex-wrap !justify-between !items-center !gap-[8px]">
                                         <div class="flex-1">${bottomEventTagsHtml}</div>
                                         <div class="shrink-0 ml-3">
                                             ${window.ReactionService ? window.ReactionService.renderReactionBlock(isPoll ? 'poll' : 'notice', n.id) : ''}
@@ -652,7 +652,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                         <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.sanitizeHTML(s.title)}</h4>
                                         <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.sanitizeHTML(s.message)}</p>
                                     </div>
-                                    <div class="flex justify-between items-end w-full mt-[12px]">
+                                    <div class="w-full mt-[12px] !flex !flex-wrap !justify-between !items-center !gap-[8px]">
                                         <div class="flex-1">${bottomEventTagsHtml}</div>
                                         <div class="shrink-0 ml-3">
                                             ${window.ReactionService ? window.ReactionService.renderReactionBlock('schedule', s.id) : ''}

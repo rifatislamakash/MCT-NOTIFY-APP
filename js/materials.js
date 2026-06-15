@@ -212,7 +212,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             <div class="flex items-center justify-end mt-1 pt-1.5 border-t border-slate-50">
                                 <button onclick="event.stopPropagation(); openUpdateMaterial('${m.id}')" class="px-3 py-1 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-[8px] text-[10px] font-bold transition-colors">Edit</button>
                             </div>` : ''}
-                            <div class="flex justify-end items-end w-full mt-[10px]">
+                            <div class="w-full mt-[10px] !flex !flex-wrap !justify-between !items-center !gap-[8px]">
                                 <div class="shrink-0">
                                     ${window.ReactionService ? window.ReactionService.renderReactionBlock('material', m.id) : ''}
                                 </div>
