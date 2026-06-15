@@ -184,43 +184,48 @@ serve(async (req) => {
           message: {
             token: token,
             notification: {
-              title: notificationTitle,
-              body: notificationBody
+              title: notificationTitle || "MCT Notify Update",
+              body: notificationBody || "Open the application to see details."
             },
-            data: {
-              target_type: targetType,
-              target_id: targetId,
-              click_action: "https://mctnotify.vercel.app"
-            },
-            android: { 
-              priority: "high",
+            android: {
               notification: {
-                icon: "/assets/badge.png"
+                icon: "notification_icon" // Use the native Android drawable asset identifier string, not a web path
               }
             },
             webpush: {
-              headers: { Urgency: "high" },
               notification: {
                 icon: "/assets/Logo.png",
                 badge: "/assets/badge.png"
               },
-              fcm_options: { link: "https://mctnotify.vercel.app" }
+              fcm_options: { 
+                link: "https://mctnotify.vercel.app" 
+              }
+            },
+            data: {
+              target_type: targetType || "notice",
+              target_id: targetId || "",
+              click_action: "https://mctnotify.vercel.app"
             }
           }
         };
 
-        console.log("[RAW FCM PAYLOAD]:", JSON.stringify(fcmPayload, null, 2));
-
-        const response = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authTokens.access_token}`
-          },
-          body: JSON.stringify(fcmPayload)
-        });
-
-        if (response.ok) successCount++;
+        try {
+          console.log("[CRITICAL OUTGOING PAYLOAD LOG]:", JSON.stringify(fcmPayload, null, 2));
+          const fcmResponse = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authTokens.access_token}`
+            },
+            body: JSON.stringify(fcmPayload)
+          });
+          const fcmResult = await fcmResponse.text();
+          console.log("[FIREBASE RETURN STATUS]:", fcmResponse.status, fcmResult);
+          
+          if (fcmResponse.ok) successCount++;
+        } catch (err: any) {
+          console.error("[FATAL FIREBASE FETCH ERROR]:", err.message);
+        }
       }
       sentReminderIds.push(reminder.id);
     }
