@@ -122,7 +122,7 @@ serve(async (req) => {
       } else if (targetType === 'course_students' && targetId && targetId !== 'global') {
           // Query students enrolled in the course
           const { data: enrollments, error: enrollErr } = await supabaseClient
-            .from('course_enrollments')
+            .from('user_courses')
             .select('user_id')
             .eq('course_id', targetId);
           

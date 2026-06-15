@@ -72,7 +72,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     materials = materials.filter(m => myCourseIds.includes(m.course_id));
                 }
 
-                const uploaderIds = [...new Set(materials.map(m => m.created_by).filter(Boolean))];
+                const uploaderIds = [...new Set(materials.map(m => m.uploaded_by).filter(Boolean))];
                 if (uploaderIds.length > 0) {
                     const { data: profilesData } = await _supabase
                         .from('profiles')
@@ -80,7 +80,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         .in('id', uploaderIds);
                     if (profilesData) {
                         materials.forEach(m => {
-                            m.profiles = profilesData.find(p => p.id === m.created_by) || null;
+                            m.profiles = profilesData.find(p => p.id === m.uploaded_by) || null;
                         });
                     }
                 }
@@ -511,7 +511,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     material_type: type,
                     external_link: link,
                     attachment_url: attachmentUrl,
-                    thumbnail_url: thumbnailUrl
+                    thumbnail_url: thumbnailUrl,
+                    uploaded_by: window.authState.user.id
                 };
 
                 const { data: insertedMaterials, error: insertError } = await _supabase.from('materials').insert([payload]).select();
