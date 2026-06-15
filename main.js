@@ -7,8 +7,9 @@ import { crPermissionService } from './js/services/crPermissionService.js';
 window.crPermissionService = crPermissionService;
 window._supabase = _supabase;
 
-import { showGlobalToast, dismissGlobalToast, showLoader, forceHideLoader, deduplicateRequest, fetchCachedOrDeduplicated, cancelActiveRequest, cancelAllActiveRequests, fetchWithRetry, ensureBucketExists, extractIdFromEmail, getGreeting } from './js/utils.js';
+import { showGlobalToast, dismissGlobalToast, showLoader, forceHideLoader, deduplicateRequest, fetchCachedOrDeduplicated, cancelActiveRequest, cancelAllActiveRequests, fetchWithRetry, ensureBucketExists, extractIdFromEmail, getGreeting, showNotificationToast } from './js/utils.js';
 window.showGlobalToast = showGlobalToast;
+window.showNotificationToast = showNotificationToast;
 window.dismissGlobalToast = dismissGlobalToast;
 window.showLoader = showLoader;
 window.forceHideLoader = forceHideLoader;

@@ -508,7 +508,6 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     title: title,
                     description: description,
                     course_id: courseId,
-                    section: section,
                     material_type: type,
                     external_link: link,
                     attachment_url: attachmentUrl,
@@ -658,7 +657,6 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     title: title,
                     description: description,
                     course_id: courseId,
-                    section: section,
                     material_type: type,
                     external_link: link
                 };
