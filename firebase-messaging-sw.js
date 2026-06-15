@@ -132,7 +132,7 @@ messaging.onBackgroundMessage(async (payload) => {
     const badge =
         payload?.data?.badge ||
         payload?.notification?.badge ||
-        "/assets/Logo.png";
+        "/assets/badge.png";
 
     const image =
         payload?.data?.image ||

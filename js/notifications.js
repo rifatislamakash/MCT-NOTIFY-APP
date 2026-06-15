@@ -104,7 +104,7 @@
                                     registration.showNotification(title, {
                                         body: body,
                                         icon: icon,
-                                        badge: icon,
+                                        badge: '/assets/badge.png',
                                         data: payload
                                     });
                                 }).catch(err => {
