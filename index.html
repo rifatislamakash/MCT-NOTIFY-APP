@@ -7460,6 +7460,12 @@
 
         window.navigate = function navigate(screenId) {
             cancelAllActiveRequests(); // A6 Fix: Abort old requests on nav
+            
+            // Clear floating emoji picker menus to prevent ghosting
+            document.querySelectorAll('.reaction-container.force-hovered, .reaction-container.hovered').forEach(el => {
+                el.classList.remove('force-hovered', 'hovered');
+            });
+
             const allowedUnconfirmed = [
                 'screen-splash',
                 'screen-welcome',

@@ -469,7 +469,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const schedD = new Date((s.schedule_date || todayStr) + 'T' + (s.schedule_time || '23:59:00'));
                 const isExpired = schedD < new Date();
 
-                let cardClasses = "rounded-[16px] p-3 flex flex-col gap-1.5 cursor-pointer transition-all active:scale-[0.98] ";
+                let cardClasses = "w-full max-w-full box-border rounded-[16px] p-[16px] flex flex-col gap-1.5 cursor-pointer transition-all active:scale-[0.98] ";
                 if (isExpired) {
                     cardClasses += "bg-slate-50 border border-slate-100 opacity-50 grayscale hover:opacity-80";
                 } else if (isTodayOrTomorrow) {
@@ -542,8 +542,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 if (s.schedule_date || s.schedule_time) {
                     bottomEventTagsHtml = `
                         <div class="flex items-center justify-start gap-[8px]">
-                            ${s.schedule_date ? `<span class="flex items-center gap-[6px] px-[10px] py-[6px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[12px] font-medium text-slate-600"><i data-lucide="calendar" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${formatScheduleDate(s.schedule_date)}</span>` : ''}
-                            ${s.schedule_time ? `<span class="flex items-center gap-[6px] px-[10px] py-[6px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[12px] font-medium text-slate-600"><i data-lucide="clock" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${formatScheduleTime(s.schedule_time)}</span>` : ''}
+                            ${s.schedule_date ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600"><i data-lucide="calendar" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${formatScheduleDate(s.schedule_date)}</span>` : ''}
+                            ${s.schedule_time ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600"><i data-lucide="clock" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${formatScheduleTime(s.schedule_time)}</span>` : ''}
                         </div>
                     `;
                 }
@@ -553,7 +553,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         ${window.AuthorService ? window.AuthorService.renderAuthorBlock(s.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
                         <div class="mt-1 flex flex-col">
                             <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.sanitizeHTML(s.title || 'Untitled')}</h4>
-                            <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5]">${window.sanitizeHTML(s.message || '')}</p>
+                            <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.sanitizeHTML(s.message || '')}</p>
                         </div>
                         <div class="flex justify-between items-end w-full mt-[12px]">
                             <div class="flex-1">${bottomEventTagsHtml}</div>

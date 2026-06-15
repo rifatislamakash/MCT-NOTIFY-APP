@@ -154,8 +154,14 @@ export class ReactionService {
         const reactions = this.cache[contentId] || [];
         const myReaction = reactions.find(r => r.user_id === window.authState?.user?.id);
         
-        let actionIcon = '<i data-lucide="smile-plus" class="w-4 h-4 text-slate-500 hover:text-slate-800 transition-colors"></i>';
-
+        let actionIcon = `
+            <div class="relative inline-flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors group">
+                <i data-lucide="smile" class="w-4 h-4"></i>
+                <div class="absolute -bottom-[2px] -right-[3px] bg-[#f3f4f6] group-hover:bg-slate-200 transition-colors rounded-full p-[1px]">
+                    <i data-lucide="plus" class="w-2.5 h-2.5 font-bold"></i>
+                </div>
+            </div>
+        `;
         if (myReaction) {
             actionIcon = `<img src="${REACTION_ICONS[myReaction.reaction_type]}" class="w-[18px] h-[18px] pointer-events-none select-none hover:scale-110 transition-transform" style="-webkit-touch-callout: none;">`;
         }
@@ -193,14 +199,18 @@ export class ReactionService {
 
     static renderReactionBlock(contentType, contentId) {
         const isAdmin = (window.currentUserRole === 'admin' || window.currentUserRole === 'cr' || window.isAdminEmail(window.currentUserEmail));
+        const reactions = this.cache[contentId] || [];
+        const myReaction = reactions.find(r => r.user_id === window.authState?.user?.id);
+        const activeClass = myReaction ? 'bg-indigo-50 border border-indigo-100 hover:bg-indigo-100' : 'bg-[#f3f4f6] border border-transparent hover:bg-slate-200';
+
         return `
             <div class="flex items-center justify-end w-full" id="reaction-block-${contentId}">
-                <div class="flex items-center gap-[6px] px-[10px] py-[4px] rounded-[20px] bg-[#f3f4f6] shrink-0 min-w-0 transition-colors hover:bg-slate-200">
+                <div class="flex items-center gap-[6px] px-[10px] py-[4px] rounded-[20px] shrink-0 min-w-0 transition-colors ${activeClass}">
                     ${this.getReactionPickerHTML(contentType, contentId)}
                     ${this.getReactionSummaryHTML(contentType, contentId)}
                 </div>
                 ${isAdmin ? `
-                <button onclick="event.stopPropagation(); triggerImmediateNotification('${contentType}', '${contentId}', this)" class="px-2.5 py-1.5 bg-[#4226E9] hover:bg-[#341BC5] text-white rounded-[6px] text-[10px] font-bold transition-colors flex items-center gap-1 shrink-0 ml-3">
+                <button onclick="event.stopPropagation(); triggerImmediateNotification('${contentType}', '${contentId}', this)" class="px-2.5 py-1.5 bg-[#4226E9] hover:bg-[#341BC5] text-white rounded-[6px] text-[10px] font-bold transition-colors flex items-center gap-1 shrink-0 ml-3 mr-2">
                     <i data-lucide="bell" class="w-3 h-3"></i> Notify
                 </button>
                 ` : ''}
@@ -431,3 +441,12 @@ export class AuthorService {
         `;
     }
 }
+
+// Global outside click dismissal for Reaction Picker menus
+document.addEventListener('pointerdown', (e) => {
+    if (!e.target.closest('.reaction-container')) {
+        document.querySelectorAll('.reaction-container.force-hovered, .reaction-container.hovered').forEach(el => {
+            el.classList.remove('force-hovered', 'hovered');
+        });
+    }
+});

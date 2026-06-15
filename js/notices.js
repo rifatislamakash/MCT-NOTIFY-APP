@@ -399,8 +399,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         }
                         bottomEventTagsHtml = `
                             <div class="flex items-center justify-start gap-[8px]">
-                                ${n.notice_date ? `<span class="flex items-center gap-[6px] px-[10px] py-[6px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[12px] font-medium text-slate-600"><i data-lucide="calendar" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${dStr}</span>` : ''}
-                                ${n.notice_time ? `<span class="flex items-center gap-[6px] px-[10px] py-[6px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[12px] font-medium text-slate-600"><i data-lucide="clock" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${tStr}</span>` : ''}
+                                ${n.notice_date ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600"><i data-lucide="calendar" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${dStr}</span>` : ''}
+                                ${n.notice_time ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600"><i data-lucide="clock" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${tStr}</span>` : ''}
                             </div>
                         `;
                     }
@@ -409,7 +409,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     const isExpired = noticeD < new Date();
 
                     const isTodayOrTomorrow = n.notice_date === todayStr || n.notice_date === tomorrowStr;
-                    let cardClasses = "p-3 rounded-[16px] shadow-sm flex flex-col gap-1.5 cursor-pointer transition-all active:scale-[0.98] ";
+                    let cardClasses = "w-full max-w-full box-border p-3 rounded-[16px] shadow-sm flex flex-col gap-1.5 cursor-pointer transition-all active:scale-[0.98] ";
                     if (isExpired) {
                         cardClasses += "bg-slate-50 border border-slate-100 opacity-50 grayscale hover:opacity-80";
                     } else if (isTodayOrTomorrow) {
@@ -437,7 +437,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 ${window.AuthorService ? window.AuthorService.renderAuthorBlock(n.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
                                 <div class="mt-1 flex flex-col">
                                     <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.sanitizeHTML(n.title)}</h4>
-                                    <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5]">${window.sanitizeHTML(n.message)}</p>
+                                    <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.sanitizeHTML(n.message)}</p>
                                 </div>
                                 <div class="flex justify-between items-end w-full mt-[12px]">
                                     <div class="flex-1">${bottomEventTagsHtml}</div>
@@ -495,6 +495,14 @@ import { ProfileStore } from './stores/ProfileStore.js';
             // Recent Updates Feed
             const recentContainer = document.getElementById('dashboard-recent-notices');
             if (recentContainer) {
+                // Mount clean animated loading skeleton wireframes immediately
+                recentContainer.innerHTML = `
+                    <div class="animate-pulse flex flex-col gap-2.5">
+                        <div class="h-[100px] bg-slate-100/80 rounded-[16px] border border-slate-50 w-full"></div>
+                        <div class="h-[100px] bg-slate-100/80 rounded-[16px] border border-slate-50 w-full"></div>
+                        <div class="h-[100px] bg-slate-100/80 rounded-[16px] border border-slate-50 w-full"></div>
+                    </div>`;
+
                 // Collect Notices
                 const noticesArray = (window.currentNoticesList || []).filter(n => n.notice_type === 'general' || n.notice_type === 'poll').map(n => {
                     const noticeD = new Date((n.notice_date || n.created_at.split('T')[0]) + 'T' + (n.notice_time || '23:59:00'));
@@ -558,8 +566,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 }
                                 bottomEventTagsHtml = `
                                     <div class="flex items-center justify-start gap-[8px]">
-                                        ${n.notice_date ? `<span class="flex items-center gap-[6px] px-[10px] py-[6px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[12px] font-medium text-slate-600"><i data-lucide="calendar" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${dStr}</span>` : ''}
-                                        ${n.notice_time ? `<span class="flex items-center gap-[6px] px-[10px] py-[6px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[12px] font-medium text-slate-600"><i data-lucide="clock" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${tStr}</span>` : ''}
+                                        ${n.notice_date ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600"><i data-lucide="calendar" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${dStr}</span>` : ''}
+                                        ${n.notice_time ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600"><i data-lucide="clock" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${tStr}</span>` : ''}
                                     </div>
                                 `;
                             }
@@ -577,11 +585,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             const extraBadgesHtml = `${badgeHtml}${courseTagsHtml}`;
 
                             return `
-                                <div class="flex flex-col p-[16px] bg-white rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer" onclick="${clickAction}">
+                                <div class="flex flex-col w-full max-w-full box-border p-[16px] bg-white rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer" onclick="${clickAction}">
                                     ${window.AuthorService ? window.AuthorService.renderAuthorBlock(n.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
                                     <div class="mt-1 flex flex-col">
                                         <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.sanitizeHTML(n.title)}</h4>
-                                        <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5]">${window.sanitizeHTML(n.message)}</p>
+                                        <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.sanitizeHTML(n.message)}</p>
                                     </div>
                                     <div class="flex justify-between items-end w-full mt-[12px]">
                                         <div class="flex-1">${bottomEventTagsHtml}</div>
@@ -621,8 +629,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 }
                                 bottomEventTagsHtml = `
                                     <div class="flex items-center justify-start gap-[8px]">
-                                        ${s.schedule_date ? `<span class="flex items-center gap-[6px] px-[10px] py-[6px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[12px] font-medium text-slate-600"><i data-lucide="calendar" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${dStr}</span>` : ''}
-                                        ${s.schedule_time ? `<span class="flex items-center gap-[6px] px-[10px] py-[6px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[12px] font-medium text-slate-600"><i data-lucide="clock" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${tStr}</span>` : ''}
+                                        ${s.schedule_date ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600"><i data-lucide="calendar" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${dStr}</span>` : ''}
+                                        ${s.schedule_time ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600"><i data-lucide="clock" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${tStr}</span>` : ''}
                                     </div>
                                 `;
                             }
@@ -638,11 +646,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             const extraBadgesHtml = `${badgeHtml}${courseTagsHtml}`;
 
                             return `
-                                <div class="flex flex-col p-[16px] bg-white rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer" onclick="openScheduleDetails('${window.sanitizeHTML(s.id)}')">
+                                <div class="flex flex-col w-full max-w-full box-border p-[16px] bg-white rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer" onclick="openScheduleDetails('${window.sanitizeHTML(s.id)}')">
                                     ${window.AuthorService ? window.AuthorService.renderAuthorBlock(s.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
                                     <div class="mt-1 flex flex-col">
                                         <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.sanitizeHTML(s.title)}</h4>
-                                        <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5]">${window.sanitizeHTML(s.message)}</p>
+                                        <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.sanitizeHTML(s.message)}</p>
                                     </div>
                                     <div class="flex justify-between items-end w-full mt-[12px]">
                                         <div class="flex-1">${bottomEventTagsHtml}</div>

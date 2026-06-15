@@ -202,11 +202,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 console.log(`[MATERIAL CARD] Title: ${m.title}`);
 
                 return `
-                        <div class="flex flex-col p-[16px] bg-white rounded-[16px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 transition-all active:scale-[0.98] cursor-pointer hover:border-[#4226E9]/30 hover:shadow-md relative" onclick="openMaterialDetails('${m.id}')">
+                        <div class="flex flex-col w-full max-w-full box-border p-[16px] bg-white rounded-[16px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 transition-all active:scale-[0.98] cursor-pointer hover:border-[#4226E9]/30 hover:shadow-md relative" onclick="openMaterialDetails('${m.id}')">
                             ${window.AuthorService ? window.AuthorService.renderAuthorBlock(m.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
                             <div class="mt-1 flex flex-col min-w-0">
                                 <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${safeTitle}</h4>
-                                ${safeDesc ? `<p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5]">${safeDesc}</p>` : ''}
+                                ${safeDesc ? `<p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${safeDesc}</p>` : ''}
                             </div>
                             ${isAdmin ? `
                             <div class="flex items-center justify-end mt-1 pt-1.5 border-t border-slate-50">

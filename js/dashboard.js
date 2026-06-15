@@ -181,18 +181,26 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     sectionLabel.textContent = isToday ? "Today's Classes" : "Tomorrow's Classes";
                 }
 
+                // Mount clean animated loading skeleton wireframes
+                dashContainer.innerHTML = `
+                    <div class="animate-pulse flex flex-col gap-3">
+                        <div class="h-[72px] bg-slate-100 rounded-[22px] border border-slate-50 w-full"></div>
+                        <div class="h-[72px] bg-slate-100 rounded-[22px] border border-slate-50 w-full"></div>
+                    </div>`;
+
                 // Always fetch fresh from Supabase with retry and abort signal
                 console.log(`[DASHBOARD ROUTINE] Fetching routine for day: ${targetDay}`);
-                const allRoutines = await RoutineStore.getRoutines();
+                
+                // Concurrent execution of fetch chains
+                const [allRoutines] = await Promise.all([
+                    RoutineStore.getRoutines(),
+                    (!window.currentCoursesList && typeof window.fetchCourseList === 'function') ? window.fetchCourseList() : Promise.resolve()
+                ]);
                 const todayClassesData = allRoutines.filter(r => r.day_name === targetDay);
 
                 if (localController.signal.aborted) {
                     console.log("[DASHBOARD ROUTINE] Aborted, ignoring rendering.");
                     return;
-                }
-
-                if (!window.currentCoursesList && typeof window.fetchCourseList === 'function') {
-                    await window.fetchCourseList();
                 }
 
                 let todayClasses = (todayClassesData || []).sort((a, b) => {
