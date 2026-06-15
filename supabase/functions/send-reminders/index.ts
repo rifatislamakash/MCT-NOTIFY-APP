@@ -188,9 +188,7 @@ serve(async (req) => {
               body: notificationBody || "Open the application to see details."
             },
             android: {
-              notification: {
-                icon: "notification_icon" // Use the native Android drawable asset identifier string, not a web path
-              }
+              priority: "high"
             },
             webpush: {
               notification: {
