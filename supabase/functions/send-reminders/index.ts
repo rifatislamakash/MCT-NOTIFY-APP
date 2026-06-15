@@ -189,9 +189,8 @@ serve(async (req) => {
               body: notificationBody,
               target_type: targetType,
               target_id: targetId,
-              icon: "https://mctnotify.vercel.app/assets/Logo.png",
-              badge: "https://mctnotify.vercel.app/assets/Logo.png",
-              image: "https://mctnotify.vercel.app/assets/Logo.png",
+              icon: "/assets/Logo.png",
+              badge: "/assets/Logo.png",
               click_action: "https://mctnotify.vercel.app"
             },
             android: { priority: "high" },

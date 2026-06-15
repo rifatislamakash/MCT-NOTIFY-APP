@@ -127,12 +127,12 @@ messaging.onBackgroundMessage(async (payload) => {
     const icon =
         payload?.data?.icon ||
         payload?.notification?.icon ||
-        "https://mctnotify.vercel.app/assets/Logo.png";
+        "/assets/Logo.png";
 
     const badge =
         payload?.data?.badge ||
         payload?.notification?.badge ||
-        "https://mctnotify.vercel.app/assets/Logo.png";
+        "/assets/Logo.png";
 
     const image =
         payload?.data?.image ||
