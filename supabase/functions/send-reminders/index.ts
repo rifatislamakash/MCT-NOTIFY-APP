@@ -194,16 +194,18 @@ serve(async (req) => {
             },
             webpush: {
               notification: {
-                icon: "/assets/Logo.png",
-                badge: "/assets/badge.png"
+                icon: "https://mctnotify.vercel.app/assets/Logo.png",
+                badge: "https://mctnotify.vercel.app/assets/badge.png"
               },
               fcm_options: { 
                 link: "https://mctnotify.vercel.app" 
               }
             },
             data: {
-              target_type: targetType || "notice",
-              target_id: targetId || "",
+              title: String(notificationTitle || "MCT Notify Update"),
+              body: String(notificationBody || "Open the application to see details."),
+              target_type: String(targetType || "notice"),
+              target_id: String(targetId || ""),
               click_action: "https://mctnotify.vercel.app"
             }
           }
