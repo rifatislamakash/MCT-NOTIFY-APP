@@ -193,7 +193,7 @@ serve(async (req) => {
               badge: "/assets/badge.png",
               click_action: "https://mctnotify.vercel.app"
             },
-            android: { priority: "high" },
+            android: { priority: "HIGH" },
             webpush: {
               headers: { Urgency: "high" },
               fcm_options: { link: "https://mctnotify.vercel.app" }
