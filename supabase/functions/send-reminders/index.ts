@@ -180,31 +180,23 @@ serve(async (req) => {
       }
 
       for (const token of uniqueTokens) {
+        // PURE DATA-ONLY ARCHITECTURE (Completely stripped visible notification blocks to bypass OS display)
         const fcmPayload = {
           message: {
             token: token,
-            notification: {
-              title: notificationTitle || "MCT Notify Update",
-              body: notificationBody || "Open the application to see details."
-            },
-            android: {
-              priority: "high"
-            },
-            webpush: {
-              notification: {
-                icon: "https://mctnotify.vercel.app/assets/Logo.png",
-                badge: "https://mctnotify.vercel.app/assets/badge.png"
-              },
-              fcm_options: { 
-                link: "https://mctnotify.vercel.app" 
-              }
-            },
             data: {
               title: String(notificationTitle || "MCT Notify Update"),
               body: String(notificationBody || "Open the application to see details."),
               target_type: String(targetType || "notice"),
               target_id: String(targetId || ""),
+              icon: "/assets/Logo.png",
+              badge: "/assets/badge.png",
               click_action: "https://mctnotify.vercel.app"
+            },
+            android: { priority: "high" },
+            webpush: {
+              headers: { Urgency: "high" },
+              fcm_options: { link: "https://mctnotify.vercel.app" }
             }
           }
         };
