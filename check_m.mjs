@@ -1,0 +1,1 @@
+import { createClient } from '@supabase/supabase-js'; const _supabase = createClient('https://ngropmfrneaaejwocnbf.supabase.co', 'sb_publishable_re_AUBMShiJJq7tXgB3J9g_lRETY_K-'); async function run() { const { data, error } = await _supabase.from('materials').insert([{ title: 'test', user_id: 'some-id' }]).select(); console.log(error); } run();

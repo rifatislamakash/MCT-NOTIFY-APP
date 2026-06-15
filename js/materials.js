@@ -512,8 +512,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     material_type: type,
                     external_link: link,
                     attachment_url: attachmentUrl,
-                    thumbnail_url: thumbnailUrl,
-                    created_by: window.authState.user.id
+                    thumbnail_url: thumbnailUrl
                 };
 
                 const { data: insertedMaterials, error: insertError } = await _supabase.from('materials').insert([payload]).select();
@@ -525,8 +524,22 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const notifyChecked = document.getElementById('mat-notify-users')?.checked;
                 if (insertedMaterials && insertedMaterials.length > 0) {
                     const newMaterialId = insertedMaterials[0].id;
-                    if (window.triggerImmediateNotification) {
-                        window.triggerImmediateNotification('material', newMaterialId, 'New Material Added', `A new material ${payload.title} was uploaded.`);
+                    if (notifyChecked) {
+                        try {
+                            const targetPayload = {
+                                content_type: 'material',
+                                content_id: newMaterialId,
+                                target_type: 'course_students',
+                                target_id: courseId
+                            };
+                            await _supabase.from('content_targets').insert([targetPayload]);
+                            
+                            if (window.triggerImmediateNotification) {
+                                window.triggerImmediateNotification('material', newMaterialId, 'New Material Added', `A new material ${payload.title} was uploaded.`);
+                            }
+                        } catch (targetErr) {
+                            console.error("[MATERIAL NOTIFY ERROR]", targetErr);
+                        }
                     }
                 }
 

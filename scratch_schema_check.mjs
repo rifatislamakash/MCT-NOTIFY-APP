@@ -21,6 +21,7 @@ async function run() {
       await checkSchema('profiles');
       await checkSchema('courses');
       await checkSchema('batches');
+      await checkSchema('materials');
 }
 
 run();
