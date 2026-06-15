@@ -327,7 +327,13 @@ let isRegistering = false;
                 } else {
                     console.log("[DEBUG] checkActiveSession: no session found");
                     window.currentUserRole = 'student';
-                    window.navigate('screen-welcome');
+                    
+                    if (sessionStorage.getItem('pending_registration_state') || localStorage.getItem('pending_signup_email')) {
+                        console.log("[AUTH] Pending registration detected, recovering OTP view");
+                        window.navigate('screen-confirm-email');
+                    } else {
+                        window.navigate('screen-welcome');
+                    }
                 }
             } catch (err) {
                 console.log("[DEBUG] checkActiveSession: catch block triggered", err);
@@ -442,11 +448,31 @@ let isRegistering = false;
                 
                 if (typeof window.showLoader === 'function') window.showLoader(true, "Verifying code...");
                 
-                const { data, error } = await _supabase.auth.verifyOtp({
-                    email: pendingEmail,
-                    token: code,
-                    type: 'signup'
-                });
+                let data, error, retries = 3;
+                while (retries > 0) {
+                    try {
+                        const res = await _supabase.auth.verifyOtp({
+                            email: pendingEmail,
+                            token: code,
+                            type: 'signup'
+                        });
+                        // WebKit "Load Failed" network drops often manifest as TypeError or message includes "Load failed" / "Failed to fetch"
+                        if (res.error && (res.error.message.includes('Load failed') || res.error.message.includes('Failed to fetch'))) {
+                            throw res.error; // Trigger retry for network dropouts
+                        }
+                        data = res.data;
+                        error = res.error;
+                        break;
+                    } catch (e) {
+                        retries--;
+                        if (retries === 0) {
+                            error = e;
+                        } else {
+                            console.warn(`[AUTH] Network dropout detected during OTP, retrying... (${retries} left)`);
+                            await new Promise(resolve => setTimeout(resolve, 1500));
+                        }
+                    }
+                }
                 
                 if (error) throw error;
                 
@@ -466,6 +492,11 @@ let isRegistering = false;
                 
                 // Set flag for the welcome notification in the dashboard
                 sessionStorage.setItem('isFirstTimeRegistration', 'true');
+                
+                // Trigger PWA Install Prompt explicitly for new registrations
+                if (typeof window.promptInstallPWA === 'function') {
+                    setTimeout(() => window.promptInstallPWA(true), 1500);
+                }
                 
                 // Navigation handled automatically by onAuthStateChange background listener
             } catch (err) {
@@ -583,6 +614,7 @@ let isRegistering = false;
                 if (typeof window.showGlobalToast === 'function') window.showGlobalToast("Success", "Account created successfully. Please enter the verification code sent to your email.");
                 localStorage.setItem('pending_signup_email', email);
                 localStorage.setItem('pending_signup_phone', phone);
+                sessionStorage.setItem('pending_registration_state', JSON.stringify({ name, email, password, phone }));
                 
                 console.log('[REGISTER] Navigating to OTP');
                 if (typeof window.navigate === 'function') window.navigate('screen-confirm-email');
@@ -600,6 +632,127 @@ let isRegistering = false;
             }
         }
 
+        let isForgotSubmitting = false;
+        export async function handleForgot(event) {
+            if (event) event.preventDefault();
+            if (isForgotSubmitting) return;
+            isForgotSubmitting = true;
+            
+            const emailInput = document.getElementById('forgot-email');
+            const emailError = document.getElementById('forgot-email-error');
+            const email = emailInput ? emailInput.value.trim() : '';
+
+            if (emailError) emailError.classList.add('hidden');
+
+            if (typeof window.validateDIUEmail === 'function' && !validateDIUEmail(email)) {
+                if (emailError) emailError.classList.remove('hidden');
+                if (typeof window.showGlobalToast === 'function') window.showGlobalToast("Error", "Must use a valid DIU MCT email format.");
+                isForgotSubmitting = false;
+                return;
+            }
+
+            if (typeof window.showLoader === 'function') window.showLoader(true, "Sending recovery code...");
+            try {
+                const { error } = await _supabase.auth.resetPasswordForEmail(email);
+                if (error) throw error;
+                
+                // Save email to localStorage for the next step
+                localStorage.setItem('pending_recovery_email', email);
+                if (typeof window.showGlobalToast === 'function') window.showGlobalToast("Success", "Recovery code sent to your email.");
+                
+                if (typeof window.navigate === 'function') {
+                    window.navigate('screen-recovery-otp');
+                }
+            } catch (err) {
+                console.error("[AUTH] Forgot password error:", err);
+                if (typeof window.showGlobalToast === 'function') window.showGlobalToast("Error", err.message || "Failed to send recovery code.");
+            } finally {
+                isForgotSubmitting = false;
+                if (typeof window.showLoader === 'function') window.showLoader(false);
+            }
+        }
+
+        export async function handleRecoveryOtp() {
+            const otpInput = document.getElementById('recovery-otp-code');
+            const token = otpInput ? otpInput.value.trim() : '';
+            const email = localStorage.getItem('pending_recovery_email');
+
+            if (!email) {
+                if (typeof window.showGlobalToast === 'function') window.showGlobalToast("Error", "Email not found. Please restart recovery.");
+                if (typeof window.navigate === 'function') window.navigate('screen-forgot');
+                return;
+            }
+
+            if (token.length !== 6) {
+                if (typeof window.showGlobalToast === 'function') window.showGlobalToast("Error", "Please enter the 6-digit code.");
+                return;
+            }
+
+            if (typeof window.showLoader === 'function') window.showLoader(true, "Verifying code...");
+            try {
+                const { data, error } = await _supabase.auth.verifyOtp({
+                    email: email,
+                    token: token,
+                    type: 'recovery'
+                });
+                if (error) throw error;
+
+                // Session is now active. We can proceed to update password screen.
+                localStorage.removeItem('pending_recovery_email');
+                if (typeof window.navigate === 'function') {
+                    window.navigate('screen-update-password');
+                }
+            } catch (err) {
+                console.error("[AUTH] Verify recovery OTP error:", err);
+                if (typeof window.showGlobalToast === 'function') window.showGlobalToast("Error", err.message || "Invalid or expired code.");
+            } finally {
+                if (typeof window.showLoader === 'function') window.showLoader(false);
+            }
+        }
+
+        let isUpdatingPassword = false;
+        export async function handleUpdatePassword(event) {
+            if (event) event.preventDefault();
+            if (isUpdatingPassword) return;
+            isUpdatingPassword = true;
+
+            const passwordInput = document.getElementById('new-password');
+            const errorBanner = document.getElementById('update-password-error-banner');
+            const password = passwordInput ? passwordInput.value : '';
+
+            if (errorBanner) errorBanner.classList.add('hidden');
+
+            if (password.length < 8) {
+                if (errorBanner) {
+                    errorBanner.innerText = "Password must be at least 8 characters.";
+                    errorBanner.classList.remove('hidden');
+                }
+                isUpdatingPassword = false;
+                return;
+            }
+
+            if (typeof window.showLoader === 'function') window.showLoader(true, "Updating password...");
+            try {
+                const { error } = await _supabase.auth.updateUser({
+                    password: password
+                });
+                if (error) throw error;
+
+                if (typeof window.showGlobalToast === 'function') window.showGlobalToast("Success", "Password updated successfully.");
+                
+                // Ensure profile is loaded then navigate to dashboard
+                await checkActiveSession();
+            } catch (err) {
+                console.error("[AUTH] Update password error:", err);
+                if (errorBanner) {
+                    errorBanner.innerText = err.message || "Failed to update password.";
+                    errorBanner.classList.remove('hidden');
+                }
+            } finally {
+                isUpdatingPassword = false;
+                if (typeof window.showLoader === 'function') window.showLoader(false);
+            }
+        }
 
 
         export async function logout() {

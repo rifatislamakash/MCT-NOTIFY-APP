@@ -4,7 +4,13 @@
         export let _supabase;
 
         try {
-            _supabase = supabase.createClient(supabaseUrl, supabaseKey);
+            _supabase = supabase.createClient(supabaseUrl, supabaseKey, {
+                global: {
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate'
+                    }
+                }
+            });
             window._supabase = _supabase;
             const statusLabel = document.getElementById('db-status-label');
             if (statusLabel) {

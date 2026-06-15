@@ -175,7 +175,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const safeCourse = window.sanitizeHTML(courseName);
                 const safeDesc = window.sanitizeHTML(m.description || '');
 
-                let badgeHtml = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide uppercase ${badgeClass}">${badgeText}</span>`;
+                let badgeHtml = `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] uppercase ${badgeClass}">${badgeText}</span>`;
 
                 let rightSideHtml = `<div class="flex items-center">`;
                 rightSideHtml += `<div class="w-7 h-7 rounded-full ${iconBgClass} ${iconColorClass} flex items-center justify-center shrink-0 ml-1">
@@ -183,35 +183,39 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                   </div>`;
                 rightSideHtml += `</div>`;
 
-                let dateTagHtml = '';
-                if (m.created_at) {
-                    const d = new Date(m.created_at);
-                    dateTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="calendar" class="w-3 h-3"></i> ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>`;
-                }
-
                 let courseTagsHtml = '';
                 if (safeCourse && safeCourse !== 'General' && safeCourse !== 'Unknown' && safeCourse !== 'Unknown Course') {
-                    courseTagsHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="book" class="w-3 h-3"></i> ${safeCourse}</span>`;
+                    courseTagsHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-[0.03em] bg-blue-50 text-blue-600 border border-blue-100 px-[5px] py-[1.5px] rounded-[6px]"><i data-lucide="book" class="w-3 h-3"></i> ${safeCourse}</span>`;
                 }
 
-                const displayTagsHtml = `${dateTagHtml}${courseTagsHtml}`;
+                const createdDate = new Date(m.created_at || Date.now());
+                const diffMins = Math.floor((new Date() - createdDate) / 60000);
+                let postedTimeStr = '';
+                if (diffMins < 1) postedTimeStr = 'Just now';
+                else if (diffMins < 60) postedTimeStr = `${diffMins}m ago`;
+                else if (diffMins < 1440) postedTimeStr = `${Math.floor(diffMins/60)}h ago`;
+                else postedTimeStr = createdDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+                const extraBadgesHtml = `${badgeHtml}${courseTagsHtml}`;
 
                 console.log(`[MATERIAL AUTHOR] ID: ${m.id}, Author: ${m.profiles ? m.profiles.full_name : 'Unknown'}`);
                 console.log(`[MATERIAL CARD] Title: ${m.title}`);
 
                 return `
-                        <div class="flex flex-col pb-3 px-3 pt-3 bg-white rounded-[16px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 transition-all active:scale-[0.98] cursor-pointer hover:border-[#4226E9]/30 hover:shadow-md relative" onclick="openMaterialDetails('${m.id}')">
-                            ${window.AuthorService ? window.AuthorService.renderAuthorBlock(m.profiles, displayTagsHtml, badgeHtml, rightSideHtml) : ''}
+                        <div class="flex flex-col p-[16px] bg-white rounded-[16px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 transition-all active:scale-[0.98] cursor-pointer hover:border-[#4226E9]/30 hover:shadow-md relative" onclick="openMaterialDetails('${m.id}')">
+                            ${window.AuthorService ? window.AuthorService.renderAuthorBlock(m.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
                             <div class="mt-1 flex flex-col min-w-0">
-                                <h4 class="font-bold text-[14px] text-slate-900 truncate leading-tight">${safeTitle}</h4>
-                                ${safeDesc ? `<p class="text-[12px] font-medium text-slate-500 leading-snug line-clamp-2 mt-0.5">${safeDesc}</p>` : ''}
+                                <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${safeTitle}</h4>
+                                ${safeDesc ? `<p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5]">${safeDesc}</p>` : ''}
                             </div>
                             ${isAdmin ? `
                             <div class="flex items-center justify-end mt-1 pt-1.5 border-t border-slate-50">
                                 <button onclick="event.stopPropagation(); openUpdateMaterial('${m.id}')" class="px-3 py-1 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-[8px] text-[10px] font-bold transition-colors">Edit</button>
                             </div>` : ''}
-                            <div class="mt-2.5">
-                                ${window.ReactionService ? window.ReactionService.renderReactionBlock('material', m.id) : ''}
+                            <div class="flex justify-end items-end w-full mt-[10px]">
+                                <div class="shrink-0">
+                                    ${window.ReactionService ? window.ReactionService.renderReactionBlock('material', m.id) : ''}
+                                </div>
                             </div>
                         </div>
                     `;

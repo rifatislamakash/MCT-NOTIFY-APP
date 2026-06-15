@@ -76,12 +76,12 @@ export class ReactionService {
 
         return `
             <div onclick="event.stopPropagation(); window.ReactionService.openReactorsModal('${contentId}')" 
-                 class="flex items-center gap-1.5 px-2 py-1 rounded-full cursor-pointer hover:bg-slate-50 transition border border-slate-100 bg-white shrink-0"
+                 class="flex items-center gap-1.5 cursor-pointer shrink-0 min-w-0 hover:opacity-80 transition-opacity"
                  title="View reactions">
-                <div class="flex items-center">
+                <div class="flex items-center shrink-0">
                     ${iconsHtml}
                 </div>
-                <span class="text-[11px] font-bold text-slate-500">${reactions.length}</span>
+                <span class="text-[11px] font-bold text-slate-500 shrink-0">${reactions.length}</span>
             </div>
         `;
     }
@@ -154,12 +154,10 @@ export class ReactionService {
         const reactions = this.cache[contentId] || [];
         const myReaction = reactions.find(r => r.user_id === window.authState?.user?.id);
         
-        let actionIcon = '<i data-lucide="thumbs-up" class="w-3.5 h-3.5"></i>';
-        let actionClass = 'text-slate-500 bg-slate-50 hover:bg-slate-100';
+        let actionIcon = '<i data-lucide="smile-plus" class="w-4 h-4 text-slate-500 hover:text-slate-800 transition-colors"></i>';
 
         if (myReaction) {
-            actionIcon = `<img src="${REACTION_ICONS[myReaction.reaction_type]}" class="w-[18px] h-[18px] pointer-events-none select-none" style="-webkit-touch-callout: none;">`;
-            actionClass = 'bg-blue-50/50 hover:bg-blue-100 border-indigo-100';
+            actionIcon = `<img src="${REACTION_ICONS[myReaction.reaction_type]}" class="w-[18px] h-[18px] pointer-events-none select-none hover:scale-110 transition-transform" style="-webkit-touch-callout: none;">`;
         }
 
         const types = ['like', 'love', 'haha', 'sad', 'angry', 'cool'];
@@ -173,7 +171,7 @@ export class ReactionService {
         `).join('');
 
         return `
-            <div class="reaction-container relative inline-flex" 
+            <div class="reaction-container relative inline-flex items-center shrink-0" 
                  onmouseenter="this.classList.add('hovered')" 
                  onmouseleave="this.classList.remove('hovered'); this.classList.remove('force-hovered')">
                 
@@ -181,11 +179,11 @@ export class ReactionService {
                         onpointerup="window.ReactionService.handlePointerUp(event, '${contentType}', '${contentId}', '${myReaction ? myReaction.reaction_type : 'like'}')"
                         onpointerleave="window.ReactionService.handlePointerLeave(event, '${contentType}', '${contentId}')"
                         onclick="event.stopPropagation(); event.preventDefault();"
-                        class="reaction-trigger-btn flex items-center justify-center w-7 h-7 rounded-full shadow-sm border border-slate-100 transition-all active:scale-90 ${actionClass}">
+                        class="reaction-trigger-btn flex items-center justify-center transition-transform active:scale-90 outline-none">
                     ${actionIcon}
                 </button>
                 
-                <div class="reaction-picker absolute bottom-full -left-2 mb-2 bg-white rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-slate-100 p-1 flex items-center gap-1 opacity-0 pointer-events-none transition-all duration-300 translate-y-3 scale-95 origin-bottom-left z-30"
+                <div class="reaction-picker absolute bottom-[100%] right-0 mb-2 bg-white rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-slate-100 p-1 flex items-center gap-1 opacity-0 pointer-events-none transition-all duration-300 translate-y-3 scale-95 origin-bottom-right z-[9999] whitespace-nowrap"
                      onclick="event.stopPropagation();" onmouseup="event.stopPropagation();" ontouchend="event.stopPropagation();">
                     ${pickerItems}
                 </div>
@@ -196,13 +194,13 @@ export class ReactionService {
     static renderReactionBlock(contentType, contentId) {
         const isAdmin = (window.currentUserRole === 'admin' || window.currentUserRole === 'cr' || window.isAdminEmail(window.currentUserEmail));
         return `
-            <div class="mt-1 flex items-center justify-between" id="reaction-block-${contentId}">
-                <div class="flex items-center gap-2">
+            <div class="flex items-center justify-end w-full" id="reaction-block-${contentId}">
+                <div class="flex items-center gap-[6px] px-[10px] py-[4px] rounded-[20px] bg-[#f3f4f6] shrink-0 min-w-0 transition-colors hover:bg-slate-200">
                     ${this.getReactionPickerHTML(contentType, contentId)}
                     ${this.getReactionSummaryHTML(contentType, contentId)}
                 </div>
                 ${isAdmin ? `
-                <button onclick="event.stopPropagation(); triggerImmediateNotification('${contentType}', '${contentId}', this)" class="px-2.5 py-1.5 bg-[#4226E9] hover:bg-[#341BC5] text-white rounded-[6px] text-[10px] font-bold transition-colors flex items-center gap-1 shrink-0">
+                <button onclick="event.stopPropagation(); triggerImmediateNotification('${contentType}', '${contentId}', this)" class="px-2.5 py-1.5 bg-[#4226E9] hover:bg-[#341BC5] text-white rounded-[6px] text-[10px] font-bold transition-colors flex items-center gap-1 shrink-0 ml-3">
                     <i data-lucide="bell" class="w-3 h-3"></i> Notify
                 </button>
                 ` : ''}
@@ -383,7 +381,7 @@ export class ReactionService {
 }
 
 export class AuthorService {
-    static renderAuthorBlock(profileData, displayDateStr, extraBadgesHtml = '', rightSideHtml = '') {
+    static renderAuthorBlock(profileData, postedTimeStr, extraBadgesHtml = '', rightSideHtml = '') {
         const pData = profileData || { full_name: 'System User', role: 'admin' };
         
         const name = window.sanitizeHTML(pData.full_name || 'Unknown User');
@@ -403,34 +401,32 @@ export class AuthorService {
         }
 
         const initial = name.charAt(0).toUpperCase();
-        let avatarHtml = `<span class="font-bold text-[16px] text-slate-400">${initial}</span>`;
+        let avatarHtml = `<span class="font-bold text-[12px] text-slate-400 m-0">${initial}</span>`;
         if (pData.profile_url) {
-            avatarHtml = `<img src="${window.sanitizeUrl(pData.profile_url)}" class="w-full h-full object-cover rounded-full">`;
-        }
-
-        let timeHtml = '';
-        if (displayDateStr) {
-            timeHtml = `<div class="flex flex-wrap items-center gap-1.5 text-[9.5px] text-slate-400 font-medium tracking-wide shrink-0">${displayDateStr}</div>`;
+            avatarHtml = `<img src="${window.sanitizeUrl(pData.profile_url)}" class="w-full h-full object-cover rounded-full m-0">`;
         }
 
         return `
-            <div class="flex items-start justify-between w-full mb-1.5 overflow-hidden">
-                <div class="flex items-center gap-2.5 min-w-0 w-full">
-                    <div class="w-[38px] h-[38px] rounded-full bg-slate-200 shrink-0 flex items-center justify-center relative overflow-hidden ring-1 ring-slate-100">
+            <div class="flex items-start justify-between w-full mb-[8px] overflow-hidden">
+                <div class="flex items-start gap-2.5 min-w-0 w-full">
+                    <div class="w-[28px] h-[28px] rounded-full bg-slate-200 shrink-0 flex items-center justify-center relative overflow-hidden ring-1 ring-slate-100 m-0">
                         ${avatarHtml}
                     </div>
-                    <div class="flex flex-col justify-center min-w-0 flex-1">
-                        <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
-                            <span class="text-[13.5px] font-bold text-slate-900 leading-none tracking-tight shrink-0">${name}</span>
-                            <span class="text-[8px] font-bold px-1 py-0.5 rounded-[3px] leading-none shrink-0 ${roleClass} flex items-center tracking-wider">${roleIcon}${roleDisplay}</span>
-                            ${extraBadgesHtml ? `<div class="flex items-center gap-1 min-w-0 overflow-x-auto scrollbar-hide" style="scrollbar-width: none; -ms-overflow-style: none;">${extraBadgesHtml}</div>` : ''}
+                    <div class="flex flex-col gap-[4px] min-w-0 flex-1 m-0">
+                        <div class="flex justify-between items-center w-full m-0">
+                            <div class="flex items-center gap-[6px] min-w-0">
+                                <span class="text-[12px] font-semibold text-gray-800 leading-none tracking-tight shrink-0 m-0">${name}</span>
+                                <span class="text-[10px] font-bold px-[5px] py-[1.5px] rounded-[4px] leading-[1.2] shrink-0 uppercase tracking-[0.03em] ${roleClass} flex items-center w-auto max-w-full m-0">${roleIcon}${roleDisplay}</span>
+                            </div>
+                            ${postedTimeStr ? `<span class="text-[11px] font-normal text-gray-500 shrink-0 m-0">${postedTimeStr}</span>` : ''}
                         </div>
-                        <div class="flex flex-wrap items-center gap-1.5 mt-0.5 min-w-0 overflow-hidden">
-                            ${timeHtml}
-                        </div>
+                        ${extraBadgesHtml ? `
+                        <div class="flex items-center gap-[6px] flex-wrap w-full mt-[4px] m-0">
+                            ${extraBadgesHtml}
+                        </div>` : ''}
                     </div>
                 </div>
-                ${rightSideHtml}
+                ${rightSideHtml ? `<div class="shrink-0 ml-2">${rightSideHtml}</div>` : ''}
             </div>
         `;
     }

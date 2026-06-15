@@ -22,13 +22,16 @@ window.ensureBucketExists = ensureBucketExists;
 window.extractIdFromEmail = extractIdFromEmail;
 window.getGreeting = getGreeting;
 
-import { fetchUserProfile, handleUserRouting, checkActiveSession, handleConfirmOTP, handleLogin, handleRegister, logout } from './js/auth.js';
+import { fetchUserProfile, handleUserRouting, checkActiveSession, handleConfirmOTP, handleLogin, handleRegister, logout, handleForgot, handleRecoveryOtp, handleUpdatePassword } from './js/auth.js';
 window.fetchUserProfile = fetchUserProfile;
 window.handleUserRouting = handleUserRouting;
 window.checkActiveSession = checkActiveSession;
 window.handleConfirmOTP = handleConfirmOTP;
 window.handleLogin = handleLogin;
 window.handleRegister = handleRegister;
+window.handleForgot = handleForgot;
+window.handleRecoveryOtp = handleRecoveryOtp;
+window.handleUpdatePassword = handleUpdatePassword;
 
 import { ReactionService, AuthorService } from './js/services/ReactionService.js';
 window.ReactionService = ReactionService;

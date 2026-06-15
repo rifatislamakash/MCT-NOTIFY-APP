@@ -481,42 +481,29 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 let audTag = '';
                 const aud = s.audience_type;
                 if (aud === 'all_students') {
-                    audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-indigo-50 border border-indigo-100 text-[#4226E9] uppercase ml-1">ALL STUDENTS</span>`;
+                    audTag = `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] bg-indigo-50 border border-indigo-100 text-[#4226E9] uppercase">ALL STUDENTS</span>`;
                 } else if (aud === 'all_crs') {
-                    audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-purple-50 border border-purple-100 text-purple-600 uppercase ml-1">ALL CRs</span>`;
+                    audTag = `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] bg-purple-50 border border-purple-100 text-purple-600 uppercase">ALL CRs</span>`;
                 } else if (aud === 'batch_students' || aud === 'batch_crs') {
-                    audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-emerald-50 border border-emerald-100 text-emerald-600 uppercase ml-1">Specific Batch</span>`;
+                    audTag = `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] bg-emerald-50 border border-emerald-100 text-emerald-600 uppercase">Specific Batch</span>`;
                 } else if (aud === 'course_students' || aud === 'specific') {
                     const cIds = scheduleCoursesMap[s.id] || [];
                     if (cIds.length > 0) {
                         audTag = cIds.map(cid => {
                             const c = (allCoursesList || []).find(x => x.id === cid);
                             const name = c ? (c.short_name || c.course_name) : 'Course';
-                            return `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="book" class="w-3 h-3"></i> ${window.sanitizeHTML(name)}</span>`;
+                            return `<span class="flex items-center gap-1 text-[10px] font-bold tracking-[0.03em] bg-blue-50 text-blue-600 border border-blue-100 px-[5px] py-[1.5px] rounded-[6px]"><i data-lucide="book" class="w-3 h-3"></i> ${window.sanitizeHTML(name)}</span>`;
                         }).join('');
                     } else {
-                        audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-blue-100 text-blue-600 uppercase">SPECIFIC</span>`;
+                        audTag = `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] bg-blue-100 text-blue-600 uppercase">SPECIFIC</span>`;
                     }
                 } else if (aud === 'specific_student') {
-                     audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-yellow-50 border border-yellow-100 text-yellow-600 uppercase ml-1">Specific</span>`;
+                     audTag = `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] bg-yellow-50 border border-yellow-100 text-yellow-600 uppercase">Specific</span>`;
                 } else if (!aud || aud === 'general') {
-                     audTag = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-slate-100 text-slate-500 uppercase ml-1">ALL STUDENTS</span>`;
+                     audTag = `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] bg-slate-100 text-slate-500 uppercase">ALL STUDENTS</span>`;
                 }
                 
                 let badgeHtml = audTag;
-
-                let dateTagHtml = '';
-                let timeTagHtml = '';
-                if (s.schedule_date) {
-                    dateTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="calendar" class="w-3 h-3"></i> ${formatScheduleDate(s.schedule_date)}</span>`;
-                }
-                if (s.schedule_time) {
-                    timeTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="clock" class="w-3 h-3"></i> ${formatScheduleTime(s.schedule_time)}</span>`;
-                }
-                if (!dateTagHtml && !timeTagHtml) {
-                    const d = new Date(s.created_at);
-                    dateTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="calendar" class="w-3 h-3"></i> ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>`;
-                }
 
                 let courseTagsHtml = '';
                 const cIds = scheduleCoursesMap[s.id] || [];
@@ -524,7 +511,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     courseTagsHtml = cIds.map(cid => {
                         const c = (allCoursesList || []).find(x => x.id === cid);
                         const name = c ? (c.short_name || c.course_name) : 'Course';
-                        return `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="book" class="w-3 h-3"></i> ${window.sanitizeHTML(name)}</span>`;
+                        return `<span class="flex items-center gap-1 text-[10px] font-bold tracking-[0.03em] bg-blue-50 text-blue-600 border border-blue-100 px-[5px] py-[1.5px] rounded-[6px]"><i data-lucide="book" class="w-3 h-3"></i> ${window.sanitizeHTML(name)}</span>`;
                     }).join('');
                 }
 
@@ -534,7 +521,15 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     badgeHtml = ''; // Clear badgeHtml since it's just course tags now
                 }
 
-                const displayTagsHtml = `${dateTagHtml}${timeTagHtml}${courseTagsHtml}`;
+                const extraBadgesHtml = `${badgeHtml}${courseTagsHtml}`;
+                
+                const createdDate = new Date(s.created_at);
+                const diffMins = Math.floor((new Date() - createdDate) / 60000);
+                let postedTimeStr = '';
+                if (diffMins < 1) postedTimeStr = 'Just now';
+                else if (diffMins < 60) postedTimeStr = `${diffMins}m ago`;
+                else if (diffMins < 1440) postedTimeStr = `${Math.floor(diffMins/60)}h ago`;
+                else postedTimeStr = createdDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
                 const pin = isPinned ? `<i data-lucide="pin" class="w-3 h-3 text-orange-500 fill-orange-500 ml-1"></i>` : '';
                 const attach = hasAttachment ? `<i data-lucide="paperclip" class="w-3.5 h-3.5 text-indigo-500 ml-1"></i>` : '';
@@ -543,14 +538,29 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 rightSideHtml += pin + attach;
                 rightSideHtml += `</div>`;
 
-                return `
-                    <div onclick="openScheduleDetails('${s.id}')" class="${cardClasses} relative pb-4 px-4 pt-3 mt-2">
-                        ${window.AuthorService ? window.AuthorService.renderAuthorBlock(s.profiles, displayTagsHtml, badgeHtml, rightSideHtml) : ''}
-                        <div class="mt-1 flex flex-col">
-                            <h4 class="font-extrabold text-[15px] text-slate-900 truncate leading-tight">${window.sanitizeHTML(s.title || 'Untitled')}</h4>
-                            <p class="text-[13px] text-slate-500 line-clamp-2 overflow-hidden mt-0.5 leading-snug">${window.sanitizeHTML(s.message || '')}</p>
+                let bottomEventTagsHtml = '';
+                if (s.schedule_date || s.schedule_time) {
+                    bottomEventTagsHtml = `
+                        <div class="flex items-center justify-start gap-[8px]">
+                            ${s.schedule_date ? `<span class="flex items-center gap-[6px] px-[10px] py-[6px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[12px] font-medium text-slate-600"><i data-lucide="calendar" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${formatScheduleDate(s.schedule_date)}</span>` : ''}
+                            ${s.schedule_time ? `<span class="flex items-center gap-[6px] px-[10px] py-[6px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[12px] font-medium text-slate-600"><i data-lucide="clock" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${formatScheduleTime(s.schedule_time)}</span>` : ''}
                         </div>
-                        ${window.ReactionService ? window.ReactionService.renderReactionBlock('schedule', s.id) : ''}
+                    `;
+                }
+
+                return `
+                    <div onclick="openScheduleDetails('${s.id}')" class="${cardClasses} relative p-[16px] mt-2">
+                        ${window.AuthorService ? window.AuthorService.renderAuthorBlock(s.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
+                        <div class="mt-1 flex flex-col">
+                            <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.sanitizeHTML(s.title || 'Untitled')}</h4>
+                            <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5]">${window.sanitizeHTML(s.message || '')}</p>
+                        </div>
+                        <div class="flex justify-between items-end w-full mt-[12px]">
+                            <div class="flex-1">${bottomEventTagsHtml}</div>
+                            <div class="shrink-0 ml-3">
+                                ${window.ReactionService ? window.ReactionService.renderReactionBlock('schedule', s.id) : ''}
+                            </div>
+                        </div>
                     </div>`;
             }).join('');
 
@@ -1282,19 +1292,18 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             let offsetValue = 'custom';
                             let customDateVal = '';
                             
-                            if (rem.reminder_time && eventDateTime && !isNaN(eventDateTime.getTime())) {
-                                const remTime = new Date(rem.reminder_time);
-                                const diffMs = eventDateTime.getTime() - remTime.getTime();
-                                const diffMins = Math.round(diffMs / (60 * 1000));
+                            if (rem.reminder_time) {
+                                const utcDate = new Date(rem.reminder_time);
+                                const offset = utcDate.getTimezoneOffset() * 60000;
+                                customDateVal = new Date(utcDate.getTime() - offset).toISOString().slice(0, 16);
                                 
-                                if (diffMins === 1440 || diffMins === 180 || diffMins === 30) {
-                                    offsetValue = String(diffMins);
-                                } else {
-                                    offsetValue = 'custom';
-                                    customDateVal = rem.reminder_time.slice(0, 16);
+                                if (eventDateTime && !isNaN(eventDateTime.getTime())) {
+                                    const diffMs = eventDateTime.getTime() - utcDate.getTime();
+                                    const diffMins = Math.round(diffMs / (60 * 1000));
+                                    if (diffMins === 1440 || diffMins === 180 || diffMins === 30) {
+                                        offsetValue = String(diffMins);
+                                    }
                                 }
-                            } else if (rem.reminder_time) {
-                                customDateVal = rem.reminder_time.slice(0, 16);
                             }
                             
                             const rowHTML = `

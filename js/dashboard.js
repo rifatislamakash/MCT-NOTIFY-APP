@@ -286,88 +286,98 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 // When showing tomorrow: use nowMins=-1 so all classes are Upcoming, not Done
                 const nowMins = isToday ? (now.getHours() * 60 + now.getMinutes()) : -1;
 
-                dashContainer.innerHTML = mergedClasses.map(cls => {
-                    const isBreak = !cls.course_id || cls.room_number === 'Break';
-                    const timeDisplay = formatRoutineTime(cls.start_time);
-                    const endTimeStr = getEndTime(cls.start_time, cls.durationHrs);
-                    const endTimeDisplay = formatRoutineTime(endTimeStr);
-                    const timeRangeStr = `${timeDisplay} - ${endTimeDisplay}`;
+                try {
+                    dashContainer.innerHTML = mergedClasses.map(cls => {
+                        const isBreak = !cls.course_id || cls.room_number === 'Break';
+                        const timeDisplay = formatRoutineTime(cls.start_time);
+                        const endTimeStr = getEndTime(cls.start_time, cls.durationHrs);
+                        const endTimeDisplay = formatRoutineTime(endTimeStr);
+                        const timeRangeStr = `${timeDisplay} - ${endTimeDisplay}`;
 
-                    const [hh, mm] = (cls.start_time || '00:00').split(':').map(Number);
-                    const classMins = hh * 60 + mm;
-                    const durationMins = cls.durationHrs * 60;
+                        const [hh, mm] = (cls.start_time || '00:00').split(':').map(Number);
+                        const classMins = hh * 60 + mm;
+                        const durationMins = cls.durationHrs * 60;
 
-                    const isOngoing = isToday && classMins <= nowMins && nowMins < classMins + durationMins;
-                    const isUpcoming = !isToday || classMins > nowMins;
-                    const isPast = isToday && classMins + durationMins <= nowMins;
+                        const isOngoing = isToday && classMins <= nowMins && nowMins < classMins + durationMins;
+                        const isUpcoming = !isToday || classMins > nowMins;
+                        const isPast = isToday && classMins + durationMins <= nowMins;
 
-                    let dotColor = "";
-                    let timeColor = "";
-                    let statusBadge = "";
-                    let contentHTML = "";
+                        let dotColor = "";
+                        let timeColor = "";
+                        let statusBadge = "";
+                        let contentHTML = "";
 
-                    if (isBreak) {
-                        dotColor = isOngoing ? 'bg-amber-500' : isUpcoming ? 'bg-amber-400' : 'bg-slate-300';
-                        timeColor = isOngoing ? 'text-amber-700' : isUpcoming ? 'text-amber-600' : 'text-slate-400';
-                        statusBadge = isOngoing
-                            ? `<span class="bg-amber-100 text-amber-750 text-[8.5px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Ongoing Break</span>`
-                            : isUpcoming
-                                ? `<span class="bg-amber-50/50 text-amber-600 text-[8px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Upcoming Break</span>`
-                                : `<span class="bg-slate-100 text-slate-500 text-[8px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Done</span>`;
+                        if (isBreak) {
+                            dotColor = isOngoing ? 'bg-amber-500' : isUpcoming ? 'bg-amber-400' : 'bg-slate-300';
+                            timeColor = isOngoing ? 'text-amber-700' : isUpcoming ? 'text-amber-600' : 'text-slate-400';
+                            statusBadge = isOngoing
+                                ? `<span class="bg-amber-100 text-amber-750 text-[8.5px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Ongoing Break</span>`
+                                : isUpcoming
+                                    ? `<span class="bg-amber-50/50 text-amber-600 text-[8px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Upcoming Break</span>`
+                                    : `<span class="bg-slate-100 text-slate-500 text-[8px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Done</span>`;
 
-                        contentHTML = `
-                                <div class="flex-1 min-w-0 bg-amber-50/30 p-3.5 rounded-[22px] border border-amber-100/50 shadow-2xs flex items-center justify-between gap-2 hover:border-amber-200/50 hover:shadow-xs transition-all ${isPast ? 'opacity-60' : ''}">
-                                    <div class="flex items-center gap-3.5 min-w-0 flex-1">
-                                        <div class="text-center border-r border-amber-100/50 pr-4 shrink-0 min-w-[70px] flex flex-col items-center justify-center">
-                                            <p class="text-[11px] font-black ${timeColor} leading-none whitespace-nowrap">${timeDisplay}</p>
-                                            <p class="text-[12px] font-bold text-amber-200/80 my-1 leading-none">|</p>
-                                            <p class="text-[11px] font-black ${timeColor} leading-none whitespace-nowrap mt-0.5">${endTimeDisplay}</p>
+                            contentHTML = `
+                                    <div class="flex-1 min-w-0 bg-amber-50/30 p-3.5 rounded-[22px] border border-amber-100/50 shadow-2xs flex items-center justify-between gap-2 hover:border-amber-200/50 hover:shadow-xs transition-all ${isPast ? 'opacity-60' : ''}">
+                                        <div class="flex items-center gap-3.5 min-w-0 flex-1">
+                                            <div class="text-center border-r border-amber-100/50 pr-4 shrink-0 min-w-[70px] flex flex-col items-center justify-center">
+                                                <p class="text-[11px] font-black ${timeColor} leading-none whitespace-nowrap">${timeDisplay}</p>
+                                                <p class="text-[12px] font-bold text-amber-200/80 my-1 leading-none">|</p>
+                                                <p class="text-[11px] font-black ${timeColor} leading-none whitespace-nowrap mt-0.5">${endTimeDisplay}</p>
+                                            </div>
+                                            <div class="min-w-0 flex-1 text-left">
+                                                <h4 class="font-extrabold text-xs text-amber-800 leading-snug break-words">☕ Break Time</h4>
+                                                <p class="text-[10px] text-amber-500/80 font-semibold mt-1 break-words">Take a break!</p>
+                                            </div>
                                         </div>
-                                        <div class="min-w-0 flex-1 text-left">
-                                            <h4 class="font-extrabold text-xs text-amber-800 leading-snug break-words">☕ Break Time</h4>
-                                            <p class="text-[10px] text-amber-500/80 font-semibold mt-1 break-words">Take a break!</p>
-                                        </div>
+                                        ${statusBadge}
                                     </div>
-                                    ${statusBadge}
-                                </div>
-                            `;
-                    } else {
-                        dotColor = isOngoing ? 'bg-[#8B5CF6]' : isUpcoming ? 'bg-[#3B82F6]' : 'bg-slate-300';
-                        timeColor = isOngoing ? 'text-[#4226E9]' : isUpcoming ? 'text-[#3B82F6]' : 'text-slate-400';
-                        statusBadge = isOngoing
-                            ? `<span class="bg-[#F3E8FF] text-[#8B5CF6] text-[8.5px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Ongoing</span>`
-                            : isUpcoming
-                                ? `<span class="bg-blue-50 text-blue-600 text-[8px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Upcoming</span>`
-                                : `<span class="bg-slate-100 text-slate-500 text-[8px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Done</span>`;
+                                `;
+                        } else {
+                            dotColor = isOngoing ? 'bg-[#8B5CF6]' : isUpcoming ? 'bg-[#3B82F6]' : 'bg-slate-300';
+                            timeColor = isOngoing ? 'text-[#4226E9]' : isUpcoming ? 'text-[#3B82F6]' : 'text-slate-400';
+                            statusBadge = isOngoing
+                                ? `<span class="bg-[#F3E8FF] text-[#8B5CF6] text-[8.5px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Ongoing</span>`
+                                : isUpcoming
+                                    ? `<span class="bg-blue-50 text-blue-600 text-[8px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Upcoming</span>`
+                                    : `<span class="bg-slate-100 text-slate-500 text-[8px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Done</span>`;
 
-                        let sectionHTML = '';
-                        if (cls.section_name) {
-                            sectionHTML = `<span class="bg-indigo-50 text-indigo-600 text-[10px] font-bold px-2 py-0.5 rounded ml-2 whitespace-nowrap">Sec: ${window.sanitizeHTML(cls.section_name)}</span>`;
+                            let sectionHTML = '';
+                            if (cls.section_name) {
+                                sectionHTML = `<span class="bg-indigo-50 text-indigo-600 text-[10px] font-bold px-2 py-0.5 rounded ml-2 whitespace-nowrap">Sec: ${window.sanitizeHTML(cls.section_name)}</span>`;
+                            }
+
+                            contentHTML = `
+                                    <div class="flex-1 min-w-0 bg-white p-3.5 rounded-[22px] border border-slate-100 shadow-2xs flex items-center justify-between gap-2 hover:border-[#4226E9]/15 hover:shadow-xs transition-all ${isPast ? 'opacity-60' : ''}">
+                                        <div class="flex items-center gap-3.5 min-w-0 flex-1">
+                                            <div class="text-center border-r border-slate-100 pr-4 shrink-0 min-w-[70px] flex flex-col items-center justify-center">
+                                                <p class="text-[11px] font-black ${timeColor} leading-none whitespace-nowrap">${timeDisplay}</p>
+                                                <p class="text-[12px] font-bold text-slate-300 my-1 leading-none">|</p>
+                                                <p class="text-[11px] font-black ${timeColor} leading-none whitespace-nowrap mt-0.5">${endTimeDisplay}</p>
+                                            </div>
+                                            <div class="min-w-0 flex-1 text-left">
+                                                <h4 class="font-extrabold text-xs text-slate-900 leading-snug break-words flex flex-wrap items-center gap-1">${cls.courses?.course_name || 'Course'}${sectionHTML}</h4>
+                                                <p class="text-[10px] text-slate-500 font-semibold mt-1 break-words">Room ${cls.room_number || 'N/A'} — ${cls.faculty?.faculty_name || 'Faculty'}</p>
+                                            </div>
+                                        </div>
+                                        ${statusBadge}
+                                    </div>
+                                `;
                         }
 
-                        contentHTML = `
-                                <div class="flex-1 min-w-0 bg-white p-3.5 rounded-[22px] border border-slate-100 shadow-2xs flex items-center justify-between gap-2 hover:border-[#4226E9]/15 hover:shadow-xs transition-all ${isPast ? 'opacity-60' : ''}">
-                                    <div class="flex items-center gap-3.5 min-w-0 flex-1">
-                                        <div class="text-center border-r border-slate-100 pr-4 shrink-0 min-w-[70px] flex flex-col items-center justify-center">
-                                            <p class="text-[11px] font-black ${timeColor} leading-none whitespace-nowrap">${timeDisplay}</p>
-                                            <p class="text-[12px] font-bold text-slate-300 my-1 leading-none">|</p>
-                                            <p class="text-[11px] font-black ${timeColor} leading-none whitespace-nowrap mt-0.5">${endTimeDisplay}</p>
-                                        </div>
-                                        <div class="min-w-0 flex-1 text-left">
-                                            <h4 class="font-extrabold text-xs text-slate-900 leading-snug break-words flex flex-wrap items-center gap-1">${cls.courses?.course_name || 'Course'}${sectionHTML}</h4>
-                                            <p class="text-[10px] text-slate-500 font-semibold mt-1 break-words">Room ${cls.room_number || 'N/A'} — ${cls.faculty?.faculty_name || 'Faculty'}</p>
-                                        </div>
-                                    </div>
-                                    ${statusBadge}
-                                </div>
-                            `;
+                        return `
+                                <div class="flex gap-2 items-center relative min-w-0">
+                                    ${contentHTML}
+                                </div>`;
+                    }).join('');
+                } catch (renderError) {
+                    console.error("[DASHBOARD] Render loop crash detected:", renderError);
+                    if (!window._dashboardRetryAttempted) {
+                        window._dashboardRetryAttempted = true;
+                        if (typeof RoutineStore !== 'undefined') RoutineStore.invalidate();
+                        setTimeout(loadDashboardTodayRoutine, 500);
+                        return;
                     }
-
-                    return `
-                            <div class="flex gap-2 items-center relative min-w-0">
-                                ${contentHTML}
-                            </div>`;
-                }).join('');
+                }
 
 
 

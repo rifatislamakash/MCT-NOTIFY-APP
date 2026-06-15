@@ -361,8 +361,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 container.innerHTML = filtered.map(n => {
                     const isUrgent = n.notice_type === 'urgent';
                     let badgeHtml = isUrgent 
-                        ? `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-red-100 text-red-600 uppercase">URGENT</span>`
-                        : `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-indigo-100 text-[#4226E9] uppercase">GENERAL</span>`;
+                        ? `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] bg-red-100 text-red-600 uppercase">URGENT</span>`
+                        : `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] bg-indigo-100 text-[#4226E9] uppercase">GENERAL</span>`;
 
                     let courseTagsHtml = '';
                     const aud = n.audience_type;
@@ -370,38 +370,39 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         courseTagsHtml = n.notice_courses.map(nc => {
                             const c = (allCoursesList || []).find(x => x.id === nc.course_id);
                             const name = c ? (c.short_name || c.course_name) : 'Course';
-                            return `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="book" class="w-3 h-3"></i> ${window.sanitizeHTML(name)}</span>`;
+                            return `<span class="flex items-center gap-1 text-[10px] font-bold tracking-[0.03em] bg-blue-50 text-blue-600 border border-blue-100 px-[5px] py-[1.5px] rounded-[6px]"><i data-lucide="book" class="w-3 h-3"></i> ${window.sanitizeHTML(name)}</span>`;
                         }).join('');
                     } else if (aud === 'all_students' || !aud || aud === 'general') {
-                        badgeHtml += `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-indigo-50 border border-indigo-100 text-[#4226E9] uppercase ml-1">ALL STUDENTS</span>`;
+                        badgeHtml += `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] bg-indigo-50 border border-indigo-100 text-[#4226E9] uppercase">ALL STUDENTS</span>`;
                     } else if (aud === 'all_crs') {
-                        badgeHtml += `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-purple-50 border border-purple-100 text-purple-600 uppercase ml-1">ALL CRs</span>`;
+                        badgeHtml += `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] bg-purple-50 border border-purple-100 text-purple-600 uppercase">ALL CRs</span>`;
                     } else if (aud === 'batch_students' || aud === 'batch_crs') {
-                        badgeHtml += `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-emerald-50 border border-emerald-100 text-emerald-600 uppercase ml-1">Specific Batch</span>`;
+                        badgeHtml += `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] bg-emerald-50 border border-emerald-100 text-emerald-600 uppercase">Specific Batch</span>`;
                     } else if (aud === 'specific_student') {
-                         badgeHtml += `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-yellow-50 border border-yellow-100 text-yellow-600 uppercase ml-1">Specific</span>`;
+                         badgeHtml += `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] bg-yellow-50 border border-yellow-100 text-yellow-600 uppercase">Specific</span>`;
                     }
 
                     const pin = n.is_pinned ? `<i data-lucide="pin" class="w-4.5 h-4.5 text-orange-500 fill-orange-500"></i>` : '';
 
-                    let dateStr = '';
-                    let dateTagHtml = '';
-                    let timeTagHtml = '';
-                    if (n.notice_date) {
-                        const d = new Date(n.notice_date + 'T00:00:00');
-                        dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                        dateTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="calendar" class="w-3 h-3"></i> ${dateStr}</span>`;
-                    }
-                    if (n.notice_time) {
-                        const [h, m] = n.notice_time.split(':');
-                        const ampm = +h >= 12 ? 'PM' : 'AM';
-                        const h12 = +h % 12 || 12;
-                        dateStr += (dateStr ? '   ' : '') + `${h12}:${m} ${ampm}`;
-                        timeTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="clock" class="w-3 h-3"></i> ${h12}:${m} ${ampm}</span>`;
-                    }
-                    if (!dateStr) {
-                        dateStr = new Date(n.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                        dateTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="calendar" class="w-3 h-3"></i> ${dateStr}</span>`;
+                    let bottomEventTagsHtml = '';
+                    if (n.notice_date || n.notice_time) {
+                        let dStr = '';
+                        let tStr = '';
+                        if (n.notice_date) {
+                            dStr = new Date(n.notice_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                        }
+                        if (n.notice_time) {
+                            const [h, m] = n.notice_time.split(':');
+                            const ampm = +h >= 12 ? 'PM' : 'AM';
+                            const h12 = +h % 12 || 12;
+                            tStr = `${h12}:${m} ${ampm}`;
+                        }
+                        bottomEventTagsHtml = `
+                            <div class="flex items-center justify-start gap-[8px]">
+                                ${n.notice_date ? `<span class="flex items-center gap-[6px] px-[10px] py-[6px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[12px] font-medium text-slate-600"><i data-lucide="calendar" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${dStr}</span>` : ''}
+                                ${n.notice_time ? `<span class="flex items-center gap-[6px] px-[10px] py-[6px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[12px] font-medium text-slate-600"><i data-lucide="clock" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${tStr}</span>` : ''}
+                            </div>
+                        `;
                     }
 
                     const noticeD = new Date((n.notice_date || todayStr) + 'T' + (n.notice_time || '23:59:00'));
@@ -421,17 +422,28 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     rightSideHtml += pin;
                     rightSideHtml += `</div>`;
                     
-                    const displayTagsHtml = `${dateTagHtml}${timeTagHtml}${courseTagsHtml}`;
+                    const createdDate = new Date(n.created_at);
+                    const diffMins = Math.floor((new Date() - createdDate) / 60000);
+                    let postedTimeStr = '';
+                    if (diffMins < 1) postedTimeStr = 'Just now';
+                    else if (diffMins < 60) postedTimeStr = `${diffMins}m ago`;
+                    else if (diffMins < 1440) postedTimeStr = `${Math.floor(diffMins/60)}h ago`;
+                    else postedTimeStr = createdDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+                    const extraBadgesHtml = `${badgeHtml}${courseTagsHtml}`;
 
                     return `
-                            <div onclick="openNoticeDetails('${window.sanitizeHTML(n.id)}')" class="${cardClasses} relative pb-4 px-4 pt-3 mt-2">
-                                ${window.AuthorService ? window.AuthorService.renderAuthorBlock(n.profiles, displayTagsHtml, badgeHtml, rightSideHtml) : ''}
+                            <div onclick="openNoticeDetails('${window.sanitizeHTML(n.id)}')" class="${cardClasses} relative p-[16px] mt-2">
+                                ${window.AuthorService ? window.AuthorService.renderAuthorBlock(n.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
                                 <div class="mt-1 flex flex-col">
-                                    <h4 class="font-extrabold text-[15px] text-slate-900 truncate leading-tight">${window.sanitizeHTML(n.title)}</h4>
-                                    <p class="text-[13px] text-slate-500 line-clamp-2 overflow-hidden mt-0.5 leading-snug">${window.sanitizeHTML(n.message)}</p>
+                                    <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.sanitizeHTML(n.title)}</h4>
+                                    <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5]">${window.sanitizeHTML(n.message)}</p>
                                 </div>
-                                <div class="mt-3">
-                                    ${window.ReactionService ? window.ReactionService.renderReactionBlock('notice', n.id) : ''}
+                                <div class="flex justify-between items-end w-full mt-[12px]">
+                                    <div class="flex-1">${bottomEventTagsHtml}</div>
+                                    <div class="shrink-0 ml-3">
+                                        ${window.ReactionService ? window.ReactionService.renderReactionBlock('notice', n.id) : ''}
+                                    </div>
                                 </div>
                             </div>
                         `;
@@ -517,81 +529,71 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         
                         if (item.__type === 'notice') {
                             const n = item;
-                            let dateStr = '';
-                            if (n.notice_date) {
-                                const d = new Date(n.notice_date + 'T00:00:00');
-                                dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                            }
-                            if (n.notice_time) {
-                                const [h, m] = n.notice_time.split(':');
-                                const ampm = +h >= 12 ? 'PM' : 'AM';
-                                const h12 = +h % 12 || 12;
-                                dateStr += (dateStr ? '   ' : '') + `${h12}:${m} ${ampm}`;
-                            }
-                            if (!dateStr) dateStr = new Date(n.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-
                             const isPoll = n.notice_type === 'poll';
                             let badgeHtml = isPoll 
-                                ? `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-indigo-100 text-[#4226E9] uppercase">POLL</span>` 
-                                : `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-indigo-100 text-[#4226E9] uppercase">NOTICE</span>`;
+                                ? `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] bg-indigo-100 text-[#4226E9] uppercase">POLL</span>` 
+                                : `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] bg-indigo-100 text-[#4226E9] uppercase">NOTICE</span>`;
                             
                             let courseTagsHtml = '';
                             if (n.notice_courses && n.notice_courses.length > 0) {
                                 courseTagsHtml = n.notice_courses.map(nc => {
                                     const c = (allCoursesList || []).find(x => x.id === nc.course_id);
                                     const name = c ? (c.short_name || c.course_name) : 'Specific';
-                                    return `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="book" class="w-3 h-3"></i> ${window.sanitizeHTML(name)}</span>`;
+                                    return `<span class="flex items-center gap-1 text-[10px] font-bold tracking-[0.03em] bg-blue-50 text-blue-600 border border-blue-100 px-[5px] py-[1.5px] rounded-[6px]"><i data-lucide="book" class="w-3 h-3"></i> ${window.sanitizeHTML(name)}</span>`;
                                 }).join('');
                             }
                             
-                            let dateTagHtml = '';
-                            let timeTagHtml = '';
-                            if (n.notice_date) {
-                                const d = new Date(n.notice_date + 'T00:00:00');
-                                dateTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="calendar" class="w-3 h-3"></i> ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>`;
-                            }
-                            if (n.notice_time) {
-                                const [h, m] = n.notice_time.split(':');
-                                const ampm = +h >= 12 ? 'PM' : 'AM';
-                                const h12 = +h % 12 || 12;
-                                timeTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="clock" class="w-3 h-3"></i> ${h12}:${m} ${ampm}</span>`;
-                            }
-                            if (!dateTagHtml && !timeTagHtml) {
-                                const d = new Date(n.created_at);
-                                dateTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="calendar" class="w-3 h-3"></i> ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>`;
+                            let bottomEventTagsHtml = '';
+                            if (n.notice_date || n.notice_time) {
+                                let dStr = '';
+                                let tStr = '';
+                                if (n.notice_date) {
+                                    dStr = new Date(n.notice_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                                }
+                                if (n.notice_time) {
+                                    const [h, m] = n.notice_time.split(':');
+                                    const ampm = +h >= 12 ? 'PM' : 'AM';
+                                    const h12 = +h % 12 || 12;
+                                    tStr = `${h12}:${m} ${ampm}`;
+                                }
+                                bottomEventTagsHtml = `
+                                    <div class="flex items-center justify-start gap-[8px]">
+                                        ${n.notice_date ? `<span class="flex items-center gap-[6px] px-[10px] py-[6px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[12px] font-medium text-slate-600"><i data-lucide="calendar" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${dStr}</span>` : ''}
+                                        ${n.notice_time ? `<span class="flex items-center gap-[6px] px-[10px] py-[6px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[12px] font-medium text-slate-600"><i data-lucide="clock" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${tStr}</span>` : ''}
+                                    </div>
+                                `;
                             }
                             
-                            const displayTagsHtml = `${dateTagHtml}${timeTagHtml}${courseTagsHtml}`;
                             const clickAction = isPoll ? `window.PollService.openPollDetails('${window.sanitizeHTML(n.id)}')` : `openNoticeDetails('${window.sanitizeHTML(n.id)}')`;
 
+                            const createdDate = new Date(n.created_at);
+                            const diffMins = Math.floor((new Date() - createdDate) / 60000);
+                            let postedTimeStr = '';
+                            if (diffMins < 1) postedTimeStr = 'Just now';
+                            else if (diffMins < 60) postedTimeStr = `${diffMins}m ago`;
+                            else if (diffMins < 1440) postedTimeStr = `${Math.floor(diffMins/60)}h ago`;
+                            else postedTimeStr = createdDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+                            const extraBadgesHtml = `${badgeHtml}${courseTagsHtml}`;
+
                             return `
-                                <div class="flex flex-col pb-3 px-3 pt-3 bg-white rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer" onclick="${clickAction}">
-                                    ${window.AuthorService ? window.AuthorService.renderAuthorBlock(n.profiles, displayTagsHtml, badgeHtml, rightSideHtml) : ''}
+                                <div class="flex flex-col p-[16px] bg-white rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer" onclick="${clickAction}">
+                                    ${window.AuthorService ? window.AuthorService.renderAuthorBlock(n.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
                                     <div class="mt-1 flex flex-col">
-                                        <h4 class="font-bold text-[14px] text-slate-900 leading-tight truncate">${window.sanitizeHTML(n.title)}</h4>
-                                        <p class="text-[12px] font-medium text-slate-500 leading-snug line-clamp-2 mt-0.5">${window.sanitizeHTML(n.message)}</p>
+                                        <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.sanitizeHTML(n.title)}</h4>
+                                        <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5]">${window.sanitizeHTML(n.message)}</p>
                                     </div>
-                                    <div class="mt-3">
-                                        ${window.ReactionService ? window.ReactionService.renderReactionBlock(isPoll ? 'poll' : 'notice', n.id) : ''}
+                                    <div class="flex justify-between items-end w-full mt-[12px]">
+                                        <div class="flex-1">${bottomEventTagsHtml}</div>
+                                        <div class="shrink-0 ml-3">
+                                            ${window.ReactionService ? window.ReactionService.renderReactionBlock(isPoll ? 'poll' : 'notice', n.id) : ''}
+                                        </div>
                                     </div>
                                 </div>
                             `;
                         } else {
                             const s = item;
-                            let dateStr = '';
-                            if (s.schedule_date) {
-                                const d = new Date(s.schedule_date + 'T00:00:00');
-                                dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                            }
-                            if (s.schedule_time) {
-                                const [h, m] = s.schedule_time.split(':');
-                                const ampm = +h >= 12 ? 'PM' : 'AM';
-                                const h12 = +h % 12 || 12;
-                                dateStr += (dateStr ? '   ' : '') + `${h12}:${m} ${ampm}`;
-                            }
-                            if (!dateStr) dateStr = new Date(s.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-
-                            let badgeHtml = `<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-emerald-100 text-emerald-600 uppercase">SCHEDULE</span>`;
+                            let badgeHtml = `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] bg-emerald-100 text-emerald-600 uppercase">SCHEDULE</span>`;
                             const scMap = window.scheduleCoursesMap || {};
                             const courseIds = scMap[s.id] || [];
                             
@@ -600,38 +602,53 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 courseTagsHtml = courseIds.map(cid => {
                                     const c = (allCoursesList || []).find(x => x.id === cid);
                                     const name = c ? (c.short_name || c.course_name) : 'Specific';
-                                    return `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="book" class="w-3 h-3"></i> ${window.sanitizeHTML(name)}</span>`;
+                                    return `<span class="flex items-center gap-1 text-[10px] font-bold tracking-[0.03em] bg-emerald-50 text-emerald-600 border border-emerald-100 px-[5px] py-[1.5px] rounded-[6px]"><i data-lucide="book" class="w-3 h-3"></i> ${window.sanitizeHTML(name)}</span>`;
                                 }).join('');
                             }
                             
-                            let dateTagHtml = '';
-                            let timeTagHtml = '';
-                            if (s.schedule_date) {
-                                const d = new Date(s.schedule_date + 'T00:00:00');
-                                dateTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="calendar" class="w-3 h-3"></i> ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>`;
+                            let bottomEventTagsHtml = '';
+                            if (s.schedule_date || s.schedule_time) {
+                                let dStr = '';
+                                let tStr = '';
+                                if (s.schedule_date) {
+                                    dStr = new Date(s.schedule_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                                }
+                                if (s.schedule_time) {
+                                    const [h, m] = s.schedule_time.split(':');
+                                    const ampm = +h >= 12 ? 'PM' : 'AM';
+                                    const h12 = +h % 12 || 12;
+                                    tStr = `${h12}:${m} ${ampm}`;
+                                }
+                                bottomEventTagsHtml = `
+                                    <div class="flex items-center justify-start gap-[8px]">
+                                        ${s.schedule_date ? `<span class="flex items-center gap-[6px] px-[10px] py-[6px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[12px] font-medium text-slate-600"><i data-lucide="calendar" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${dStr}</span>` : ''}
+                                        ${s.schedule_time ? `<span class="flex items-center gap-[6px] px-[10px] py-[6px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[12px] font-medium text-slate-600"><i data-lucide="clock" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${tStr}</span>` : ''}
+                                    </div>
+                                `;
                             }
-                            if (s.schedule_time) {
-                                const [h, m] = s.schedule_time.split(':');
-                                const ampm = +h >= 12 ? 'PM' : 'AM';
-                                const h12 = +h % 12 || 12;
-                                timeTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="clock" class="w-3 h-3"></i> ${h12}:${m} ${ampm}</span>`;
-                            }
-                            if (!dateTagHtml && !timeTagHtml) {
-                                const d = new Date(s.created_at);
-                                dateTagHtml = `<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="calendar" class="w-3 h-3"></i> ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>`;
-                            }
-                            
-                            const displayTagsHtml = `${dateTagHtml}${timeTagHtml}${courseTagsHtml}`;
+
+                            const createdDate = new Date(s.created_at);
+                            const diffMins = Math.floor((new Date() - createdDate) / 60000);
+                            let postedTimeStr = '';
+                            if (diffMins < 1) postedTimeStr = 'Just now';
+                            else if (diffMins < 60) postedTimeStr = `${diffMins}m ago`;
+                            else if (diffMins < 1440) postedTimeStr = `${Math.floor(diffMins/60)}h ago`;
+                            else postedTimeStr = createdDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+                            const extraBadgesHtml = `${badgeHtml}${courseTagsHtml}`;
 
                             return `
-                                <div class="flex flex-col pb-3 px-3 pt-3 bg-white rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer" onclick="openScheduleDetails('${window.sanitizeHTML(s.id)}')">
-                                    ${window.AuthorService ? window.AuthorService.renderAuthorBlock(s.profiles, displayTagsHtml, badgeHtml, rightSideHtml) : ''}
+                                <div class="flex flex-col p-[16px] bg-white rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer" onclick="openScheduleDetails('${window.sanitizeHTML(s.id)}')">
+                                    ${window.AuthorService ? window.AuthorService.renderAuthorBlock(s.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
                                     <div class="mt-1 flex flex-col">
-                                        <h4 class="font-bold text-[14px] text-slate-900 leading-tight truncate">${window.sanitizeHTML(s.title)}</h4>
-                                        <p class="text-[12px] font-medium text-slate-500 leading-snug line-clamp-2 mt-0.5">${window.sanitizeHTML(s.message)}</p>
+                                        <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.sanitizeHTML(s.title)}</h4>
+                                        <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5]">${window.sanitizeHTML(s.message)}</p>
                                     </div>
-                                    <div class="mt-3">
-                                        ${window.ReactionService ? window.ReactionService.renderReactionBlock('schedule', s.id) : ''}
+                                    <div class="flex justify-between items-end w-full mt-[12px]">
+                                        <div class="flex-1">${bottomEventTagsHtml}</div>
+                                        <div class="shrink-0 ml-3">
+                                            ${window.ReactionService ? window.ReactionService.renderReactionBlock('schedule', s.id) : ''}
+                                        </div>
                                     </div>
                                 </div>
                             `;
@@ -1318,19 +1335,18 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         let offsetValue = 'custom';
                         let customDateVal = '';
                         
-                        if (rem.reminder_time && eventDateTime && !isNaN(eventDateTime.getTime())) {
-                            const remTime = new Date(rem.reminder_time);
-                            const diffMs = eventDateTime.getTime() - remTime.getTime();
-                            const diffMins = Math.round(diffMs / (60 * 1000));
+                        if (rem.reminder_time) {
+                            const utcDate = new Date(rem.reminder_time);
+                            const offset = utcDate.getTimezoneOffset() * 60000;
+                            customDateVal = new Date(utcDate.getTime() - offset).toISOString().slice(0, 16);
                             
-                            if (diffMins === 1440 || diffMins === 180 || diffMins === 30) {
-                                offsetValue = String(diffMins);
-                            } else {
-                                offsetValue = 'custom';
-                                customDateVal = rem.reminder_time.slice(0, 16);
+                            if (eventDateTime && !isNaN(eventDateTime.getTime())) {
+                                const diffMs = eventDateTime.getTime() - utcDate.getTime();
+                                const diffMins = Math.round(diffMs / (60 * 1000));
+                                if (diffMins === 1440 || diffMins === 180 || diffMins === 30) {
+                                    offsetValue = String(diffMins);
+                                }
                             }
-                        } else if (rem.reminder_time) {
-                            customDateVal = rem.reminder_time.slice(0, 16);
                         }
                         
                         const rowHTML = `
