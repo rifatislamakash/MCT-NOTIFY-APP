@@ -180,26 +180,36 @@ serve(async (req) => {
       }
 
       for (const token of uniqueTokens) {
-        // PURE DATA-ONLY ARCHITECTURE (Completely stripped visible notification blocks to bypass OS display)
         const fcmPayload = {
           message: {
             token: token,
-            data: {
+            notification: {
               title: notificationTitle,
-              body: notificationBody,
+              body: notificationBody
+            },
+            data: {
               target_type: targetType,
               target_id: targetId,
-              icon: "/assets/Logo.png",
-              badge: "/assets/badge.png",
               click_action: "https://mctnotify.vercel.app"
             },
-            android: { priority: "high" },
+            android: { 
+              priority: "high",
+              notification: {
+                icon: "/assets/badge.png"
+              }
+            },
             webpush: {
               headers: { Urgency: "high" },
+              notification: {
+                icon: "/assets/Logo.png",
+                badge: "/assets/badge.png"
+              },
               fcm_options: { link: "https://mctnotify.vercel.app" }
             }
           }
         };
+
+        console.log("[RAW FCM PAYLOAD]:", JSON.stringify(fcmPayload, null, 2));
 
         const response = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
           method: 'POST',
