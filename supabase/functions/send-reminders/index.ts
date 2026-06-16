@@ -185,7 +185,8 @@ serve(async (req) => {
             token: token,
             notification: {
               title: notificationTitle || "MCT Notify Update",
-              body: notificationBody || "Open the application to see details."
+              body: notificationBody || "Open the application to see details.",
+              image: "https://ngropmfrneaaejwocnbf.supabase.co/storage/v1/object/public/materials/Logo.png"
             },
             data: {
               target_type: String(targetType || "notice"),
@@ -198,6 +199,10 @@ serve(async (req) => {
             webpush: {
               headers: {
                 Urgency: "high"
+              },
+              notification: {
+                icon: "https://ngropmfrneaaejwocnbf.supabase.co/storage/v1/object/public/materials/Logo.png",
+                badge: "https://ngropmfrneaaejwocnbf.supabase.co/storage/v1/object/public/materials/badge.png"
               },
               fcm_options: {
                 link: "https://mctnotify.vercel.app"
