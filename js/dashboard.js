@@ -157,7 +157,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
         // ---- DASHBOARD: Smart Today/Tomorrow Routine ----
         // ---- DASHBOARD: Smart Today/Tomorrow Routine ----
-        export async function loadDashboardTodayRoutine() {
+        export async function loadDashboardTodayRoutine(skipRender = false) {
             if (window.isModuleLoading('dashboard')) {
                 console.log("[DASHBOARD ROUTINE] Load already in progress, ignoring duplicate call.");
                 return;
@@ -182,11 +182,13 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 }
 
                 // Mount clean animated loading skeleton wireframes
-                dashContainer.innerHTML = `
-                    <div class="animate-pulse flex flex-col gap-3">
-                        <div class="h-[72px] bg-slate-100 rounded-[22px] border border-slate-50 w-full"></div>
-                        <div class="h-[72px] bg-slate-100 rounded-[22px] border border-slate-50 w-full"></div>
-                    </div>`;
+                if (!skipRender) {
+                    dashContainer.innerHTML = `
+                        <div class="animate-pulse flex flex-col gap-3">
+                            <div class="h-[72px] bg-slate-100 rounded-[22px] border border-slate-50 w-full"></div>
+                            <div class="h-[72px] bg-slate-100 rounded-[22px] border border-slate-50 w-full"></div>
+                        </div>`;
+                }
 
                 // Always fetch fresh from Supabase with retry and abort signal
                 console.log(`[DASHBOARD ROUTINE] Fetching routine for day: ${targetDay}`);
@@ -229,12 +231,12 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                 if (todayClasses.length === 0) {
                     const emptyMsg = isToday ? 'No classes scheduled for today.' : `No classes scheduled for tomorrow (${targetDay}).`;
-                    dashContainer.innerHTML = `
+                    window._dashboardRoutineHTML = `
                             <div class="bg-white rounded-[22px] border border-slate-100 shadow-2xs p-5 text-center">
                                 <i data-lucide="calendar-check" class="w-8 h-8 text-slate-200 mx-auto mb-2"></i>
                                 <p class="text-xs font-bold text-slate-400">${emptyMsg}</p>
                             </div>`;
-                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                    if (!skipRender) window.renderDashboardTodayRoutine();
                     return;
                 }
 
@@ -295,7 +297,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const nowMins = isToday ? (now.getHours() * 60 + now.getMinutes()) : -1;
 
                 try {
-                    dashContainer.innerHTML = mergedClasses.map(cls => {
+                    window._dashboardRoutineHTML = mergedClasses.map(cls => {
                         const isBreak = !cls.course_id || cls.room_number === 'Break';
                         const timeDisplay = formatRoutineTime(cls.start_time);
                         const endTimeStr = getEndTime(cls.start_time, cls.durationHrs);
@@ -389,7 +391,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
 
 
-                if (typeof lucide !== 'undefined') lucide.createIcons();
+                if (!skipRender) window.renderDashboardTodayRoutine();
             } catch (err) {
                 if (err.name === 'AbortError') {
                     console.log("[DASHBOARD ROUTINE] Aborted, ignoring errors.");
@@ -404,7 +406,12 @@ import { ProfileStore } from './stores/ProfileStore.js';
             }
         }
 
-        
+        window.renderDashboardTodayRoutine = function() {
+            const dashContainer = document.getElementById('dashboard-today-routine');
+            if (!dashContainer || typeof window._dashboardRoutineHTML === 'undefined') return;
+            dashContainer.innerHTML = window._dashboardRoutineHTML;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        };
 
 
 

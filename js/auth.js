@@ -137,9 +137,9 @@ let isRegistering = false;
                 try {
                     const tasks = [];
                     if (typeof window.loadContentSettings === 'function') tasks.push(window.loadContentSettings().catch(console.warn));
-                    if (typeof window.loadNotices === 'function') tasks.push(window.loadNotices().catch(console.warn));
-                    if (typeof window.loadDashboardTodayRoutine === 'function') tasks.push(window.loadDashboardTodayRoutine().catch(console.warn));
-                    if (typeof window.loadScheduleList === 'function') tasks.push(window.loadScheduleList().catch(console.warn));
+                    if (typeof window.loadNotices === 'function') tasks.push(window.loadNotices(true).catch(console.warn));
+                    if (typeof window.loadDashboardTodayRoutine === 'function') tasks.push(window.loadDashboardTodayRoutine(true).catch(console.warn));
+                    if (typeof window.loadScheduleList === 'function') tasks.push(window.loadScheduleList(true).catch(console.warn));
                     if (window.PollService && typeof window.PollService.loadPolls === 'function') {
                         tasks.push(window.PollService.loadPolls().then(() => {
                             if (window.currentUserRole === 'student' && typeof window.PollService?.checkAndShowPopup === 'function') {
@@ -158,10 +158,12 @@ let isRegistering = false;
                     const timeoutPromise = new Promise(resolve => setTimeout(resolve, 10000));
                     await Promise.race([Promise.all(tasks), timeoutPromise]);
                     
-                    // Force a synchronized re-render of Recent Updates once both Notices and Schedules are fully loaded
-                    if (typeof window.renderNoticesList === 'function') {
-                        window.renderNoticesList();
-                    }
+                    // Unified Execution Frame for Repainting
+                    if (typeof window.renderNoticesList === 'function') window.renderNoticesList();
+                    if (typeof window.injectDashboardNotices === 'function') window.injectDashboardNotices();
+                    if (typeof window.renderDashboardTodayRoutine === 'function') window.renderDashboardTodayRoutine();
+                    if (typeof window.renderScheduleList === 'function') window.renderScheduleList();
+                    if (typeof window.updateDashboardQuickAccessBadges === 'function') window.updateDashboardQuickAccessBadges();
                 } finally {
                     if (typeof window.showLoader === 'function') window.showLoader(false);
                     if (typeof window.updateGlobalAvatars === 'function') setTimeout(window.updateGlobalAvatars, 1000);

@@ -58,7 +58,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
         }
 
         // ----- LOAD SCHEDULE LIST -----
-        window.loadScheduleList = async function () {
+        window.loadScheduleList = async function (skipRender = false) {
             if (window.isModuleLoading('schedule')) {
                 console.log("[SCHEDULE] Load already in progress, ignoring duplicate call.");
                 return;
@@ -297,10 +297,12 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 if (window.ReactionService) await window.ReactionService.fetchReactionsForContent('schedule', scheduleIds);
 
                 console.log(`[SCHEDULE] Successfully loaded ${schedulesList.length} schedules.`);
-                filterSchedulesUI();
-                // Update schedule hub badge count
-                if (typeof window.updateScheduleBadgeCount === 'function') window.updateScheduleBadgeCount();
-                if (window.NoticeService && typeof window.NoticeService.injectDashboardNotices === 'function') window.NoticeService.injectDashboardNotices();
+                if (!skipRender) {
+                    filterSchedulesUI();
+                    // Update schedule hub badge count
+                    if (typeof window.updateScheduleBadgeCount === 'function') window.updateScheduleBadgeCount();
+                    if (window.NoticeService && typeof window.NoticeService.injectDashboardNotices === 'function') window.NoticeService.injectDashboardNotices();
+                }
 
             } catch (err) {
                 if (err.name === 'AbortError' || (err.message && err.message.includes('AbortError'))) {
@@ -417,7 +419,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
         };
 
         // ----- RENDER SCHEDULE LIST -----
-        function renderScheduleList(list) {
+        function renderScheduleList(list = window.currentSchedulesList) {
             const container = document.getElementById('schedule-list-container');
             if (!container) return;
 
@@ -1738,6 +1740,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
         window.onEditScheduleFileSelected = window.onEditScheduleFileSelected;
         window.clearEditScheduleFile = window.clearEditScheduleFile;
         window.clearEditAttachment = window.clearEditAttachment;
+        window.renderScheduleList = renderScheduleList;
 
 
 

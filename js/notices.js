@@ -14,7 +14,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
         let allCoursesList = [];
         let currentNoticeFilter = 'all';
 
-        export async function loadNotices() {
+        export async function loadNotices(skipRender = false) {
             if (window.isModuleLoading('notices')) return;
             window.setModuleLoading('notices', true);
             cancelActiveRequest('notices');
@@ -220,10 +220,12 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const noticeIds = window.currentNoticesList.map(n => n.id);
                 if (window.ReactionService) await window.ReactionService.fetchReactionsForContent('notice', noticeIds);
 
-                injectDashboardNotices();
-                renderNoticesList();
-                if (typeof window.updateDashboardQuickAccessBadges === 'function') window.updateDashboardQuickAccessBadges();
-                if (typeof window.fetchNotificationCenterNotices === 'function') window.fetchNotificationCenterNotices();
+                if (!skipRender) {
+                    injectDashboardNotices();
+                    renderNoticesList();
+                    if (typeof window.updateDashboardQuickAccessBadges === 'function') window.updateDashboardQuickAccessBadges();
+                    if (typeof window.fetchNotificationCenterNotices === 'function') window.fetchNotificationCenterNotices();
+                }
             } catch (err) {
                 if (err.name === 'AbortError' || (err.message && err.message.includes('AbortError'))) {
                     console.log("[NOTICES] Load aborted, ignoring.");
@@ -1488,7 +1490,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
         }
 
         // Expose notice functions globally
-        
+        window.renderNoticesList = renderNoticesList;
+        window.injectDashboardNotices = injectDashboardNotices;
         
         
         
