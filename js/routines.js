@@ -343,16 +343,18 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             <div class="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mb-4">
                                 <i data-lucide="calendar-x" class="w-8 h-8 text-indigo-300"></i>
                             </div>
-                            <p class="text-sm font-bold text-slate-500">No routine created yet.</p>
-                            <p class="text-[11px] text-slate-400 mt-1">${(window.currentUserRole === 'admin' || window.currentUserRole === 'cr') ? 'Tap + to add classes to the routine.' : 'Check back when admin creates the routine.'}</p>
-                        </div>`;
+                        <button onclick="renderDailyRoutineView()" class="mt-3 text-[11px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full">Retry</button>
+                    </div>`;
                 if (typeof lucide !== 'undefined') lucide.createIcons();
+                console.error('[DAILY VIEW FETCH ERROR]', err);
                 return;
             }
 
             // PART 11: Filter by student's enrolled courses (admins see all)
             let filteredRoutineData = routineData;
-            if (!crPermissionService.isAdmin() && !crPermissionService.isCR()) {
+            const isStrictAdmin = window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail);
+            
+            if (!isStrictAdmin && (!batchVal || batchVal === 'all')) {
                 const enrolledCourses = window.currentUserCoursesList || [];
                 const myCourseIds = enrolledCourses.map(uc => uc.course_id);
                 
@@ -561,8 +563,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             </div>
                             <h3 class="text-lg font-bold text-slate-700">Please select a batch</h3>
                             <p class="text-sm text-slate-500 mt-1 max-w-[250px]">Select a batch from the dropdown above to view its routine.</p>
-                        </div>
-                    `;
+                        </div>`;
                     if (window.lucide) window.lucide.createIcons();
                     return;
                 }
@@ -594,14 +595,15 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 <i data-lucide="moon" class="w-7 h-7 text-slate-300"></i>
                             </div>
                             <p class="text-sm font-bold text-slate-500">No classes ${showingToday ? 'today' : 'tomorrow'}.</p>
-                            <p class="text-[11px] text-slate-400 mt-1">Enjoy your ${showingToday ? 'day' : 'evening'} off! \ud83c\udf89</p>
+                            <p class="text-[11px] text-slate-400 mt-1">Enjoy your ${showingToday ? 'day' : 'evening'} off! 🎉</p>
                         </div>`;
                 if (typeof lucide !== 'undefined') lucide.createIcons();
                 return;
             }
 
             // Show spinner immediately
-            container.innerHTML = `<div class="flex flex-col items-center justify-center py-12">
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-12">
                     <div class="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3"></div>
                     <p class="text-xs font-semibold text-slate-400">Loading ${showingToday ? 'today' : 'tomorrow'}'s classes...</p>
                 </div>`;
@@ -626,9 +628,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     return (a.start_time || '').localeCompare(b.start_time || '');
                 });
 
-                // PART 11: Filter by enrolled courses for students
+                // PART 11: Filter by enrolled courses for students/CRs unless a specific batch is selected
                 const enrolledCourses = window.currentUserCoursesList || [];
-                if (window.currentUserRole !== 'admin' && window.currentUserRole !== 'cr') {
+                const isStrictAdmin = window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail);
+                
+                if (!isStrictAdmin && (!batchVal || batchVal === 'all')) {
                     const myCourseIds = enrolledCourses.map(uc => uc.course_id);
                     const profileBatchId = window.authState?.profile?.batch_id;
                     todayClasses = todayClasses.filter(r => {
@@ -646,24 +650,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         }
                         return true;
                     });
-                } else if (window.currentUserRole === 'cr' && !window.isAdminEmail(window.currentUserEmail)) {
-                    const allowedCourseIds = window.currentCoursesList.map(c => c.id);
-                    const crBatches = window.currentAssignedBatches || [];
-                    todayClasses = todayClasses.filter(r => {
-                        if (!r.course_id || r.room_number === 'Break') {
-                            return crBatches.includes(r.batch_id);
-                        }
-                        return allowedCourseIds.includes(r.course_id);
-                    });
                 } else if (batchVal !== 'all') {
                     todayClasses = todayClasses.filter(r => r.batch_id === batchVal);
                 }
             } catch (err) {
-                container.innerHTML = `<div class="flex flex-col items-center justify-center py-10 text-center text-slate-400 bg-white rounded-[20px] border border-slate-100 shadow-sm">
-                        <i data-lucide="wifi-off" class="w-8 h-8 text-slate-200 mb-2"></i>
-                        <p class="text-xs font-bold text-slate-400">Could not load routine.</p>
-                        <button onclick="renderDailyRoutineView()" class="mt-3 text-[11px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full">Retry</button>
-                    </div>`;
+
                 if (typeof lucide !== 'undefined') lucide.createIcons();
                 console.error('[DAILY VIEW FETCH ERROR]', err);
                 return;
