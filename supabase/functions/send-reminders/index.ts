@@ -185,8 +185,7 @@ serve(async (req) => {
             token: token,
             notification: {
               title: notificationTitle || "MCT Notify Update",
-              body: notificationBody || "Open the application to see details.",
-              image: "https://ngropmfrneaaejwocnbf.supabase.co/storage/v1/object/public/materials/Logo.png"
+              body: notificationBody || "Open the application to see details."
             },
             data: {
               target_type: String(targetType || "notice"),
