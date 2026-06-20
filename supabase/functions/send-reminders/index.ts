@@ -78,8 +78,13 @@ serve(async (req) => {
         .eq('content_id', reminder.parent_id);
 
       // Fix array access to target_type and target_id
-      const targetType = targets && targets.length > 0 ? targets[0].target_type : "all_students";
-      const targetId = targets && targets.length > 0 ? targets[0].target_id : "global";
+      let targetType = targets && targets.length > 0 ? targets[0].target_type : "all_students";
+      let targetId = targets && targets.length > 0 ? targets[0].target_id : "global";
+
+      if (reminder.parent_type === 'welcome') {
+        targetType = 'specific_student';
+        targetId = reminder.parent_id;
+      }
 
       // Dynamically fetch and filter tokens based on audience criteria
       let uniqueTokens: string[] = [];

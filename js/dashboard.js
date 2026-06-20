@@ -32,7 +32,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         // is fully committed to the database before the edge function tries to read it.
                         setTimeout(() => {
                             window.triggerImmediateNotification(
-                                'notice',
+                                'welcome',
                                 window.authState.user.id,
                                 '🚀 Welcome to MCT Notify!',
                                 'Your campus feed is live. What you get:\n\n• ⚡ Instant Alerts (No delays)\n• 🗓️ Batch Feeds (No clutter)\n• 🎯 Zero Spam (Only essentials)\n\nKeep notifications enabled to stay in the loop!'
