@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <link rel="manifest" href="./manifest.json">
     <link rel="icon" href="./assets/Logo.png">
     <title>MCT Notify - Class Management System</title>
@@ -16,9 +16,52 @@
     <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        img, video, canvas, svg, iframe { max-width: 100%; height: auto; }
+        p, h1, h2, h3, h4, h5, h6, span, div { overflow-wrap: break-word; word-wrap: break-word; }
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #F8FAFC;
+        }
+
+        html, body {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden !important; /* Absolutely no scrolling on the root */
+            overscroll-behavior: none; /* Block both vertical rubber-banding AND horizontal swipe-to-go-back */
+            margin: 0;
+            padding: 0;
+            touch-action: pan-y;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        /* Force kill any horizontal scrolling inside scrollable containers */
+        .overflow-y-auto {
+            overflow-x: hidden !important;
+        }
+        input, textarea { -webkit-user-select: auto; user-select: auto; }
+
+        /* Hardware acceleration for dropdowns */
+        select, .dropdown-container {
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+        }
+        
+        /* Disable backdrop-filter on iOS to prevent WebKit memory leak crashes */
+        @supports (-webkit-touch-callout: none) {
+            .backdrop-blur-lg, .backdrop-blur-md, .backdrop-blur-sm, .backdrop-blur-xl, .backdrop-blur-2xl, .backdrop-blur {
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
         }
 
         /* Float animations matching references */
@@ -33,7 +76,14 @@
         /* Screen Transitions */
         .screen {
             position: absolute;
-            inset: 0;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden !important; /* Prevent screen wrapper from scrolling; delegate to inner flex-1 */
+            overscroll-behavior-x: none; /* Kill horizontal swipe-to-navigate in iOS Safari */
+            -webkit-overflow-scrolling: touch; /* Re-enables smooth momentum scrolling on iOS */
+            touch-action: pan-y;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             opacity: 0;
             pointer-events: none;
@@ -247,7 +297,7 @@
 <body class="overflow-x-hidden min-h-screen text-slate-900 bg-slate-50 auth-mode">
 
     <!-- Outer Presentation Layer -->
-    <div class="min-h-screen w-full flex flex-col lg:flex-row">
+    <div class="min-h-screen w-full flex flex-col lg:flex-row overflow-x-hidden">
 
         <!-- Interactive Sidebar Info Panel -->
         <div class="hidden lg:flex lg:w-5/12 p-12 flex-col justify-between bg-slate-950 text-white relative overflow-hidden shrink-0 border-r border-slate-900">
@@ -387,7 +437,7 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                                     <i data-lucide="key-round" class="w-5 h-5"></i>
                                 </div>
-                                <input type="password" id="login-password" placeholder="Enter password" class="w-full pl-12 pr-12 py-3.5 bg-white border border-slate-100 rounded-full text-sm font-semibold shadow-xs focus:ring-2 focus:ring-[#4226E9] focus:outline-none placeholder:text-slate-400/80">
+                                <input type="text" id="login-password" autocomplete="new-password" data-lpignore="true" readonly placeholder="Enter password" class="w-full pl-12 pr-12 py-3.5 bg-white border border-slate-100 rounded-full text-sm font-semibold shadow-xs focus:ring-2 focus:ring-[#4226E9] focus:outline-none placeholder:text-slate-400/80">
                                 <button type="button" onclick="togglePasswordVisibility('login-password')" class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none">
                                     <i data-lucide="eye" class="w-5 h-5"></i>
                                 </button>
@@ -5157,6 +5207,7 @@
             }, 1000);
 
             // Splash countdown
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
             setTimeout(() => {
                 const initApp = () => {
                     if (typeof window.checkActiveSession === 'function') {
@@ -5199,7 +5250,7 @@
                         }
                     });
                 });
-            }, 2000);
+            }, isStandalone ? 0 : 2000);
         });
 
         // ----------------- COURSE MANAGEMENT LOGIC (NEW) -----------------

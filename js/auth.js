@@ -328,8 +328,14 @@ let isRegistering = false;
                     console.log("[DEBUG] checkActiveSession: handleUserRouting completed");
                 } else {
                     console.log("[DEBUG] checkActiveSession: no session found");
+                    const loginPasswordInput = document.getElementById('login-password');
+                    if (loginPasswordInput) {
+                        loginPasswordInput.type = 'password';
+                        loginPasswordInput.removeAttribute('readonly');
+                    }
                     window.currentUserRole = 'student';
                     
+
                     if (sessionStorage.getItem('pending_registration_state') || localStorage.getItem('pending_signup_email')) {
                         console.log("[AUTH] Pending registration detected, recovering OTP view");
                         window.navigate('screen-confirm-email');
@@ -339,6 +345,11 @@ let isRegistering = false;
                 }
             } catch (err) {
                 console.log("[DEBUG] checkActiveSession: catch block triggered", err);
+                const loginPasswordInput = document.getElementById('login-password');
+                if (loginPasswordInput) {
+                    loginPasswordInput.type = 'password';
+                    loginPasswordInput.removeAttribute('readonly');
+                }
                 window.currentUserRole = 'student';
                 window.navigate('screen-welcome');
             } finally {
@@ -797,6 +808,11 @@ let isRegistering = false;
 
             setTimeout(() => {
                 if (typeof window.showLoader !== 'undefined') window.showLoader(false);
+                const loginPasswordInput = document.getElementById('login-password');
+                if (loginPasswordInput) {
+                    loginPasswordInput.type = 'password';
+                    loginPasswordInput.removeAttribute('readonly');
+                }
                 window.navigate('screen-login');
                 window.showGlobalToast("Logged Out", "Session destroyed successfully.");
             }, 800);
