@@ -117,13 +117,19 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     let ctMap = {};
                     if (scheduleIds.length > 0) {
                         const scData = await fetchWithRetry(async (subSignal) => {
-                            const { data, error } = await _supabase
-                                .from('schedule_courses')
-                                .select('schedule_id, course_id')
-                                .in('schedule_id', scheduleIds)
-                                .abortSignal(subSignal);
-                            if (error) throw error;
-                            return data || [];
+                            let results = [];
+                            const chunkSize = 100;
+                            for (let i = 0; i < scheduleIds.length; i += chunkSize) {
+                                const chunk = scheduleIds.slice(i, i + chunkSize);
+                                const { data, error } = await _supabase
+                                    .from('schedule_courses')
+                                    .select('schedule_id, course_id')
+                                    .in('schedule_id', chunk)
+                                    .abortSignal(subSignal);
+                                if (error) throw error;
+                                if (data) results = results.concat(data);
+                            }
+                            return results;
                         }, 2, 1000, 8000, localController.signal);
 
                         scData.forEach(row => {
@@ -132,14 +138,20 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         });
 
                         const ctData = await fetchWithRetry(async (subSignal) => {
-                            const { data, error } = await _supabase
-                                .from('content_targets')
-                                .select('*')
-                                .eq('content_type', 'schedule')
-                                .in('content_id', scheduleIds)
-                                .abortSignal(subSignal);
-                            if (error) throw error;
-                            return data || [];
+                            let results = [];
+                            const chunkSize = 100;
+                            for (let i = 0; i < scheduleIds.length; i += chunkSize) {
+                                const chunk = scheduleIds.slice(i, i + chunkSize);
+                                const { data, error } = await _supabase
+                                    .from('content_targets')
+                                    .select('*')
+                                    .eq('content_type', 'schedule')
+                                    .in('content_id', chunk)
+                                    .abortSignal(subSignal);
+                                if (error) throw error;
+                                if (data) results = results.concat(data);
+                            }
+                            return results;
                         }, 2, 1000, 8000, localController.signal);
 
                         ctData.forEach(row => {

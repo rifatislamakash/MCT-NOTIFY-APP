@@ -56,11 +56,22 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 if (noticesData && noticesData.length > 0) {
                     try {
                         const noticeIds = noticesData.map(n => n.id);
-                        const { data: ctData } = await _supabase
-                            .from('content_targets')
-                            .select('content_id, target_type, target_id')
-                            .eq('content_type', 'notice')
-                            .in('content_id', noticeIds);
+                        let ctData = [];
+                        
+                        // Chunk noticeIds to avoid URL length limits (Supabase PostgREST limit)
+                        const chunkSize = 100;
+                        for (let i = 0; i < noticeIds.length; i += chunkSize) {
+                            const chunk = noticeIds.slice(i, i + chunkSize);
+                            const { data: chunkData } = await _supabase
+                                .from('content_targets')
+                                .select('content_id, target_type, target_id')
+                                .eq('content_type', 'notice')
+                                .in('content_id', chunk);
+                            
+                            if (chunkData) {
+                                ctData = ctData.concat(chunkData);
+                            }
+                        }
                         
                         if (ctData && ctData.length > 0) {
                             const ctMap = {};
@@ -284,6 +295,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
         function renderNoticesList() {
             const container = document.getElementById('notices-list-container');
             if (!container) return;
+
+            if (!window.currentNoticesList) window.currentNoticesList = [];
 
             const q = document.getElementById('notices-search')?.value.toLowerCase() || '';
 
