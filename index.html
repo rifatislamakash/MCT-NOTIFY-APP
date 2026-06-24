@@ -9476,8 +9476,13 @@
             container.appendChild(row);
             if (window.lucide) window.lucide.createIcons();
         };
-        window.removeReminderRow = function(btn) {
-            const row = btn.closest('.reminder-row');
+        window.removeReminderRow = function(btnOrId) {
+            let row;
+            if (typeof btnOrId === 'string') {
+                row = document.getElementById(btnOrId);
+            } else {
+                row = btnOrId.closest('.reminder-row');
+            }
             if (row) {
                 row.remove();
             }
