@@ -435,6 +435,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const container = document.getElementById('schedule-list-container');
             if (!container) return;
 
+            if (!list) list = [];
+
             // Dynamic Time-Aware Sorting
             const now = new Date();
             const toDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

@@ -145,6 +145,20 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const container = document.getElementById('materials-list-container');
             if (!container) return;
 
+            materials = materials || window.currentMaterialsList || [];
+
+            const searchVal = document.getElementById('materials-search')?.value.toLowerCase() || '';
+            const filterVal = document.getElementById('materials-filter')?.value || 'all';
+            
+            // CR Validation: Check if this user is a CR and hide CR features if they don't have batch access
+            const isCR = window.crPermissionService && window.crPermissionService.isCR();
+            let hasAtLeastOneCRBatch = false;
+            
+            if (isCR) {
+                hasAtLeastOneCRBatch = window.crPermissionService.currentAssignedBatches && 
+                                       window.crPermissionService.currentAssignedBatches.length > 0;
+            }
+
             if (materials.length === 0) {
                 container.innerHTML = `
                         <div class="flex flex-col items-center justify-center py-12 text-center text-slate-400 bg-white rounded-[16px] border border-slate-100 p-6 shadow-sm">
