@@ -20,25 +20,36 @@ serve(async (req) => {
     );
 
     let isManualTrigger = false;
-    let targetParentId = null;
+    let targetReminderId = null;
+    let targetReminderTime = null;
     
     try {
       const body = await req.json();
       const payload = body.record ? body.record : body;
-      if (payload && payload.parent_id) {
+      if (payload && payload.id) {
         isManualTrigger = true;
-        targetParentId = payload.parent_id;
+        targetReminderId = payload.id;
+        targetReminderTime = payload.reminder_time;
       }
     } catch (e) {
       // Running as normal automated cron schedule
     }
 
+    const now = new Date().toISOString();
+
+    // If webhook triggered for a future reminder, ignore it until cron job picks it up.
+    if (isManualTrigger && targetReminderTime && targetReminderTime > now) {
+      return new Response(JSON.stringify({ message: "Reminder is scheduled for the future. Webhook ignored." }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    }
+
     let query = supabaseClient.from('notification_reminders').select('*');
     
     if (isManualTrigger) {
-      query = query.eq('parent_id', targetParentId).limit(1);
+      query = query.eq('id', targetReminderId).eq('sent', false).limit(1);
     } else {
-      const now = new Date().toISOString();
       query = query.eq('sent', false).lte('reminder_time', now);
     }
 
@@ -284,7 +295,7 @@ serve(async (req) => {
       sentReminderIds.push(reminder.id);
     }
 
-    if (!isManualTrigger && sentReminderIds.length > 0) {
+    if (sentReminderIds.length > 0) {
       const { error: updateError } = await supabaseClient
         .from('notification_reminders')
         .update({ sent: true })
