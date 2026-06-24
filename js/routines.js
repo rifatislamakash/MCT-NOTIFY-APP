@@ -185,7 +185,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 throw error;
                             }
                             return data || [];
-                        }, 2, 1000, 8000, localController.signal);
+                        }, 2, 1000, 30000, localController.signal);
                     });
                 }
 

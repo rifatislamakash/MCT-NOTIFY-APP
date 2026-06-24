@@ -155,7 +155,7 @@ let isRegistering = false;
                         if (typeof window.loadAdminReports === 'function') tasks.push(window.loadAdminReports().catch(console.warn));
                     }
                     
-                    const timeoutPromise = new Promise(resolve => setTimeout(resolve, 10000));
+                    const timeoutPromise = new Promise(resolve => setTimeout(resolve, 30000));
                     await Promise.race([Promise.all(tasks), timeoutPromise]);
                     
                     // Unified Execution Frame for Repainting

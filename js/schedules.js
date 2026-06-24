@@ -108,7 +108,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 .abortSignal(signal);
                             if (error) throw error;
                             return data || [];
-                        }, 2, 1000, 8000, localController.signal);
+                        }, 2, 1000, 30000, localController.signal);
                     }
 
                     const targetSpecificTypes = ['specific', 'batch_students', 'batch_crs', 'course_students', 'specific_student'];
@@ -130,7 +130,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 if (data) results = results.concat(data);
                             }
                             return results;
-                        }, 2, 1000, 8000, localController.signal);
+                        }, 2, 1000, 30000, localController.signal);
 
                         scData.forEach(row => {
                             if (!scMap[row.schedule_id]) scMap[row.schedule_id] = [];
@@ -152,7 +152,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 if (data) results = results.concat(data);
                             }
                             return results;
-                        }, 2, 1000, 8000, localController.signal);
+                        }, 2, 1000, 30000, localController.signal);
 
                         ctData.forEach(row => {
                             if (!ctMap[row.content_id]) ctMap[row.content_id] = [];

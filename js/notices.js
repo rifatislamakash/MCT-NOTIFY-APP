@@ -49,7 +49,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             throw error;
                         }
                         return data;
-                    }, 3, 1000, 10000, localController.signal);
+                    }, 3, 1000, 30000, localController.signal);
                 }
 
                 // Fetch content_targets separately (no FK relationship)

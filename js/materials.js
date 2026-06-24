@@ -63,7 +63,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 .abortSignal(ucSignal);
                             if (error) throw error;
                             return data;
-                        }, 3, 1000, 8000, localController.signal);
+                        }, 3, 1000, 30000, localController.signal);
 
                         if (localController.signal.aborted) return;
                         window.currentUserCoursesList = ucData || [];
