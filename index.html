@@ -1184,8 +1184,11 @@
                                         <div class="flex justify-between border-b border-slate-50 pb-2"><span>PWA Installed</span> <span id="diag-pwa" class="text-[#4226E9]">Checking...</span></div>
                                         <div class="flex justify-between pb-1"><span>Browser/OS</span> <span id="diag-os" class="text-[#4226E9] truncate w-24 text-right">...</span></div>
                                     </div>
-                                    <button onclick="promptInstallPWA()" id="install-pwa-btn" class="w-full mt-3 py-2.5 bg-indigo-50 text-[#4226E9] rounded-xl font-bold text-xs hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2">
+                                    <button onclick="window.manualTriggerInstall()" id="manual-install-btn" class="w-full mt-3 py-2.5 bg-indigo-50 text-[#4226E9] rounded-xl font-bold text-xs hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2 hidden">
                                         <i data-lucide="download" class="w-3.5 h-3.5"></i> Install App
+                                    </button>
+                                    <button onclick="window.manualTriggerNotification()" id="manual-notif-btn" class="w-full mt-2 py-2.5 bg-sky-50 text-sky-600 rounded-xl font-bold text-xs hover:bg-sky-100 transition-colors flex items-center justify-center gap-2 hidden">
+                                        <i data-lucide="bell" class="w-3.5 h-3.5"></i> Enable Notifications
                                     </button>
                                 </div>
 
@@ -3825,7 +3828,7 @@
                                         </div>
 
                                         <!-- Date & Time Row -->
-                                        <div class="flex gap-2">
+                                        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
                                             <div class="flex-1 min-w-0">
                                                 <label class="block text-[11px] font-bold text-slate-500 mb-1.5 tracking-wider uppercase">Date <span class="text-red-500">*</span></label>
                                                 <input type="date" id="cs-date" class="w-full h-[44px] px-2 sm:px-3 rounded-[12px] border border-slate-200 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[13px] font-bold text-slate-800 transition-all">
@@ -4061,7 +4064,7 @@
                                             </div>
                                             <textarea id="es-message" rows="4" class="w-full px-4 py-3 rounded-[12px] border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-800 transition-all resize-none"></textarea>
                                         </div>
-                                        <div class="flex gap-2">
+                                        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
                                             <div class="flex-1 min-w-0">
                                                 <label class="block text-[11px] font-bold text-slate-500 mb-1.5 tracking-wider uppercase">Date <span class="text-red-500">*</span></label>
                                                 <input type="date" id="es-date" class="w-full h-[44px] px-2 sm:px-3 rounded-[12px] border border-slate-200 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[13px] font-bold text-slate-800 transition-all">
@@ -4266,7 +4269,7 @@
                                 <!-- Notice Date & Time Card -->
                                 <div class="bg-white rounded-[20px] p-5 shadow-sm border border-slate-100">
                                     <h3 class="text-[14px] font-extrabold text-slate-900 mb-4">Date & Time</h3>
-                                    <div class="flex gap-2">
+                                    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
                                         <div class="flex flex-col gap-1.5 flex-1 min-w-0">
                                             <label class="text-[12px] font-bold text-slate-500 uppercase tracking-wider ml-1">Date <span class="text-red-400">*</span></label>
                                             <input type="date" id="notice-date-input" required class="w-full h-[48px] px-2 sm:px-4 bg-slate-50 text-slate-900 text-[14px] font-semibold rounded-[14px] border border-slate-200 focus:border-[#4226E9] focus:ring-2 focus:ring-indigo-100 outline-none transition-all">
@@ -9331,23 +9334,43 @@
         });
 
         window.triggerSafePrompts = function() {
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
             // Check Notification Permission safely
             if ('Notification' in window) {
                 if (Notification.permission === 'granted' || Notification.permission === 'denied') {
                     // Safe logic: already answered.
                 } else if (Notification.permission === 'default') {
                     if (localStorage.getItem('notification_prompt_dismissed') !== 'true') {
-                        setTimeout(window.showNotificationPopupUI, 500);
-                        return; // Show one prompt at a time
+                        if (isIOS && !isStandalone) {
+                            // Do NOTHING. iOS Safari tabs do not support notifications. Wait until they install it.
+                        } else {
+                            setTimeout(window.showNotificationPopupUI, 500);
+                            return; // Show one prompt at a time
+                        }
                     }
                 }
             }
             
             // Check Install Prompt safely
-            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-            if (!isStandalone && window.deferredPrompt && localStorage.getItem('install_prompt_dismissed') !== 'true') {
-                setTimeout(window.showInstallPopupUI, 500);
+            const hasDismissedInstall = localStorage.getItem('install_prompt_dismissed') === 'true';
+            if (!isStandalone && !hasDismissedInstall) {
+                if (isIOS) {
+                    // Show custom Install Modal immediately with iOS instructions
+                    setTimeout(window.showInstallPopupUI, 500);
+                } else if (window.deferredPrompt) {
+                    setTimeout(window.showInstallPopupUI, 500);
+                }
             }
+        };
+
+        window.manualTriggerInstall = function() {
+            window.showInstallPopupUI();
+        };
+
+        window.manualTriggerNotification = function() {
+            window.showNotificationPopupUI();
         };
 
         window.showInstallPopupUI = function() {

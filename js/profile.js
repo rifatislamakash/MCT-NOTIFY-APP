@@ -209,6 +209,26 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     }
                 }
 
+                // Show/hide manual trigger buttons
+                const manualInstallBtn = document.getElementById('manual-install-btn');
+                if (manualInstallBtn) {
+                    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+                    if (isStandalone) {
+                        manualInstallBtn.classList.add('hidden');
+                    } else {
+                        manualInstallBtn.classList.remove('hidden');
+                    }
+                }
+
+                const manualNotifBtn = document.getElementById('manual-notif-btn');
+                if (manualNotifBtn) {
+                    if (window.Notification && (Notification.permission === 'granted' || Notification.permission === 'denied')) {
+                        manualNotifBtn.classList.add('hidden');
+                    } else {
+                        manualNotifBtn.classList.remove('hidden');
+                    }
+                }
+
             } catch (err) {
                 console.error("Profile populate error:", err);
             }
