@@ -315,7 +315,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     } else {
                         if (n.notice_courses && n.notice_courses.length > 0) {
                             matchesBatch = n.notice_courses.some(nc => {
-                                const c = (window.allCoursesList || []).find(x => x.id === nc.course_id);
+                                const c = (allCoursesList || []).find(x => x.id === nc.course_id);
                                 return c && c.batch_id === batchVal;
                             });
                         }
@@ -323,7 +323,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             matchesBatch = n.content_targets.some(ct => {
                                 if (['batch_students', 'batch_crs'].includes(ct.target_type)) return ct.target_id === batchVal;
                                 if (ct.target_type === 'course_students') {
-                                    const c = (window.allCoursesList || []).find(x => x.id === ct.target_id);
+                                    const c = (allCoursesList || []).find(x => x.id === ct.target_id);
                                     return c && c.batch_id === batchVal;
                                 }
                                 return false;

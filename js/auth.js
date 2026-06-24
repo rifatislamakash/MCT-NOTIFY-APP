@@ -135,11 +135,20 @@ let isRegistering = false;
 
             const loadDashboardDataAsync = async () => {
                 try {
+                    const currentPrefRole = sessionStorage.getItem('crPreferredRole') || window.authState?.profile?.role || 'student';
+                    const isActualAdmin = window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail);
+                    const isCR = window.currentUserRole === 'cr';
+
                     const tasks = [];
                     if (typeof window.loadContentSettings === 'function') tasks.push(window.loadContentSettings().catch(console.warn));
-                    if (typeof window.loadNotices === 'function') tasks.push(window.loadNotices(true).catch(console.warn));
-                    if (typeof window.loadDashboardTodayRoutine === 'function') tasks.push(window.loadDashboardTodayRoutine(true).catch(console.warn));
-                    if (typeof window.loadScheduleList === 'function') tasks.push(window.loadScheduleList(true).catch(console.warn));
+                    
+                    // Lazy load heavy queries for Admins (Admin will fetch when clicking the tab)
+                    if (!isActualAdmin) {
+                        if (typeof window.loadNotices === 'function') tasks.push(window.loadNotices(true).catch(console.warn));
+                        if (typeof window.loadDashboardTodayRoutine === 'function') tasks.push(window.loadDashboardTodayRoutine(true).catch(console.warn));
+                        if (typeof window.loadScheduleList === 'function') tasks.push(window.loadScheduleList(true).catch(console.warn));
+                    }
+
                     if (window.PollService && typeof window.PollService.loadPolls === 'function') {
                         tasks.push(window.PollService.loadPolls().then(() => {
                             if (window.currentUserRole === 'student' && typeof window.PollService?.checkAndShowPopup === 'function') {
@@ -147,9 +156,6 @@ let isRegistering = false;
                             }
                         }).catch(console.warn));
                     }
-                    const currentPrefRole = sessionStorage.getItem('crPreferredRole') || window.authState?.profile?.role || 'student';
-                    const isActualAdmin = window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail);
-                    const isCR = window.currentUserRole === 'cr';
 
                     if (isActualAdmin || (isCR && currentPrefRole === 'cr')) {
                         if (typeof window.loadAdminReports === 'function') tasks.push(window.loadAdminReports().catch(console.warn));
