@@ -265,7 +265,7 @@ window.applyFormat = function(type, value = null) {
         else if (type === 'link') {
             const url = prompt('Enter URL (e.g., https://example.com):');
             if (!url) return;
-            replacement = `\n${url}\n`;
+            replacement = `[${selectedText || url}](${url})`;
         }
         else if (type === 'color' && value) {
             replacement = `[color=${value}]${selectedText || 'colored text'}[/color]`;
@@ -303,8 +303,12 @@ window.safeFormatRichText = function(text) {
     safeText = safeText.replace(/__(.*?)__/g, '<u>$1</u>');
     // Color
     safeText = safeText.replace(/\[color=(#[0-9a-fA-F]{6})\](.*?)\[\/color\]/g, '<span style="color: $1; font-weight: 600;">$2</span>');
-    // Links (http:// or https://)
-    safeText = safeText.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="link-action-button"><i data-lucide="link" class="w-4 h-4"></i> Open Link</a>');
+    
+    // Markdown Links: [Text](url)
+    safeText = safeText.replace(/\[([^\]]+)\]\((https?:\/\/[^\s<]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 font-semibold underline hover:text-blue-800">$1</a>');
+    
+    // Raw Links (http:// or https://) that are not already inside an href
+    safeText = safeText.replace(/(^|[^="'])(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 font-semibold underline hover:text-blue-800">$2</a>');
     
     // Convert newlines to breaks
     safeText = safeText.replace(/\n/g, '<br>');
@@ -337,8 +341,8 @@ window.htmlToMarkdown = function(html) {
         return `[color=${col}]${content}[/color]`;
     });
     
-    // Links (just extract the href)
-    text = text.replace(/<a[^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gi, '$1');
+    // Links (keep display text and href)
+    text = text.replace(/<a[^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
     
     // Strip remaining tags
     text = text.replace(/<[^>]+>/g, '');

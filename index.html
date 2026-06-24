@@ -358,6 +358,13 @@
         .link-action-button:hover {
             background-color: #e5e7eb;
         }
+
+        /* Ensure links inside rich text editors are styled clearly */
+        [contenteditable="true"] a {
+            color: #2563EB !important;
+            text-decoration: underline !important;
+            font-weight: 600 !important;
+        }
     </style>
     <!-- Cropper.js for Profile Picture Cropping -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">

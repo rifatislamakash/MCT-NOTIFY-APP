@@ -1,0 +1,6 @@
+/* Ensure links inside rich text editors are styled clearly */
+[contenteditable="true"] a {
+    color: #2563EB !important;
+    text-decoration: underline !important;
+    font-weight: 600 !important;
+}
