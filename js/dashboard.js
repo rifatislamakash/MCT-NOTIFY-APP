@@ -69,11 +69,15 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                 // 1. Schedule Hub Quick Access Badge
                 const scheduleBadge = document.getElementById('qa-schedule-badge');
+                const now = new Date();
                 if (scheduleBadge) {
                     const list = window.currentSchedulesList || [];
                     const count = list.filter(s => {
                         const date = s.schedule_date || s.date;
-                        return date === todayStr || date === tomorrowStr;
+                        if (date !== todayStr && date !== tomorrowStr) return false;
+                        const time = s.schedule_time || '23:59:00';
+                        const sortDate = new Date(date + 'T' + time);
+                        return sortDate >= now;
                     }).length;
                     if (count > 0) {
                         scheduleBadge.textContent = count > 9 ? '9+' : count;
@@ -89,7 +93,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     const list = window.currentNoticesList || [];
                     const count = list.filter(n => {
                         const date = n.notice_date;
-                        return date === todayStr || date === tomorrowStr;
+                        if (date !== todayStr && date !== tomorrowStr) return false;
+                        const time = n.notice_time || '23:59:00';
+                        const sortDate = new Date(date + 'T' + time);
+                        return sortDate >= now;
                     }).length;
                     if (count > 0) {
                         noticeBadge.textContent = count > 9 ? '9+' : count;

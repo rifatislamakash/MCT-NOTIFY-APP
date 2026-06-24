@@ -438,8 +438,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             <div onclick="openNoticeDetails('${window.sanitizeHTML(n.id)}')" class="${cardClasses} relative p-[16px] mt-2">
                                 ${window.AuthorService ? window.AuthorService.renderAuthorBlock(n.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
                                 <div class="mt-1 flex flex-col">
-                                    <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.sanitizeHTML(n.title)}</h4>
-                                    <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.sanitizeHTML(n.message)}</p>
+                                    <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.safeFormatRichText(n.title)}</h4>
+                                    <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.safeFormatRichText(n.message)}</p>
                                 </div>
                                 <div class="w-full mt-[12px] !flex !flex-wrap !justify-between !items-center !gap-[8px]">
                                     <div class="flex-1">${bottomEventTagsHtml}</div>
@@ -476,9 +476,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     if (dashTitle) dashTitle.innerText = latestUrgent.title;
                     if (dashDesc) {
                         let text = (latestUrgent.message || '').replace(/\n+/g, ' ').trim();
-                        if (text.length > 80) text = text.substring(0, 80) + '......... click to read';
-                        else text = text + '......... click to read';
-                        dashDesc.innerText = text;
+                        dashDesc.innerHTML = window.safeFormatRichText(text);
                     }
                     urgentCard.onclick = () => openNoticeDetails(latestUrgent.id);
                 } else {
@@ -518,8 +516,15 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 });
                 
                 // Combine, sort, and slice
+                const now = new Date();
                 const combinedUpdates = [...noticesArray, ...schedulesArray]
                     .sort((a, b) => {
+                        const aExpired = a.sortDate < now;
+                        const bExpired = b.sortDate < now;
+                        
+                        if (aExpired && !bExpired) return 1;
+                        if (!aExpired && bExpired) return -1;
+                        
                         if (a.is_pinned && !b.is_pinned) return -1;
                         if (!a.is_pinned && b.is_pinned) return 1;
                         // Sort by created_at so newest polls/notices appear exactly at the top
@@ -590,8 +595,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 <div class="flex flex-col w-full max-w-full box-border p-[16px] bg-white rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer" onclick="${clickAction}">
                                     ${window.AuthorService ? window.AuthorService.renderAuthorBlock(n.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
                                     <div class="mt-1 flex flex-col">
-                                        <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.sanitizeHTML(n.title)}</h4>
-                                        <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.sanitizeHTML(n.message)}</p>
+                                        <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.safeFormatRichText(n.title)}</h4>
+                                        <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.safeFormatRichText(n.message)}</p>
                                     </div>
                                     <div class="w-full mt-[12px] !flex !flex-wrap !justify-between !items-center !gap-[8px]">
                                         <div class="flex-1">${bottomEventTagsHtml}</div>
@@ -1178,8 +1183,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (!notice) return;
             selectedNoticeIdForDetails = id;
 
-            document.getElementById('nd-title').innerText = notice.title;
-            document.getElementById('nd-message').innerText = notice.message;
+            document.getElementById('nd-title').innerHTML = window.safeFormatRichText(notice.title);
+            document.getElementById('nd-message').innerHTML = window.safeFormatRichText(notice.message);
 
             // Build date/time from notice_date + notice_time columns
             let ndDateStr = '';

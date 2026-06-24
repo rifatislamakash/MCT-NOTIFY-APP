@@ -67,9 +67,19 @@ serve(async (req) => {
     let successCount = 0;
     const sentReminderIds = [];
 
+    const cleanText = (text: string) => {
+      if (!text) return '';
+      return String(text)
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/\*(.*?)\*/g, '$1')
+        .replace(/__(.*?)__/g, '$1')
+        .replace(/\[color=(#[0-9a-fA-F]{6})\](.*?)\[\/color\]/g, '$2');
+    };
+
     for (const reminder of reminders) {
-      const notificationTitle = isManualTrigger ? `UPDATE: ${reminder.reminder_title}` : reminder.reminder_title;
-      const notificationBody = reminder.reminder_message;
+      const rawTitle = isManualTrigger ? `UPDATE: ${reminder.reminder_title}` : reminder.reminder_title;
+      const notificationTitle = cleanText(rawTitle);
+      const notificationBody = cleanText(reminder.reminder_message);
 
       // Fetch audience targeting parameters from content_targets securely
       const { data: targets } = await supabaseClient

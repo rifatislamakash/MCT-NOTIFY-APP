@@ -238,3 +238,166 @@ import { _supabase } from './supabase-client.js';
 
 console.log("[ARCHITECTURE]\nutils loaded");
 
+let lastFocusedEditor = null;
+document.addEventListener('focusin', (e) => {
+    if (e.target.hasAttribute('contenteditable') || e.target.tagName === 'TEXTAREA') {
+        lastFocusedEditor = e.target;
+    }
+});
+
+window.applyFormat = function(type, value = null) {
+    const el = lastFocusedEditor;
+    if (!el) {
+        window.showGlobalToast('Focus Required', 'Please click inside the text area first.');
+        return;
+    }
+    
+    if (el.tagName === 'TEXTAREA') {
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+        const text = el.value;
+        const selectedText = text.substring(start, end);
+        let replacement = '';
+        
+        if (type === 'bold') replacement = `**${selectedText || 'bold text'}**`;
+        else if (type === 'italic') replacement = `*${selectedText || 'italic text'}*`;
+        else if (type === 'underline') replacement = `__${selectedText || 'underlined text'}__`;
+        else if (type === 'link') {
+            const url = prompt('Enter URL (e.g., https://example.com):');
+            if (!url) return;
+            replacement = `\n${url}\n`;
+        }
+        else if (type === 'color' && value) {
+            replacement = `[color=${value}]${selectedText || 'colored text'}[/color]`;
+        }
+        
+        el.value = text.substring(0, start) + replacement + text.substring(end);
+        el.selectionStart = start + replacement.length;
+        el.selectionEnd = start + replacement.length;
+        el.focus();
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+    } else {
+        el.focus();
+        if (type === 'bold') document.execCommand('bold', false, null);
+        else if (type === 'italic') document.execCommand('italic', false, null);
+        else if (type === 'underline') document.execCommand('underline', false, null);
+        else if (type === 'link') {
+            const url = prompt('Enter URL (e.g., https://example.com):');
+            if (url) document.execCommand('createLink', false, url);
+        } else if (type === 'color' && value) {
+            document.execCommand('foreColor', false, value);
+        }
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+};
+
+window.safeFormatRichText = function(text) {
+    if (!text) return '';
+    let safeText = String(text).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    
+    // Bold
+    safeText = safeText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // Italic
+    safeText = safeText.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    // Underline
+    safeText = safeText.replace(/__(.*?)__/g, '<u>$1</u>');
+    // Color
+    safeText = safeText.replace(/\[color=(#[0-9a-fA-F]{6})\](.*?)\[\/color\]/g, '<span style="color: $1; font-weight: 600;">$2</span>');
+    // Links (http:// or https://)
+    safeText = safeText.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="link-action-button"><i data-lucide="link" class="w-4 h-4"></i> Open Link</a>');
+    
+    // Convert newlines to breaks
+    safeText = safeText.replace(/\n/g, '<br>');
+    return safeText;
+};
+
+window.htmlToMarkdown = function(html) {
+    let text = html || '';
+    
+    // Replace divs and breaks with newlines
+    text = text.replace(/<div><br><\/div>/gi, '\n');
+    text = text.replace(/<div[^>]*>/gi, '\n');
+    text = text.replace(/<\/div>/gi, '');
+    text = text.replace(/<br[^>]*>/gi, '\n');
+    
+    // Bold
+    text = text.replace(/<b\b[^>]*>(.*?)<\/b>/gi, '**$1**');
+    text = text.replace(/<strong\b[^>]*>(.*?)<\/strong>/gi, '**$1**');
+    
+    // Italic
+    text = text.replace(/<i\b[^>]*>(.*?)<\/i>/gi, '*$1*');
+    text = text.replace(/<em\b[^>]*>(.*?)<\/em>/gi, '*$1*');
+    
+    // Underline
+    text = text.replace(/<u\b[^>]*>(.*?)<\/u>/gi, '__$1__');
+    
+    // Colors
+    text = text.replace(/<font[^>]*color="([^"]+)"[^>]*>(.*?)<\/font>/gi, '[color=$1]$2[/color]');
+    text = text.replace(/<span[^>]*style="[^"]*color:\s*([^;"]+)[^"]*"[^>]*>(.*?)<\/span>/gi, function(m, col, content) {
+        return `[color=${col}]${content}[/color]`;
+    });
+    
+    // Links (just extract the href)
+    text = text.replace(/<a[^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gi, '$1');
+    
+    // Strip remaining tags
+    text = text.replace(/<[^>]+>/g, '');
+    
+    // Unescape entities
+    text = text.replace(/&nbsp;/g, ' ');
+    text = text.replace(/&lt;/g, '<');
+    text = text.replace(/&gt;/g, '>');
+    text = text.replace(/&amp;/g, '&');
+    
+    return text.trim();
+};
+
+window.initRichEditors = function() {
+    document.querySelectorAll('.rich-text-toolbar').forEach(toolbar => {
+        if (toolbar.dataset.richInit) return;
+        toolbar.dataset.richInit = 'true';
+        
+        let container = toolbar.parentElement;
+        let textarea = container.querySelector('textarea');
+        if (!textarea) return;
+        
+        textarea.style.display = 'none';
+        
+        let editor = document.createElement('div');
+        editor.setAttribute('contenteditable', 'true');
+        editor.className = textarea.className.replace('resize-none', '');
+        editor.style.height = textarea.style.height || 'auto';
+        editor.style.minHeight = '120px';
+        editor.style.overflowY = 'auto';
+        editor.style.display = 'block';
+        editor.innerHTML = window.safeFormatRichText(textarea.value || '');
+        
+        textarea.parentNode.insertBefore(editor, textarea.nextSibling);
+        
+        editor.addEventListener('input', () => {
+            textarea.value = window.htmlToMarkdown(editor.innerHTML);
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        
+        const origDesc = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
+        Object.defineProperty(textarea, 'value', {
+            get: function() {
+                return origDesc.get.call(this);
+            },
+            set: function(val) {
+                origDesc.set.call(this, val);
+                if (document.activeElement !== editor) {
+                    editor.innerHTML = window.safeFormatRichText(val || '');
+                }
+            }
+        });
+    });
+};
+
+document.addEventListener('DOMContentLoaded', window.initRichEditors);
+
+// Call it once just in case it's already loaded
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(window.initRichEditors, 100);
+}
+

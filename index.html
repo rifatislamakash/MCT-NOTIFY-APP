@@ -58,10 +58,25 @@
         
         /* Disable backdrop-filter on iOS to prevent WebKit memory leak crashes */
         @supports (-webkit-touch-callout: none) {
-            .backdrop-blur-lg, .backdrop-blur-md, .backdrop-blur-sm, .backdrop-blur-xl, .backdrop-blur-2xl, .backdrop-blur {
+            .backdrop-blur-lg, .backdrop-blur-md, .backdrop-blur-sm, .backdrop-blur-xs, .backdrop-blur-xl, .backdrop-blur-2xl, .backdrop-blur,
+            [class*="backdrop-blur-"], .modal-overlay, .frosted-glass-element, .dropdown-backdrop {
                 backdrop-filter: none !important;
                 -webkit-backdrop-filter: none !important;
             }
+            /* Solid fallback for modals */
+            .fixed.inset-0.bg-black\/60, .absolute.inset-0.bg-black\/60, 
+            .fixed.inset-0.bg-slate-900\/40, .absolute.inset-0.bg-slate-900\/40,
+            .absolute.inset-0.bg-black\/40, .absolute.inset-0.bg-slate-950\/95,
+            .modal-overlay {
+                background-color: rgba(20, 20, 30, 0.95) !important;
+            }
+            .bg-slate-900\/80 {
+                background-color: rgba(20, 20, 30, 0.95) !important;
+            }
+        }
+        
+        .onboarding-scroll-container-class {
+            padding-bottom: calc(120px + env(safe-area-inset-bottom)) !important;
         }
 
         /* Float animations matching references */
@@ -290,6 +305,59 @@
             max-width: 100% !important;
             box-sizing: border-box !important;
         }
+        /* Rich Text Styling */
+        .rich-text-toolbar {
+            display: flex;
+            gap: 8px;
+            padding: 8px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 4px;
+            align-items: center;
+        }
+        .rich-text-toolbar button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .rich-text-toolbar button:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+            border-color: #cbd5e1;
+        }
+        .rich-text-toolbar input[type="color"] {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            background: none;
+        }
+        .link-action-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background-color: #f3f4f6;
+            color: #6d28d9;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            word-break: break-all;
+            text-decoration: none;
+            margin-top: 4px;
+        }
+        .link-action-button:hover {
+            background-color: #e5e7eb;
+        }
     </style>
     <!-- Cropper.js for Profile Picture Cropping -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
@@ -349,7 +417,7 @@
 
         <!-- Phone Emulator Window Shell -->
         <div class="flex-1 flex items-center justify-center bg-slate-100 lg:bg-[#EEF1F6] p-0 sm:p-6 lg:p-8">
-            <div id="app-viewport-shell" class="w-full sm:w-[390px] h-[100dvh] sm:h-[844px] bg-white sm:rounded-[32px] sm:shadow-2xl overflow-hidden relative flex flex-col shrink-0 border border-slate-100">
+            <div id="app-viewport-shell" class="w-full sm:w-[390px] h-[100dvh] sm:h-[844px] bg-white sm:rounded-[32px] overflow-hidden relative flex flex-col shrink-0 border border-slate-100">
 
                 <!-- APPLICATION CONTAINER -->
                 <div id="viewport-container" class="flex-1 bg-white relative overflow-hidden flex flex-col h-full">
@@ -714,7 +782,7 @@
                         </div>
 
                         <!-- Step 1: Batch Selection -->
-                        <div id="onboard-step-1" class="flex-1 overflow-y-auto px-6 pt-8 pb-24 scrollbar-hide relative">
+                        <div id="onboard-step-1" class="flex-1 overflow-y-auto px-6 pt-8 pb-24 scrollbar-hide relative onboarding-scroll-container-class">
                             <div class="mb-6">
                                 <label class="block text-[15px] font-bold text-slate-900 mb-2">Your Primary Batch</label>
                                 <div class="relative">
@@ -754,7 +822,7 @@
                         </div>
 
                         <!-- Step 2: Course Checklist -->
-                        <div id="onboard-step-2" class="hidden flex-1 overflow-y-auto px-6 pt-6 pb-24 scrollbar-hide relative">
+                        <div id="onboard-step-2" class="hidden flex-1 overflow-y-auto px-6 pt-6 pb-24 scrollbar-hide relative onboarding-scroll-container-class">
                             <!-- Back button -->
                             <button onclick="goToOnboardStep1()" class="mb-4 flex items-center gap-1.5 text-[13px] font-bold text-slate-500 hover:text-slate-800 transition-colors">
                                 <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to batches
@@ -1871,6 +1939,13 @@
                                 </div>
                                 <div>
                                     <label class="block text-[11px] font-semibold text-slate-400 mb-1.5 tracking-wider">DESCRIPTION</label>
+                                    <div class="rich-text-toolbar">
+                                        <button type="button" onclick="applyFormat('bold')"><i data-lucide="bold" class="w-4 h-4"></i></button>
+                                        <button type="button" onclick="applyFormat('italic')"><i data-lucide="italic" class="w-4 h-4"></i></button>
+                                        <button type="button" onclick="applyFormat('underline')"><i data-lucide="underline" class="w-4 h-4"></i></button>
+                                        <button type="button" onclick="applyFormat('link')"><i data-lucide="link" class="w-4 h-4"></i></button>
+                                        <input type="color" value="#000000" onchange="applyFormat('color', this.value)" title="Choose Text Color">
+                                    </div>
                                     <textarea id="add-faculty-description" rows="3" placeholder="Enter faculty description..." class="w-full px-4 py-3 rounded-[14px] border border-slate-300 bg-transparent focus:bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[15px] text-slate-800 transition-all"></textarea>
                                 </div>
                                 <div>
@@ -2765,6 +2840,13 @@
 
                                     <div class="mb-4">
                                         <label class="block text-[13px] font-medium text-slate-900 mb-1.5">Description</label>
+                                        <div class="rich-text-toolbar">
+                                            <button type="button" onclick="applyFormat('bold')"><i data-lucide="bold" class="w-4 h-4"></i></button>
+                                            <button type="button" onclick="applyFormat('italic')"><i data-lucide="italic" class="w-4 h-4"></i></button>
+                                            <button type="button" onclick="applyFormat('underline')"><i data-lucide="underline" class="w-4 h-4"></i></button>
+                                            <button type="button" onclick="applyFormat('link')"><i data-lucide="link" class="w-4 h-4"></i></button>
+                                            <input type="color" value="#000000" onchange="applyFormat('color', this.value)" title="Choose Text Color">
+                                        </div>
                                         <textarea id="upload-material-description" rows="3" placeholder="Description here..." class="w-full px-4 py-3 rounded-[10px] border border-slate-300 bg-white focus:border-[#4226E9] focus:ring-1 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-800 transition-all placeholder:text-slate-400"></textarea>
                                     </div>
 
@@ -2859,6 +2941,13 @@
 
                                     <div class="mb-4">
                                         <label class="block text-[13px] font-medium text-slate-900 mb-1.5">Description</label>
+                                        <div class="rich-text-toolbar">
+                                            <button type="button" onclick="applyFormat('bold')"><i data-lucide="bold" class="w-4 h-4"></i></button>
+                                            <button type="button" onclick="applyFormat('italic')"><i data-lucide="italic" class="w-4 h-4"></i></button>
+                                            <button type="button" onclick="applyFormat('underline')"><i data-lucide="underline" class="w-4 h-4"></i></button>
+                                            <button type="button" onclick="applyFormat('link')"><i data-lucide="link" class="w-4 h-4"></i></button>
+                                            <input type="color" value="#000000" onchange="applyFormat('color', this.value)" title="Choose Text Color">
+                                        </div>
                                         <textarea id="update-material-description" rows="3" class="w-full px-4 py-3 rounded-[10px] border border-slate-300 bg-white focus:border-[#4226E9] focus:ring-1 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-800 transition-all placeholder:text-slate-400"></textarea>
                                     </div>
 
@@ -3255,6 +3344,13 @@
 
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-bold text-slate-500 uppercase tracking-wider ml-1">Description</label>
+                                    <div class="rich-text-toolbar">
+                                        <button type="button" onclick="applyFormat('bold')"><i data-lucide="bold" class="w-4 h-4"></i></button>
+                                        <button type="button" onclick="applyFormat('italic')"><i data-lucide="italic" class="w-4 h-4"></i></button>
+                                        <button type="button" onclick="applyFormat('underline')"><i data-lucide="underline" class="w-4 h-4"></i></button>
+                                        <button type="button" onclick="applyFormat('link')"><i data-lucide="link" class="w-4 h-4"></i></button>
+                                        <input type="color" value="#000000" onchange="applyFormat('color', this.value)" title="Choose Text Color">
+                                    </div>
                                     <textarea id="group-description" placeholder="Short description of this group..." class="w-full h-[80px] p-4 bg-slate-50 text-slate-900 text-[14px] font-semibold rounded-[14px] border border-slate-200 focus:border-[#4226E9] focus:ring-2 focus:ring-indigo-100 outline-none transition-all resize-none"></textarea>
                                 </div>
 
@@ -3718,18 +3814,25 @@
                                         </div>
                                         <div>
                                             <label class="block text-[11px] font-bold text-slate-500 mb-1.5 tracking-wider uppercase">Message <span class="text-red-500">*</span></label>
+                                            <div class="rich-text-toolbar">
+                                                <button type="button" onclick="applyFormat('bold')"><i data-lucide="bold" class="w-4 h-4"></i></button>
+                                                <button type="button" onclick="applyFormat('italic')"><i data-lucide="italic" class="w-4 h-4"></i></button>
+                                                <button type="button" onclick="applyFormat('underline')"><i data-lucide="underline" class="w-4 h-4"></i></button>
+                                                <button type="button" onclick="applyFormat('link')"><i data-lucide="link" class="w-4 h-4"></i></button>
+                                                <input type="color" value="#000000" onchange="applyFormat('color', this.value)" title="Choose Text Color">
+                                            </div>
                                             <textarea id="cs-message" rows="4" placeholder="Type your notice here..." class="w-full px-4 py-3 rounded-[12px] border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-800 transition-all resize-none"></textarea>
                                         </div>
 
                                         <!-- Date & Time Row -->
-                                        <div class="grid grid-cols-2 gap-3">
-                                            <div>
+                                        <div class="flex gap-2">
+                                            <div class="flex-1 min-w-0">
                                                 <label class="block text-[11px] font-bold text-slate-500 mb-1.5 tracking-wider uppercase">Date <span class="text-red-500">*</span></label>
-                                                <input type="date" id="cs-date" class="w-full h-[44px] px-3 rounded-[12px] border border-slate-200 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[13px] font-bold text-slate-800 transition-all">
+                                                <input type="date" id="cs-date" class="w-full h-[44px] px-2 sm:px-3 rounded-[12px] border border-slate-200 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[13px] font-bold text-slate-800 transition-all">
                                             </div>
-                                            <div>
+                                            <div class="flex-1 min-w-0">
                                                 <label class="block text-[11px] font-bold text-slate-500 mb-1.5 tracking-wider uppercase">Time <span class="text-red-500">*</span></label>
-                                                <input type="time" id="cs-time" class="w-full h-[44px] px-3 rounded-[12px] border border-slate-200 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[13px] font-bold text-slate-800 transition-all">
+                                                <input type="time" id="cs-time" class="w-full h-[44px] px-2 sm:px-3 rounded-[12px] border border-slate-200 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[13px] font-bold text-slate-800 transition-all">
                                             </div>
                                         </div>
                                     </div>
@@ -3949,16 +4052,23 @@
                                         </div>
                                         <div>
                                             <label class="block text-[11px] font-bold text-slate-500 mb-1.5 tracking-wider uppercase">Message <span class="text-red-500">*</span></label>
+                                            <div class="rich-text-toolbar">
+                                                <button type="button" onclick="applyFormat('bold')"><i data-lucide="bold" class="w-4 h-4"></i></button>
+                                                <button type="button" onclick="applyFormat('italic')"><i data-lucide="italic" class="w-4 h-4"></i></button>
+                                                <button type="button" onclick="applyFormat('underline')"><i data-lucide="underline" class="w-4 h-4"></i></button>
+                                                <button type="button" onclick="applyFormat('link')"><i data-lucide="link" class="w-4 h-4"></i></button>
+                                                <input type="color" value="#000000" onchange="applyFormat('color', this.value)" title="Choose Text Color">
+                                            </div>
                                             <textarea id="es-message" rows="4" class="w-full px-4 py-3 rounded-[12px] border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-800 transition-all resize-none"></textarea>
                                         </div>
-                                        <div class="grid grid-cols-2 gap-3">
-                                            <div>
+                                        <div class="flex gap-2">
+                                            <div class="flex-1 min-w-0">
                                                 <label class="block text-[11px] font-bold text-slate-500 mb-1.5 tracking-wider uppercase">Date <span class="text-red-500">*</span></label>
-                                                <input type="date" id="es-date" class="w-full h-[44px] px-3 rounded-[12px] border border-slate-200 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[13px] font-bold text-slate-800 transition-all">
+                                                <input type="date" id="es-date" class="w-full h-[44px] px-2 sm:px-3 rounded-[12px] border border-slate-200 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[13px] font-bold text-slate-800 transition-all">
                                             </div>
-                                            <div>
+                                            <div class="flex-1 min-w-0">
                                                 <label class="block text-[11px] font-bold text-slate-500 mb-1.5 tracking-wider uppercase">Time <span class="text-red-500">*</span></label>
-                                                <input type="time" id="es-time" class="w-full h-[44px] px-3 rounded-[12px] border border-slate-200 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[13px] font-bold text-slate-800 transition-all">
+                                                <input type="time" id="es-time" class="w-full h-[44px] px-2 sm:px-3 rounded-[12px] border border-slate-200 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[13px] font-bold text-slate-800 transition-all">
                                             </div>
                                         </div>
                                     </div>
@@ -4142,6 +4252,13 @@
 
                                     <div class="flex flex-col gap-1.5">
                                         <label class="text-[12px] font-bold text-slate-500 uppercase tracking-wider ml-1">Message <span class="text-red-400">*</span></label>
+                                        <div class="rich-text-toolbar">
+                                            <button type="button" onclick="applyFormat('bold')"><i data-lucide="bold" class="w-4 h-4"></i></button>
+                                            <button type="button" onclick="applyFormat('italic')"><i data-lucide="italic" class="w-4 h-4"></i></button>
+                                            <button type="button" onclick="applyFormat('underline')"><i data-lucide="underline" class="w-4 h-4"></i></button>
+                                            <button type="button" onclick="applyFormat('link')"><i data-lucide="link" class="w-4 h-4"></i></button>
+                                            <input type="color" value="#000000" onchange="applyFormat('color', this.value)" title="Choose Text Color">
+                                        </div>
                                         <textarea id="notice-message" required placeholder="Type your notice here..." class="w-full h-[120px] p-4 bg-slate-50 text-slate-900 text-[14px] font-medium rounded-[14px] border border-slate-200 focus:border-[#4226E9] focus:ring-2 focus:ring-indigo-100 outline-none transition-all placeholder:text-slate-400 placeholder:font-medium resize-none"></textarea>
                                     </div>
                                 </div>
@@ -4149,14 +4266,14 @@
                                 <!-- Notice Date & Time Card -->
                                 <div class="bg-white rounded-[20px] p-5 shadow-sm border border-slate-100">
                                     <h3 class="text-[14px] font-extrabold text-slate-900 mb-4">Date & Time</h3>
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <div class="flex flex-col gap-1.5">
+                                    <div class="flex gap-2">
+                                        <div class="flex flex-col gap-1.5 flex-1 min-w-0">
                                             <label class="text-[12px] font-bold text-slate-500 uppercase tracking-wider ml-1">Date <span class="text-red-400">*</span></label>
-                                            <input type="date" id="notice-date-input" required class="w-full h-[48px] px-4 bg-slate-50 text-slate-900 text-[14px] font-semibold rounded-[14px] border border-slate-200 focus:border-[#4226E9] focus:ring-2 focus:ring-indigo-100 outline-none transition-all">
+                                            <input type="date" id="notice-date-input" required class="w-full h-[48px] px-2 sm:px-4 bg-slate-50 text-slate-900 text-[14px] font-semibold rounded-[14px] border border-slate-200 focus:border-[#4226E9] focus:ring-2 focus:ring-indigo-100 outline-none transition-all">
                                         </div>
-                                        <div class="flex flex-col gap-1.5">
+                                        <div class="flex flex-col gap-1.5 flex-1 min-w-0">
                                             <label class="text-[12px] font-bold text-slate-500 uppercase tracking-wider ml-1">Time <span class="text-red-400">*</span></label>
-                                            <input type="time" id="notice-time-input" required class="w-full h-[48px] px-4 bg-slate-50 text-slate-900 text-[14px] font-semibold rounded-[14px] border border-slate-200 focus:border-[#4226E9] focus:ring-2 focus:ring-indigo-100 outline-none transition-all">
+                                            <input type="time" id="notice-time-input" required class="w-full h-[48px] px-2 sm:px-4 bg-slate-50 text-slate-900 text-[14px] font-semibold rounded-[14px] border border-slate-200 focus:border-[#4226E9] focus:ring-2 focus:ring-indigo-100 outline-none transition-all">
                                         </div>
                                     </div>
                                 </div>
@@ -4363,6 +4480,13 @@
                                 </div>
                                 <div>
                                     <label class="block text-[13px] font-bold text-slate-900 mb-1.5">Description (Optional)</label>
+                                    <div class="rich-text-toolbar">
+                                        <button type="button" onclick="applyFormat('bold')"><i data-lucide="bold" class="w-4 h-4"></i></button>
+                                        <button type="button" onclick="applyFormat('italic')"><i data-lucide="italic" class="w-4 h-4"></i></button>
+                                        <button type="button" onclick="applyFormat('underline')"><i data-lucide="underline" class="w-4 h-4"></i></button>
+                                        <button type="button" onclick="applyFormat('link')"><i data-lucide="link" class="w-4 h-4"></i></button>
+                                        <input type="color" value="#000000" onchange="applyFormat('color', this.value)" title="Choose Text Color">
+                                    </div>
                                     <textarea id="poll-description" rows="2" class="w-full px-4 py-3 rounded-[12px] border border-slate-200 bg-white text-[14px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#4226E9] shadow-xs" placeholder="Add more details..."></textarea>
                                 </div>
                                 
@@ -5206,8 +5330,14 @@
                 if (clockEl) clockEl.innerText = `${hh}:${mm}`;
             }, 1000);
 
-            // Splash countdown
+            // Splash countdown & App Initialization
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+            
+            if (isStandalone) {
+                const splash = document.getElementById('screen-splash');
+                if (splash) splash.style.display = 'none';
+            }
+
             setTimeout(() => {
                 const initApp = () => {
                     if (typeof window.checkActiveSession === 'function') {
@@ -5859,10 +5989,11 @@
                 if (c.sections_name) {
                     let sectionsArray = window.parseSectionsName(c.sections_name);
                     if (sectionsArray.length > 0) {
+                        let isSingle = sectionsArray.length === 1;
                         sectionSelectHTML = `
-                            <select id="onboard-section-${c.id}" onclick="event.stopPropagation();" class="ml-auto text-[11px] font-bold text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#4226E9]">
-                                <option value="" disabled selected>Section</option>
-                                ${sectionsArray.map(sec => `<option value="${window.sanitizeHTML(sec)}">Sec ${window.sanitizeHTML(sec)}</option>`).join('')}
+                            <select id="onboard-section-${c.id}" onclick="event.stopPropagation();" class="onboard-section-dropdown ml-auto text-[11px] font-bold text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#4226E9]">
+                                <option value="" disabled ${!isSingle ? 'selected' : ''}>Section</option>
+                                ${sectionsArray.map(sec => `<option value="${window.sanitizeHTML(sec)}" ${isSingle ? 'selected' : ''}>Sec ${window.sanitizeHTML(sec)}</option>`).join('')}
                             </select>
                         `;
                     }
@@ -5886,6 +6017,24 @@
             const checkboxes = document.querySelectorAll('.onboard-course-checkbox:checked');
             if (checkboxes.length === 0) {
                 showGlobalToast("Selection Required", "Please select at least one enrolled course to proceed.");
+                return;
+            }
+
+            // Validate sections
+            let missingSection = false;
+            Array.from(checkboxes).forEach(cb => {
+                const courseId = cb.value;
+                const sectionSelect = document.getElementById(`onboard-section-${courseId}`);
+                if (sectionSelect && !sectionSelect.value) {
+                    missingSection = true;
+                    sectionSelect.classList.add('border-red-500', 'bg-red-50');
+                } else if (sectionSelect) {
+                    sectionSelect.classList.remove('border-red-500', 'bg-red-50');
+                }
+            });
+
+            if (missingSection) {
+                showGlobalToast("Section Required", "Please select a section for all checked courses.");
                 return;
             }
 
@@ -7592,6 +7741,9 @@
                     if (typeof window.loadDashboardTodayRoutine === 'function') {
                         window.loadDashboardTodayRoutine();
                     }
+                    if (typeof window.triggerSafePrompts === 'function') {
+                        setTimeout(window.triggerSafePrompts, 1500);
+                    }
                 }
 
                 if (screenId === 'screen-profile') {
@@ -9177,26 +9329,86 @@
             e.preventDefault();
             window.deferredPrompt = e;
         });
-        window.promptInstallPWA = function(isAutoTrigger = false) {
-            if (isAutoTrigger && localStorage.getItem('install_prompt_dismissed') === 'true') {
-                console.log("[PWA] Auto-trigger skipped due to permanent dismiss flag.");
-                return;
+
+        window.triggerSafePrompts = function() {
+            // Check Notification Permission safely
+            if ('Notification' in window) {
+                if (Notification.permission === 'granted' || Notification.permission === 'denied') {
+                    // Safe logic: already answered.
+                } else if (Notification.permission === 'default') {
+                    if (localStorage.getItem('notification_prompt_dismissed') !== 'true') {
+                        setTimeout(window.showNotificationPopupUI, 500);
+                        return; // Show one prompt at a time
+                    }
+                }
             }
             
+            // Check Install Prompt safely
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+            if (!isStandalone && window.deferredPrompt && localStorage.getItem('install_prompt_dismissed') !== 'true') {
+                setTimeout(window.showInstallPopupUI, 500);
+            }
+        };
+
+        window.showInstallPopupUI = function() {
+            const el = document.getElementById('modal-install-prompt');
+            if (el) {
+                el.classList.remove('hidden');
+                setTimeout(() => el.classList.remove('opacity-0'), 10);
+            }
+        };
+        window.dismissInstallPrompt = function() {
+            localStorage.setItem('install_prompt_dismissed', 'true');
+            const el = document.getElementById('modal-install-prompt');
+            if (el) {
+                el.classList.add('opacity-0');
+                setTimeout(() => el.classList.add('hidden'), 300);
+            }
+        };
+        window.acceptInstallPrompt = function() {
+            window.dismissInstallPrompt();
+            if (window.deferredPrompt) {
+                window.deferredPrompt.prompt();
+                window.deferredPrompt.userChoice.then((choiceResult) => {
+                    window.deferredPrompt = null;
+                });
+            } else {
+                window.promptInstallPWA(false); // Fallback for iOS manual popup toast
+            }
+        };
+
+        window.showNotificationPopupUI = function() {
+            const el = document.getElementById('modal-notification-prompt');
+            if (el) {
+                el.classList.remove('hidden');
+                setTimeout(() => el.classList.remove('opacity-0'), 10);
+            }
+        };
+        window.dismissNotificationPrompt = function() {
+            localStorage.setItem('notification_prompt_dismissed', 'true');
+            const el = document.getElementById('modal-notification-prompt');
+            if (el) {
+                el.classList.add('opacity-0');
+                setTimeout(() => el.classList.add('hidden'), 300);
+            }
+            window.triggerSafePrompts(); // Trigger next prompt if any
+        };
+        window.acceptNotificationPrompt = function() {
+            window.dismissNotificationPrompt();
+            if (typeof window.requestPushPermission === 'function') {
+                window.requestPushPermission();
+            } else {
+                Notification.requestPermission();
+            }
+        };
+
+        window.promptInstallPWA = function(isAutoTrigger = false) {
+            if (isAutoTrigger && localStorage.getItem('install_prompt_dismissed') === 'true') return;
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
             if (isIOS) {
                 showGlobalToast("Install on iOS", "Tap 'Share' at the bottom of Safari, then tap 'Add to Home Screen'.");
             } else if (window.deferredPrompt) {
-                window.deferredPrompt.prompt();
-                window.deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        console.log('[PWA] User accepted the install prompt');
-                    } else {
-                        console.log('[PWA] User dismissed the install prompt');
-                        localStorage.setItem('install_prompt_dismissed', 'true');
-                    }
-                    window.deferredPrompt = null;
-                });
+                window.showInstallPopupUI();
             } else if (!isAutoTrigger) {
                 showGlobalToast("Install App", "PWA is already installed or your browser doesn't support automatic prompts.");
             }
@@ -9642,10 +9854,50 @@
         </div>
     </div>
 
+    <!-- Custom PWA Install Prompt -->
+    <div id="modal-install-prompt" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] hidden flex-col items-center justify-center p-4 modal-overlay transition-opacity duration-300 opacity-0">
+        <div class="bg-white w-full max-w-sm rounded-[24px] p-6 shadow-2xl transform translate-y-full sm:translate-y-0 sm:scale-95 transition-transform duration-300">
+            <div class="flex items-start gap-4">
+                <div class="w-14 h-14 rounded-[16px] bg-[#4226E9]/10 flex items-center justify-center shrink-0 p-2.5">
+                    <img src="./assets/Logo.png" class="w-full h-full object-contain">
+                </div>
+                <div>
+                    <h3 class="text-[17px] font-black text-slate-900 tracking-tight leading-tight">Install MCT Notify</h3>
+                    <p class="text-[13px] text-slate-500 mt-1 leading-snug">Install this app on your home screen for quick and easy access when you're on the go.</p>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="dismissInstallPrompt()" class="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-[14px] active:scale-95 transition-all">Not Now</button>
+                <button onclick="acceptInstallPrompt()" class="flex-1 py-3 bg-[#4226E9] text-white rounded-xl font-bold text-[14px] active:scale-95 transition-all shadow-md shadow-[#4226E9]/20">Install App</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Notification Prompt -->
+    <div id="modal-notification-prompt" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] hidden flex-col items-center justify-end p-4 sm:justify-center modal-overlay transition-opacity duration-300 opacity-0">
+        <div class="bg-white w-full max-w-sm rounded-[24px] p-6 shadow-2xl transform translate-y-full sm:translate-y-0 sm:scale-95 transition-transform duration-300">
+            <div class="w-16 h-16 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mb-4 mx-auto text-[#4226E9]">
+                <i data-lucide="bell-ring" class="w-8 h-8"></i>
+            </div>
+            <div class="text-center">
+                <h3 class="text-[18px] font-black text-slate-900 tracking-tight leading-tight">Enable Notifications</h3>
+                <p class="text-[13px] text-slate-500 mt-2 leading-relaxed">Don't miss out on important class updates, routine changes, and notices from your CR.</p>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="dismissNotificationPrompt()" class="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-[14px] active:scale-95 transition-all">Later</button>
+                <button onclick="acceptNotificationPrompt()" class="flex-1 py-3 bg-[#4226E9] text-white rounded-xl font-bold text-[14px] active:scale-95 transition-all shadow-md shadow-[#4226E9]/20">Enable Now</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Pull to Refresh Global Logic -->
     <script src="js/pull-to-refresh.js"></script>
 </body>
 </html>
+
+
+
+
 
 
 

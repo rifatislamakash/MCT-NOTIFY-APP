@@ -554,8 +554,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     <div onclick="openScheduleDetails('${s.id}')" class="${cardClasses} relative p-[16px] mt-2">
                         ${window.AuthorService ? window.AuthorService.renderAuthorBlock(s.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
                         <div class="mt-1 flex flex-col">
-                            <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.sanitizeHTML(s.title || 'Untitled')}</h4>
-                            <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.sanitizeHTML(s.message || '')}</p>
+                            <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.safeFormatRichText(s.title || 'Untitled')}</h4>
+                            <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.safeFormatRichText(s.message || '')}</p>
                         </div>
                         <div class="w-full mt-[12px] !flex !flex-wrap !justify-between !items-center !gap-[8px]">
                             <div class="flex-1">${bottomEventTagsHtml}</div>
@@ -595,10 +595,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const timeEl = document.getElementById('sd-time');
             const messageEl = document.getElementById('sd-message');
 
-            if (titleEl) titleEl.textContent = s.title || 'Untitled';
+            if (titleEl) titleEl.innerHTML = window.safeFormatRichText(s.title || 'Untitled');
             if (dateEl) dateEl.textContent = formatScheduleDate(s.schedule_date);
             if (timeEl) timeEl.textContent = formatScheduleTime(s.schedule_time);
-            if (messageEl) messageEl.textContent = s.message || '';
+            if (messageEl) messageEl.innerHTML = window.safeFormatRichText(s.message || '');
 
             if (audienceBadge) {
                 const { text, cls } = getAudienceBadge(s.audience_type);

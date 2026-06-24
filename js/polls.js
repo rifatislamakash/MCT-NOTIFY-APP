@@ -100,7 +100,7 @@ export class PollService {
                                 <i data-lucide="pie-chart" class="w-4 h-4 text-indigo-600"></i>
                             </div>
                             <div>
-                                <h4 class="text-[13px] font-bold text-slate-900 leading-tight">${window.sanitizeHTML(poll.title)}</h4>
+                                <h4 class="text-[13px] font-bold text-slate-900 leading-tight">${window.safeFormatRichText(poll.title)}</h4>
                                 <div class="flex items-center gap-1.5 mt-1">
                                     <span class="text-[9px] font-semibold text-slate-400"><i data-lucide="calendar" class="w-3 h-3 inline pb-0.5"></i> ${formattedDate}</span>
                                 </div>
@@ -112,7 +112,7 @@ export class PollService {
                         </div>
                     </div>
                     <div class="text-[11px] text-slate-600 mt-2 font-medium line-clamp-2">
-                        ${window.sanitizeHTML(poll.message)}
+                        ${window.safeFormatRichText(poll.message)}
                     </div>
                     <div class="mt-3 flex items-center justify-between text-[10px] font-bold text-slate-400">
                         <span>${totalVotes} total votes</span>
@@ -214,7 +214,7 @@ export class PollService {
         const html = `
             <div class="mb-4">
                 <div class="flex justify-between items-start mb-2">
-                    <h3 class="text-[16px] font-black text-slate-900 leading-tight">${window.sanitizeHTML(poll.title)}</h3>
+                    <h3 class="text-[16px] font-black text-slate-900 leading-tight">${window.safeFormatRichText(poll.title)}</h3>
                     <div class="flex items-center gap-1 shrink-0 ml-2">
                         ${deleteBtnHtml}
                         <div class="flex flex-col items-end gap-1">
@@ -228,7 +228,7 @@ export class PollService {
                     <div class="w-1 h-1 bg-slate-300 rounded-full"></div>
                     <span class="text-[10px] font-bold text-indigo-600 uppercase tracking-wide">${allowMultiple ? 'Multiple Choice' : 'Single Choice'}</span>
                 </div>
-                <p class="text-[12px] text-slate-500 mt-2 bg-slate-50 p-3 rounded-lg border border-slate-100">${window.sanitizeHTML(poll.message)}</p>
+                <p class="text-[12px] text-slate-500 mt-2 bg-slate-50 p-3 rounded-lg border border-slate-100">${window.safeFormatRichText(poll.message)}</p>
             </div>
             <div>${optionsHtml}</div>
             ${releaseButtonHtml}

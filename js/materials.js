@@ -171,9 +171,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                 const badgeText = m.material_type;
 
-                const safeTitle = window.sanitizeHTML(m.title);
+                const safeTitle = window.safeFormatRichText(m.title);
                 const safeCourse = window.sanitizeHTML(courseName);
-                const safeDesc = window.sanitizeHTML(m.description || '');
+                const safeDesc = window.safeFormatRichText(m.description || '');
 
                 let badgeHtml = `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] uppercase ${badgeClass}">${badgeText}</span>`;
 
