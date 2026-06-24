@@ -420,8 +420,16 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         cardClasses += "bg-white border border-slate-100 hover:border-indigo-200";
                     }
 
-                    let rightSideHtml = `<div class="flex items-center">`;
+                    let rightSideHtml = `<div class="flex items-center gap-2">`;
                     rightSideHtml += pin;
+                    const isAdminOrCR = ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail));
+                    if (isAdminOrCR) {
+                        rightSideHtml += `
+                            <button type="button" class="delete-btn text-slate-400 hover:text-red-500 transition-colors p-1 rounded-md hover:bg-red-50" onclick="event.stopPropagation(); window.executeGlobalDelete('notices', '${n.id}', 'notice-card-${n.id}')">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        `;
+                    }
                     rightSideHtml += `</div>`;
                     
                     const createdDate = new Date(n.created_at);
@@ -435,7 +443,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     const extraBadgesHtml = `${badgeHtml}${courseTagsHtml}`;
 
                     return `
-                            <div onclick="openNoticeDetails('${window.sanitizeHTML(n.id)}')" class="${cardClasses} relative p-[16px] mt-2">
+                            <div id="notice-card-${n.id}" onclick="openNoticeDetails('${window.sanitizeHTML(n.id)}')" class="${cardClasses} relative p-[16px] mt-2">
                                 ${window.AuthorService ? window.AuthorService.renderAuthorBlock(n.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
                                 <div class="mt-1 flex flex-col">
                                     <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.safeFormatRichText(n.title)}</h4>

@@ -194,6 +194,29 @@ serve(async (req) => {
           continue;
       }
 
+      // --- 1-HOUR ANTI-SPAM COOLDOWN ---
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { data: recentLogs, error: logsErr } = await supabaseClient
+          .from('notification_logs')
+          .select('fcm_token')
+          .eq('target_id', reminder.parent_id)
+          .gte('created_at', oneHourAgo);
+
+      if (!logsErr && recentLogs) {
+          const recentTokens = new Set(recentLogs.map((l: any) => l.fcm_token));
+          const originalCount = uniqueTokens.length;
+          uniqueTokens = uniqueTokens.filter(token => !recentTokens.has(token));
+          console.log(`[ANTI-SPAM] Blocked ${originalCount - uniqueTokens.length} tokens that received this notification in the last hour.`);
+      }
+
+      if (uniqueTokens.length === 0) {
+          console.log(`[ANTI-SPAM] All tokens were blocked by cooldown. Skipping FCM loop.`);
+          sentReminderIds.push(reminder.id);
+          continue;
+      }
+
+      const logsToInsert: any[] = [];
+
       for (const token of uniqueTokens) {
         const fcmPayload = {
           message: {
@@ -238,11 +261,26 @@ serve(async (req) => {
           const fcmResult = await fcmResponse.text();
           console.log("[FIREBASE RETURN STATUS]:", fcmResponse.status, fcmResult);
           
-          if (fcmResponse.ok) successCount++;
+          if (fcmResponse.ok) {
+              successCount++;
+              logsToInsert.push({
+                  target_id: reminder.parent_id,
+                  fcm_token: token,
+                  created_at: new Date().toISOString()
+              });
+          }
         } catch (err: any) {
           console.error("[FATAL FIREBASE FETCH ERROR]:", err.message);
         }
       }
+
+      // Bulk insert anti-spam logs
+      if (logsToInsert.length > 0) {
+          console.log(`[ANTI-SPAM] Logging ${logsToInsert.length} successful notifications...`);
+          const { error: insertErr } = await supabaseClient.from('notification_logs').insert(logsToInsert);
+          if (insertErr) console.error("[ANTI-SPAM] Failed to insert logs:", insertErr);
+      }
+
       sentReminderIds.push(reminder.id);
     }
 

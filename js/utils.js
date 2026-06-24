@@ -405,3 +405,26 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     setTimeout(window.initRichEditors, 100);
 }
 
+
+// --- GLOBAL DELETE UTILITY ---
+window.executeGlobalDelete = async (tableName, itemId, elementContainerId) => {
+    if (!confirm(Are you sure you want to delete this item? This cannot be undone.)) return;
+    window.showLoader(true, Deleting item...);
+    try {
+        if (tableName === 'notices' || tableName === 'materials' || tableName === 'schedules') {
+            const { error } = await _supabase.rpc('delete_feed_item_cascade', { table_name: tableName, item_id: itemId });
+            if (error) throw error;
+        } else {
+            const { error } = await _supabase.from(tableName).delete().eq('id', itemId);
+            if (error) throw error;
+        }
+        const uiElement = document.getElementById(elementContainerId);
+        if (uiElement) uiElement.remove();
+        window.showGlobalToast(Success, Item deleted successfully.);
+    } catch (err) {
+        console.error(Delete failed:, err);
+        window.showGlobalToast(Error, Failed to delete. Ensure you have permission and no database constraints exist.);
+    } finally {
+        window.showLoader(false);
+    }
+};

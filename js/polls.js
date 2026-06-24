@@ -92,8 +92,17 @@ export class PollService {
 
             const formattedDate = new Date(poll.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
+            let deleteBtnHtml = '';
+            if (window.currentUserRole === 'admin' || (window.currentUserRole === 'cr' && poll.created_by === window.authState?.user?.id)) {
+                deleteBtnHtml = `
+                    <button type="button" class="delete-btn p-1 mb-1 text-slate-400 hover:bg-red-50 hover:text-red-500 rounded-md transition-colors flex shrink-0 items-center justify-center" onclick="event.stopPropagation(); window.executeGlobalDelete('polls', '${poll.id}', 'poll-card-${poll.id}')" title="Delete Poll">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                `;
+            }
+
             return `
-                <div class="bg-white p-4 rounded-[20px] shadow-sm border border-slate-100 transition-all hover:shadow-md cursor-pointer" onclick="window.PollService.openPollDetails('${poll.id}')">
+                <div id="poll-card-${poll.id}" class="bg-white p-4 rounded-[20px] shadow-sm border border-slate-100 transition-all hover:shadow-md cursor-pointer" onclick="window.PollService.openPollDetails('${poll.id}')">
                     <div class="flex items-start justify-between mb-2">
                         <div class="flex items-center gap-2">
                             <div class="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
@@ -107,6 +116,9 @@ export class PollService {
                             </div>
                         </div>
                         <div class="flex flex-col items-end gap-1 shrink-0">
+                            <div class="flex items-center gap-2">
+                                ${deleteBtnHtml}
+                            </div>
                             ${statusBadge}
                             ${courseBadge}
                         </div>

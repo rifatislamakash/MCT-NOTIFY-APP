@@ -536,8 +536,16 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const pin = isPinned ? `<i data-lucide="pin" class="w-3 h-3 text-orange-500 fill-orange-500 ml-1"></i>` : '';
                 const attach = hasAttachment ? `<i data-lucide="paperclip" class="w-3.5 h-3.5 text-indigo-500 ml-1"></i>` : '';
 
-                let rightSideHtml = `<div class="flex items-center">`;
+                let rightSideHtml = `<div class="flex items-center gap-2">`;
                 rightSideHtml += pin + attach;
+                const isAdminOrCR = ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail));
+                if (isAdminOrCR) {
+                    rightSideHtml += `
+                        <button type="button" class="delete-btn text-slate-400 hover:text-red-500 transition-colors p-1 rounded-md hover:bg-red-50" onclick="event.stopPropagation(); window.executeGlobalDelete('schedules', '${s.id}', 'schedule-card-${s.id}')">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    `;
+                }
                 rightSideHtml += `</div>`;
 
                 let bottomEventTagsHtml = '';
@@ -551,7 +559,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 }
 
                 return `
-                    <div onclick="openScheduleDetails('${s.id}')" class="${cardClasses} relative p-[16px] mt-2">
+                    <div id="schedule-card-${s.id}" onclick="openScheduleDetails('${s.id}')" class="${cardClasses} relative p-[16px] mt-2">
                         ${window.AuthorService ? window.AuthorService.renderAuthorBlock(s.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
                         <div class="mt-1 flex flex-col">
                             <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.safeFormatRichText(s.title || 'Untitled')}</h4>

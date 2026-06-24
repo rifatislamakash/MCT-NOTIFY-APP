@@ -177,7 +177,15 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                 let badgeHtml = `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] uppercase ${badgeClass}">${badgeText}</span>`;
 
-                let rightSideHtml = `<div class="flex items-center">`;
+                let rightSideHtml = `<div class="flex items-center gap-2">`;
+                const isAdminOrCR = ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail));
+                if (isAdminOrCR) {
+                    rightSideHtml += `
+                        <button type="button" class="delete-btn text-slate-400 hover:text-red-500 transition-colors p-1 rounded-md hover:bg-red-50" onclick="event.stopPropagation(); window.executeGlobalDelete('materials', '${m.id}', 'material-card-${m.id}')">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    `;
+                }
                 rightSideHtml += `<div class="w-7 h-7 rounded-full ${iconBgClass} ${iconColorClass} flex items-center justify-center shrink-0 ml-1">
                                      <i data-lucide="${iconName}" class="w-3.5 h-3.5"></i>
                                   </div>`;
@@ -202,7 +210,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 console.log(`[MATERIAL CARD] Title: ${m.title}`);
 
                 return `
-                        <div class="flex flex-col w-full max-w-full box-border p-[16px] bg-white rounded-[16px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 transition-all active:scale-[0.98] cursor-pointer hover:border-[#4226E9]/30 hover:shadow-md relative" onclick="openMaterialDetails('${m.id}')">
+                        <div id="material-card-${m.id}" class="flex flex-col w-full max-w-full box-border p-[16px] bg-white rounded-[16px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 transition-all active:scale-[0.98] cursor-pointer hover:border-[#4226E9]/30 hover:shadow-md relative" onclick="openMaterialDetails('${m.id}')">
                             ${window.AuthorService ? window.AuthorService.renderAuthorBlock(m.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
                             <div class="mt-1 flex flex-col min-w-0">
                                 <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${safeTitle}</h4>
