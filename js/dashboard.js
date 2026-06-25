@@ -621,10 +621,17 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (typeof lucide !== 'undefined') lucide.createIcons();
         };
 
+        let isNavigatingToExams = false;
         window.openDedicatedExamPanel = async function() {
+            if (isNavigatingToExams) return; // Break the infinite loop
+            isNavigatingToExams = true;
+            
             try {
-                if (typeof navigate === 'function') navigate('screen-weekly-routine');
-                else if (typeof showScreen === 'function') showScreen('screen-weekly-routine');
+                if (typeof showScreen === 'function') showScreen('screen-weekly-routine');
+                else if (typeof navigate === 'function') navigate('screen-weekly-routine');
+                
+                // Wait 50ms for DOM to catch up before clicking tab
+                await new Promise(resolve => setTimeout(resolve, 50));
                 
                 if (typeof window.switchToExamTab === 'function') {
                     window.switchToExamTab();
@@ -634,6 +641,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 }
             } catch (error) {
                 console.error("[ROUTER ERROR] Failed to navigate to Exam Panel:", error);
+            } finally {
+                // Release the lock after a safe delay
+                setTimeout(() => { isNavigatingToExams = false; }, 500);
             }
         };
 

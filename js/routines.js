@@ -1783,16 +1783,22 @@ window.switchRoutineView = switchRoutineView;
                     return plain.trim();
                 }
 
-                await window._supabase.functions.invoke('send-reminders', {
-                    body: {
-                        target_id: newExam.id,
-                        title: `Knock knock...! '${courseName}' is knocking at the door.`,
-                        body: `Upcoming Exam is '${courseName}' at '${examDate} ${window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime}'. Open the app to see the syllabus.`,
-                        type: 'NEW_EXAM',
-                        topic: targetTopic,
-                        time: new Date().toISOString()
-                    }
-                }).catch(err => console.warn('Failed to send push notification', err));
+                const shouldNotify = document.getElementById('notify-audience-exam')?.checked !== false;
+
+                if (shouldNotify) {
+                    await window._supabase.functions.invoke('send-reminders', {
+                        body: {
+                            target_id: newExam.id,
+                            title: `Knock knock...! '${courseName}' is knocking at the door.`,
+                            body: `Upcoming Exam is '${courseName}' at '${examDate} ${window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime}'. Open the app to see the syllabus.`,
+                            type: 'NEW_EXAM',
+                            topic: targetTopic,
+                            time: new Date().toISOString()
+                        }
+                    }).catch(err => console.warn('Failed to send push notification', err));
+                } else {
+                    console.log("[SILENT MODE] Content saved, but audience notification skipped.");
+                }
 
                 window.showGlobalToast('Created', 'Exam schedule added successfully!');
                 window.navigate('screen-weekly-routine');
@@ -2090,16 +2096,22 @@ window.switchRoutineView = switchRoutineView;
                     return plain.trim();
                 });
 
-                await window._supabase.functions.invoke('send-reminders', {
-                    body: {
-                        target_id: examId,
-                        title: `Knock knock...! '${courseName}' is knocking at the door.`,
-                        body: `Upcoming Exam is '${courseName}' at '${examDate} ${window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime}'. Open the app to see the syllabus.`,
-                        type: 'NEW_EXAM',
-                        topic: targetTopic,
-                        time: new Date().toISOString()
-                    }
-                }).catch(err => console.warn('Failed to send push notification', err));
+                const shouldNotify = document.getElementById('notify-audience-edit-exam')?.checked !== false;
+
+                if (shouldNotify) {
+                    await window._supabase.functions.invoke('send-reminders', {
+                        body: {
+                            target_id: examId,
+                            title: `Knock knock...! '${courseName}' is knocking at the door.`,
+                            body: `Upcoming Exam is '${courseName}' at '${examDate} ${window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime}'. Open the app to see the syllabus.`,
+                            type: 'NEW_EXAM',
+                            topic: targetTopic,
+                            time: new Date().toISOString()
+                        }
+                    }).catch(err => console.warn('Failed to send push notification', err));
+                } else {
+                    console.log("[SILENT MODE] Content saved, but audience notification skipped.");
+                }
 
                 window.showGlobalToast('Updated', 'Exam schedule updated successfully!');
                 window.navigate('screen-weekly-routine');

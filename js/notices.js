@@ -1120,17 +1120,23 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                     const reminderRows = [];
                     
-                    // Automatically queue push notification immediately for notice creation
-                    if (!id || publish_now) {
-                        reminderRows.push({
-                            parent_type: 'notice',
-                            parent_id: savedNoticeId,
-                            reminder_time: new Date(Date.now() + 30000).toISOString(),
-                            sent: false,
-                            reminder_title: title,
-                            reminder_message: message,
-                            created_by: window.authState.user.id
-                        });
+                    const shouldNotify = document.getElementById('notify-audience-notice')?.checked !== false;
+                    
+                    if (shouldNotify) {
+                        // Automatically queue push notification immediately for notice creation
+                        if (!id || publish_now) {
+                            reminderRows.push({
+                                parent_type: 'notice',
+                                parent_id: savedNoticeId,
+                                reminder_time: new Date(Date.now() + 30000).toISOString(),
+                                sent: false,
+                                reminder_title: title,
+                                reminder_message: message,
+                                created_by: window.authState.user.id
+                            });
+                        }
+                    } else {
+                        console.log("[SILENT MODE] Content saved, but audience notification skipped.");
                     }
 
                     const reminderDivs = document.querySelectorAll('#notice-reminders-list .reminder-row');

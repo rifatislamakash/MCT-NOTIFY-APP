@@ -2906,11 +2906,9 @@
                                         </div>
                                     </div>
 
-                                    <div class="mb-4">
-                                        <label class="flex items-center gap-2 mt-4 cursor-pointer bg-indigo-50 p-3 rounded-[12px] border border-indigo-100 hover:bg-indigo-100 transition-colors">
-                                            <input type="checkbox" id="mat-notify-users" class="w-4 h-4 rounded border-slate-300 text-[#4226E9] focus:ring-[#4226E9] cursor-pointer">
-                                            <span class="text-[13px] font-bold text-indigo-900">Notify enrolled students (Push Notification)</span>
-                                        </label>
+                                    <div class="mt-4 mb-4 flex items-center">
+                                        <input type="checkbox" id="notify-audience-material" checked class="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500">
+                                        <label for="notify-audience-material" class="ml-2 text-[13px] font-bold text-indigo-900">Notify Targeted Audience</label>
                                     </div>
                                     <button type="submit" id="btn-upload-material-submit" class="w-full py-3.5 bg-[#4226E9] hover:bg-[#341BC5] text-white rounded-[12px] font-bold text-[15px] shadow-sm transition-all active:scale-[0.98]">
                                         Upload Material
@@ -3600,6 +3598,11 @@
                                     <input type="text" id="add-routine-room" class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-700 shadow-sm" placeholder="e.g. 201">
                                 </div>
                                 
+                                <div class="mt-4 flex items-center">
+                                    <input type="checkbox" id="notify-audience-schedule" checked class="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500">
+                                    <label for="notify-audience-schedule" class="ml-2 text-sm font-medium text-gray-900">Notify Targeted Audience</label>
+                                </div>
+                                
                                 <div class="pt-6 pb-4">
                                     <button type="submit" class="w-full bg-[#4226E9] hover:bg-[#341BC5] text-white font-extrabold text-[15px] h-[52px] rounded-2xl shadow-xl shadow-indigo-600/30 active:scale-[0.98] transition-all">
                                         Save Class
@@ -3692,6 +3695,11 @@
                                     <div id="exam-reminders-list" class="space-y-3">
                                         <!-- Dynamic Reminder Rows Will Go Here -->
                                     </div>
+                                </div>
+                                
+                                <div class="mt-4 flex items-center">
+                                    <input type="checkbox" id="notify-audience-exam" checked class="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500">
+                                    <label for="notify-audience-exam" class="ml-2 text-sm font-medium text-gray-900">Notify Targeted Audience</label>
                                 </div>
                                 
                                 <div class="pt-6 pb-4">
@@ -3787,6 +3795,11 @@
                                     <div id="edit-exam-reminders-list" class="space-y-3">
                                         <!-- Dynamic Reminder Rows Will Go Here -->
                                     </div>
+                                </div>
+                                
+                                <div class="mt-4 flex items-center">
+                                    <input type="checkbox" id="notify-audience-edit-exam" checked class="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500">
+                                    <label for="notify-audience-edit-exam" class="ml-2 text-sm font-medium text-gray-900">Notify Targeted Audience</label>
                                 </div>
                                 
                                 <div class="pt-6 pb-4">
@@ -4615,6 +4628,11 @@
                                     <div id="notice-reminders-list" class="space-y-3">
                                         <!-- Dynamic Reminder Rows Will Go Here -->
                                     </div>
+                                </div>
+
+                                <div class="mt-4 flex items-center">
+                                    <input type="checkbox" id="notify-audience-notice" checked class="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500">
+                                    <label for="notify-audience-notice" class="ml-2 text-sm font-medium text-gray-900">Notify Targeted Audience</label>
                                 </div>
 
                             </form>

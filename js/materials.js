@@ -547,7 +547,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     console.error("Database insert error:", insertError);
                     throw insertError;
                 }
-                const notifyChecked = document.getElementById('mat-notify-users')?.checked;
+                const notifyChecked = document.getElementById('notify-audience-material')?.checked !== false;
                 if (insertedMaterials && insertedMaterials.length > 0) {
                     const newMaterialId = insertedMaterials[0].id;
                     if (notifyChecked) {
@@ -566,6 +566,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         } catch (targetErr) {
                             console.error("[MATERIAL NOTIFY ERROR]", targetErr);
                         }
+                    } else {
+                        console.log("[SILENT MODE] Content saved, but audience notification skipped.");
                     }
                 }
 
