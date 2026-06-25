@@ -135,7 +135,7 @@ window.clearEditAttachment = ScheduleService.clearEditAttachment;
 window.handleUpdateSchedule = ScheduleService.handleUpdateSchedule;
 window.handleDeleteSchedule = ScheduleService.handleDeleteSchedule;
 
-import { fetchRoutineDependencies, loadWeeklyRoutine, renderDailyRoutineView, openAddRoutine, handleSaveRoutine, openRoutineDetails, handleUpdateRoutine, handleDeleteRoutine } from './js/routines.js';
+import { fetchRoutineDependencies, loadWeeklyRoutine, renderDailyRoutineView, openAddRoutine, handleSaveRoutine, openRoutineDetails, handleUpdateRoutine, handleDeleteRoutine } from './js/routines.js?v=2';
 window.fetchRoutineDependencies = fetchRoutineDependencies;
 window.loadWeeklyRoutine = loadWeeklyRoutine;
 window.renderDailyRoutineView = renderDailyRoutineView;
@@ -145,7 +145,7 @@ window.openRoutineDetails = openRoutineDetails;
 window.handleUpdateRoutine = handleUpdateRoutine;
 window.handleDeleteRoutine = handleDeleteRoutine;
 
-import { RoutineService } from './js/routines.js';
+import { RoutineService } from './js/routines.js?v=2';
 window.RoutineService = RoutineService;
 window.switchRoutineView = RoutineService.switchRoutineView;
 window.getSmartDashboardDay = RoutineService.getSmartDashboardDay;
@@ -155,10 +155,10 @@ window.getTodayRoutineDayName = RoutineService.getTodayRoutineDayName;
 window.getTomorrowRoutineDayName = RoutineService.getTomorrowRoutineDayName;
 window.onRoutineCourseChange = RoutineService.onRoutineCourseChange;
 
-import { loadDashboardTodayRoutine } from './js/dashboard.js';
+import { loadDashboardTodayRoutine } from './js/dashboard.js?v=2';
 window.loadDashboardTodayRoutine = loadDashboardTodayRoutine;
 
-import { DashboardService } from './js/dashboard.js';
+import { DashboardService } from './js/dashboard.js?v=2';
 window.DashboardService = DashboardService;
 window.updateDashboardGreetings = DashboardService.updateDashboardGreetings;
 window.updateDashboardQuickAccessBadges = DashboardService.updateDashboardQuickAccessBadges;
@@ -175,3 +175,5 @@ import { ReportService } from './js/reports.js';
 window.ReportService = ReportService;
 window.loadMyReports = ReportService.loadMyReports.bind(ReportService);
 window.loadAdminReports = ReportService.loadAdminReports.bind(ReportService);
+
+

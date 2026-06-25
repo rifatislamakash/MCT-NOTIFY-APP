@@ -14,7 +14,7 @@ export const CourseStore = (function () {
                 const data = await fetchCachedOrDeduplicated('store_courses', async () => {
                     const sdkPromise = _supabase
                         .from('courses')
-                        .select('id, course_name, short_name, course_code, total_credit, batch_id, sections_name, batches ( batch_name )')
+                        .select('id, course_name, short_name, course_code, total_credit, batch_id, sections_name, faculty_id, batches ( batch_name )')
                         .order('course_name');
                         
                     try {
@@ -37,7 +37,7 @@ export const CourseStore = (function () {
                         if (e.message === 'sdk_timeout') {
                             window._supabaseSdkFailing = true;
                             console.log("[CourseStore] Supabase SDK hung, falling back to REST");
-                            const url = `${_supabase.supabaseUrl}/rest/v1/courses?select=id,course_name,short_name,course_code,total_credit,batch_id,sections_name,batches(batch_name)&order=course_name.asc`;
+                            const url = `${_supabase.supabaseUrl}/rest/v1/courses?select=id,course_name,short_name,course_code,total_credit,batch_id,sections_name,faculty_id,batches(batch_name)&order=course_name.asc`;
                             const res = await fetch(url, {
                                 headers: {
                                     'apikey': _supabase.supabaseKey,

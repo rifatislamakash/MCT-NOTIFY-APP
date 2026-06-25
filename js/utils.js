@@ -245,8 +245,8 @@ document.addEventListener('focusin', (e) => {
     }
 });
 
-window.applyFormat = function(type, value = null) {
-    const el = lastFocusedEditor;
+window.formatText = function(type, value = null, targetId = null) {
+    const el = targetId ? document.getElementById(targetId) : lastFocusedEditor;
     if (!el) {
         window.showGlobalToast('Focus Required', 'Please click inside the text area first.');
         return;
@@ -289,6 +289,10 @@ window.applyFormat = function(type, value = null) {
         }
         el.dispatchEvent(new Event('input', { bubbles: true }));
     }
+};
+
+window.applyFormat = function(type, value = null) {
+    window.formatText(type, value, null);
 };
 
 window.safeFormatRichText = function(text) {
@@ -385,6 +389,7 @@ window.initRichEditors = function() {
         
         const origDesc = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
         Object.defineProperty(textarea, 'value', {
+            configurable: true,
             get: function() {
                 return origDesc.get.call(this);
             },
@@ -426,5 +431,20 @@ window.executeGlobalDelete = async (tableName, itemId, elementContainerId) => {
         window.showGlobalToast("Error", "Failed to delete. Ensure you have permission and no database constraints exist.");
     } finally {
         window.showLoader(false);
+    }
+};
+
+window.formatTimeIfPossible = function(timeStr) {
+    if (!timeStr) return '--';
+    try {
+        const parts = timeStr.split(':');
+        if (parts.length < 2) return timeStr;
+        const h = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        const period = h >= 12 ? 'PM' : 'AM';
+        const hh = h % 12 || 12;
+        return `${String(hh).padStart(2, '0')}:${String(m).padStart(2, '0')} ${period}`;
+    } catch (e) {
+        return timeStr;
     }
 };

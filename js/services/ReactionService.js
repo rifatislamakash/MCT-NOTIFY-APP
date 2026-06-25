@@ -189,8 +189,8 @@ export class ReactionService {
                     ${actionIcon}
                 </button>
                 
-                <div class="reaction-picker absolute bg-white rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-slate-100 p-1 flex items-center gap-1 opacity-0 pointer-events-none transition-all duration-300 translate-y-3 scale-95 origin-bottom-left whitespace-nowrap"
-                     style="position: absolute !important; bottom: calc(100% + 6px) !important; left: 4px !important; z-index: 9999 !important;"
+                <div class="reaction-picker absolute bg-white rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-slate-100 p-1 flex items-center gap-1 opacity-0 pointer-events-none transition-all duration-300 translate-y-3 scale-95 origin-bottom-right whitespace-nowrap"
+                     style="position: absolute !important; bottom: calc(100% + 6px) !important; right: 0 !important; left: auto !important; z-index: 9999 !important;"
                      onclick="event.stopPropagation();" onmouseup="event.stopPropagation();" ontouchend="event.stopPropagation();">
                     ${pickerItems}
                 </div>

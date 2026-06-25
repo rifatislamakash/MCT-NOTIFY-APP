@@ -145,7 +145,14 @@ let isRegistering = false;
                     // Lazy load heavy queries for Admins (Admin will fetch when clicking the tab)
                     if (!isActualAdmin) {
                         if (typeof window.loadNotices === 'function') tasks.push(window.loadNotices(true).catch(console.warn));
-                        if (typeof window.loadDashboardTodayRoutine === 'function') tasks.push(window.loadDashboardTodayRoutine(true).catch(console.warn));
+                        
+                        if (typeof window.loadDashboardTodayRoutine === 'function') {
+                            const currentScreen = window.location.hash ? window.location.hash.substring(1) : 'screen-student-dashboard';
+                            if (currentScreen === 'screen-student-dashboard') {
+                                tasks.push(window.loadDashboardTodayRoutine(false).catch(console.warn));
+                            }
+                        }
+                        
                         if (typeof window.loadScheduleList === 'function') tasks.push(window.loadScheduleList(true).catch(console.warn));
                     }
 

@@ -166,8 +166,14 @@ import { ProfileStore } from './stores/ProfileStore.js';
         // ---- DASHBOARD: Smart Today/Tomorrow Routine ----
         export async function loadDashboardTodayRoutine(skipRender = false) {
             if (window.isModuleLoading('dashboard')) {
-                console.log("[DASHBOARD ROUTINE] Load already in progress, ignoring duplicate call.");
-                return;
+                // If a previous load was aborted by the router, reset it so we can try again
+                if (window.activeLoadControllers && (!window.activeLoadControllers['dashboard'] || window.activeLoadControllers['dashboard'].signal.aborted)) {
+                    console.log("[DASHBOARD ROUTINE] Previous load was aborted. Forcing reset to allow new load.");
+                    window.setModuleLoading('dashboard', false);
+                } else {
+                    console.log("[DASHBOARD ROUTINE] Load already in progress, ignoring duplicate call.");
+                    return;
+                }
             }
             window.setModuleLoading('dashboard', true);
             cancelActiveRequest('dashboard');
@@ -175,17 +181,143 @@ import { ProfileStore } from './stores/ProfileStore.js';
             window.activeLoadControllers['dashboard'] = localController;
 
             try {
-                const { dayName: targetDay, isToday } = getSmartDashboardDay();
+                // Wait for authState to mount (checks every 100ms, max 5 seconds)
+                let retries = 50;
+                while ((!window.authState || !window.authState.profile || !window.authState.profile.batch_id) && retries > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    retries--;
+                }
+                
+                if (!window.authState || !window.authState.profile) {
+                    console.warn("[DASHBOARD] Auth failed or timed out. Aborting routine widget fetch.");
+                    window.setModuleLoading('dashboard', false);
+                    return;
+                }
+
+                // 1. Fetch the global setting explicitly to prevent race conditions
+                let isExamModeOn = false;
+                
+                if (window.contentSettings && typeof window.contentSettings.is_exam_mode !== 'undefined') {
+                    isExamModeOn = (window.contentSettings.is_exam_mode === true || String(window.contentSettings.is_exam_mode).toLowerCase() === 'true' || window.contentSettings.is_exam_mode === '1' || window.contentSettings.is_exam_mode === 1);
+                } else {
+                    const { data: dbSettings } = await _supabase.from('content_management').select('is_exam_mode').limit(1).single();
+                    if (dbSettings) {
+                        isExamModeOn = (dbSettings.is_exam_mode === true || String(dbSettings.is_exam_mode).toLowerCase() === 'true' || dbSettings.is_exam_mode === '1' || dbSettings.is_exam_mode === 1);
+                        window.contentSettings = dbSettings;
+                    }
+                }
+                
+                // 2. Locate the DOM elements
+                const sectionHeader = document.getElementById('dashboard-routine-section-label');
                 const dashContainer = document.getElementById('dashboard-today-routine');
-                const sectionLabel = document.getElementById('dashboard-routine-section-label');
+                
                 if (!dashContainer) {
                     window.setModuleLoading('dashboard', false);
                     return;
                 }
 
+                // 3. THE EXAM MODE LOCK
+                if (isExamModeOn) {
+                    // Forcefully change the header
+                    if (sectionHeader) {
+                        sectionHeader.textContent = "Upcoming Exam";
+                        if (sectionHeader.nextElementSibling) {
+                            sectionHeader.nextElementSibling.textContent = "View full schedule";
+                            sectionHeader.nextElementSibling.onclick = () => {
+                                navigate('screen-weekly-routine');
+                                if(window.switchRoutineView) window.switchRoutineView('exams');
+                            };
+                        }
+                    }
+
+                    if (!skipRender) {
+                        dashContainer.innerHTML = `<div class="animate-pulse flex flex-col gap-3"><div class="h-[80px] bg-slate-100 rounded-[22px] border border-slate-50 w-full"></div></div>`;
+                    }
+                    
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    let query = _supabase.from('exam_schedules').select('*').gte('exam_date', todayStr).order('exam_date', { ascending: true }).limit(1);
+                    
+                    if (window.currentUserRole !== 'admin') {
+                         query = query.eq('target_batch', window.authState?.profile?.batch_id || 'none');
+                    }
+                    
+                    const { data: exams, error } = await query;
+                    
+                    if (!error && exams && exams.length > 0) {
+                        const exam = exams[0]; // Render ONLY the single next exam
+                        
+                        let facultyName = '';
+                        try {
+                            const courses = await CourseStore.getCourses();
+                            const faculties = await FacultyStore.getFaculty();
+                            const matchedCourse = courses.find(c => 
+                                c.course_code === exam.course_code || 
+                                c.course_name.toLowerCase() === exam.course_name.toLowerCase()
+                            );
+                            if (matchedCourse && matchedCourse.faculty_id) {
+                                const matchedFaculty = faculties.find(f => f.id === matchedCourse.faculty_id);
+                                if (matchedFaculty) {
+                                    facultyName = matchedFaculty.faculty_name;
+                                }
+                            }
+                        } catch (err) {
+                            console.warn("Failed to resolve faculty for dashboard exam card:", err);
+                        }
+
+                        const examDateObj = new Date(exam.exam_date + 'T00:00:00');
+                        const examDate = examDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                        
+                        dashContainer.innerHTML = `<div class="space-y-3">
+                            <div onclick="navigate('screen-weekly-routine'); if(window.switchRoutineView) window.switchRoutineView('exams');" class="bg-gradient-to-br from-indigo-50 to-white rounded-[24px] p-4 border border-indigo-100/80 relative cursor-pointer hover:shadow-md transition-all active:scale-[0.98]">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0 shadow-sm">
+                                        <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="text-[14px] font-extrabold text-slate-800 leading-tight truncate">${window.sanitizeHTML(exam.course_name)}</h3>
+                                        ${facultyName ? `<p class="text-[11px] text-slate-400 font-medium mt-0.5 truncate">${window.sanitizeHTML(facultyName)}</p>` : ''}
+                                        
+                                        <div class="flex items-center gap-1.5 mt-2 text-[10px] font-bold text-slate-500 whitespace-nowrap overflow-hidden">
+                                            <span class="flex items-center gap-1 text-indigo-600 shrink-0">
+                                                <i data-lucide="calendar" class="w-3 h-3"></i>
+                                                ${examDate}
+                                            </span>
+                                            <span class="text-slate-300 shrink-0">•</span>
+                                            <span class="flex items-center gap-1 text-orange-600 shrink-0">
+                                                <i data-lucide="clock" class="w-3 h-3"></i>
+                                                ${window.formatTimeIfPossible(exam.start_time)} - ${window.formatTimeIfPossible(exam.end_time)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+                    } else {
+                        dashContainer.innerHTML = `<div class="flex flex-col items-center justify-center py-10 text-center text-slate-400 bg-white rounded-3xl border border-slate-100 shadow-sm px-6">
+                            <i data-lucide="calendar-clock" class="w-8 h-8 text-indigo-300 mb-3 opacity-50"></i>
+                            <h3 class="text-[14px] font-bold text-slate-700 mb-1">No exam info added</h3>
+                            <p class="text-[11px] leading-relaxed max-w-[200px]">by class representatives.</p>
+                        </div>`;
+                    }
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                    
+                    // CRITICAL: Halt the function here. Do NOT run the Weekly Routine code.
+                    return; 
+                }
+
+                // 4. LEGACY WEEKLY ROUTINE LOGIC (Executes ONLY if is_exam_mode is false)
+                const { dayName: targetDay, isToday } = getSmartDashboardDay();
+                
                 // Update section heading label dynamically
-                if (sectionLabel) {
-                    sectionLabel.textContent = isToday ? "Today's Classes" : "Tomorrow's Classes";
+                if (sectionHeader) {
+                    sectionHeader.textContent = isToday ? "Today's Classes" : "Tomorrow's Classes";
+                    if (sectionHeader.nextElementSibling) {
+                        sectionHeader.nextElementSibling.textContent = "View full routine";
+                        sectionHeader.nextElementSibling.onclick = () => {
+                            navigate('screen-weekly-routine');
+                            if(window.switchRoutineView) window.switchRoutineView('weekly');
+                        };
+                    }
                 }
 
                 // Mount clean animated loading skeleton wireframes
@@ -201,11 +333,44 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 console.log(`[DASHBOARD ROUTINE] Fetching routine for day: ${targetDay}`);
                 
                 // Concurrent execution of fetch chains
-                const [allRoutines] = await Promise.all([
-                    RoutineStore.getRoutines(),
-                    (!window.currentCoursesList && typeof window.fetchCourseList === 'function') ? window.fetchCourseList() : Promise.resolve()
-                ]);
-                const todayClassesData = allRoutines.filter(r => r.day_name === targetDay);
+                if (!window.currentCoursesList && typeof window.fetchCourseList === 'function') {
+                    await window.fetchCourseList();
+                }
+                
+                let query = _supabase
+                    .from('weekly_routines')
+                    .select(`
+                            id, batch_id, day_name, start_time, section_name, room_number, course_id, faculty_id,
+                            courses ( id, course_name, short_name, sections_name ),
+                            faculty ( id, faculty_name, teacher_initial ),
+                            batches ( id, batch_name )
+                        `)
+                    .eq('day_name', targetDay);
+                    
+                if (window.currentUserRole !== 'admin') {
+                    if (!window.authState.profile.batch_id) {
+                        console.warn("[DASHBOARD] batch_id is missing, falling back to empty routine.");
+                        window._dashboardRoutineHTML = `
+                            <div class="bg-white rounded-[22px] border border-slate-100 shadow-2xs p-5 text-center">
+                                <i data-lucide="calendar-check" class="w-8 h-8 text-slate-200 mx-auto mb-2"></i>
+                                <p class="text-xs font-bold text-slate-400">Loading your batch details...</p>
+                            </div>`;
+                        if (!skipRender) window.renderDashboardTodayRoutine();
+                        window.setModuleLoading('dashboard', false);
+                        return;
+                    }
+                    query = query.eq('batch_id', window.authState.profile.batch_id);
+                }
+                
+                const { data: dashboardClasses, error } = await query;
+                
+                if (error) {
+                    console.error("[DASHBOARD] Failed to fetch classes:", error);
+                    window.setModuleLoading('dashboard', false);
+                    return;
+                }
+                
+                const todayClassesData = dashboardClasses || [];
 
                 if (localController.signal.aborted) {
                     console.log("[DASHBOARD ROUTINE] Aborted, ignoring rendering.");
@@ -255,6 +420,19 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     const endHH = Math.floor(totalMins / 60) % 24;
                     const endMM = Math.round(totalMins % 60);
                     return `${String(endHH).padStart(2, '0')}:${String(endMM).padStart(2, '0')}`;
+                }
+
+                // Helper to format time strings
+                function formatRoutineTime(timeStr) {
+                    if (!timeStr) return '--';
+                    try {
+                        const [h, m] = timeStr.split(':').map(Number);
+                        const ampm = h >= 12 ? 'PM' : 'AM';
+                        const h12 = h % 12 || 12;
+                        return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+                    } catch (e) {
+                        return timeStr;
+                    }
                 }
 
                 // Helper to merge consecutive routine blocks
@@ -448,3 +626,4 @@ export const DashboardService = {
     }
 };
 console.log("[ARCHITECTURE]\ndashboard loaded");
+

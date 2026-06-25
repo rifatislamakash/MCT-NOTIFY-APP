@@ -1671,6 +1671,21 @@
                             <div id="admin-content-management-section" class="px-6 mt-5 pb-8">
                                 <h3 class="font-extrabold text-[14px] text-slate-500 tracking-tight uppercase">Content Management</h3>
                                 <div class="mt-3 space-y-2.5">
+                                    <div class="bg-indigo-50 p-3 rounded-2xl flex items-center justify-between border border-indigo-100 shadow-xs">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-9 h-9 bg-indigo-100 text-indigo-700 rounded-xl flex items-center justify-center">
+                                                <i data-lucide="graduation-cap" class="w-4.5 h-4.5"></i>
+                                            </div>
+                                            <div>
+                                                <h5 class="font-bold text-xs text-indigo-900 leading-tight">Exam Routine Mode</h5>
+                                                <p class="text-[9px] text-indigo-600 font-medium mt-0.5">Switch student dashboards to Exam Mode</p>
+                                            </div>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="cm-is_exam_mode" onchange="saveContentSetting('is_exam_mode', this.checked)" class="sr-only peer">
+                                            <div class="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#4226E9]"></div>
+                                        </label>
+                                    </div>
                                     <div class="bg-white p-3 rounded-2xl flex items-center justify-between border border-slate-100 shadow-xs">
                                         <div class="flex items-center gap-3">
                                             <div class="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
@@ -3421,17 +3436,21 @@
                                 <select id="admin-routine-batch-filter" onchange="if(typeof window.filterRoutinesByBatch === 'function') window.filterRoutinesByBatch()" class="hidden w-[90px] h-[36px] px-2.5 rounded-xl bg-white/10 border border-white/10 text-slate-300 text-[11px] font-semibold focus:outline-none appearance-none cursor-pointer">
                                     <option value="" disabled selected class="text-black">Select Batch</option>
                                 </select>
-                                <button id="wr-admin-add-btn" onclick="openAddRoutine()" class="hidden w-9 h-9 bg-[#4226E9] rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform">
-                                    <i data-lucide="plus" class="w-4 h-4 text-white"></i>
+                                <button id="wr-admin-dynamic-btn" onclick="openAddRoutine()" class="hidden px-3 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-100 rounded-xl flex items-center gap-1.5 active:scale-95 transition-all shadow-sm">
+                                    <i id="wr-admin-dynamic-icon" data-lucide="plus" class="w-3.5 h-3.5"></i>
+                                    <span id="wr-admin-dynamic-text" class="text-[10px] font-bold uppercase tracking-wider">Class</span>
                                 </button>
                             </div>
                             <!-- View Toggle -->
-                            <div class="flex gap-2 bg-white/10 rounded-2xl p-1">
-                                <button onclick="switchRoutineView('weekly')" id="btn-view-weekly" class="flex-1 py-2 rounded-xl text-[12px] font-bold transition-all bg-white text-slate-900">
+                            <div class="flex gap-2 bg-white/10 rounded-2xl p-1 mt-2">
+                                <button onclick="switchRoutineView('weekly')" id="btn-view-weekly" class="flex-1 py-2 rounded-xl text-[11px] font-bold transition-all bg-white text-slate-900">
                                     <i data-lucide="layout-grid" class="w-3 h-3 inline mr-1"></i>Weekly
                                 </button>
-                                <button onclick="switchRoutineView('daily')" id="btn-view-daily" class="flex-1 py-2 rounded-xl text-[12px] font-bold transition-all text-white/70">
-                                    <i data-lucide="calendar-days" class="w-3 h-3 inline mr-1"></i><span id="daily-tab-label">Today</span>
+                                <button onclick="switchRoutineView('daily')" id="btn-view-daily" class="flex-1 py-2 rounded-xl text-[11px] font-bold transition-all text-slate-300 hover:text-white">
+                                    <i data-lucide="list" class="w-3 h-3 inline mr-1"></i>Daily
+                                </button>
+                                <button onclick="switchRoutineView('exams')" id="btn-view-exams" class="flex-1 py-2 rounded-xl text-[11px] font-bold transition-all text-slate-300 hover:text-white">
+                                    <i data-lucide="file-check-2" class="w-3 h-3 inline mr-1"></i>Exams
                                 </button>
                             </div>
                         </div>
@@ -3455,6 +3474,17 @@
                             </div>
                             <div id="daily-routine-container" class="space-y-3">
                                 <!-- Daily classes rendered here -->
+                            </div>
+                        </div>
+
+                        <!-- EXAMS VIEW -->
+                        <div id="routine-exams-view" class="hidden flex-1 overflow-y-auto scrollbar-hide px-4 pt-5 pb-6">
+                            <div class="mb-4">
+                                <h3 class="text-[16px] font-extrabold text-slate-900">Upcoming Exams</h3>
+                                <p class="text-[12px] text-slate-500 font-medium">Exam schedules for your batch</p>
+                            </div>
+                            <div id="exams-routine-container" class="space-y-4">
+                                <!-- Exams rendered here -->
                             </div>
                         </div>
 
@@ -3565,15 +3595,205 @@
                                     </div>
                                 </div>
 
-                                <!-- Room Number -->
                                 <div id="add-routine-room-section">
                                     <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 tracking-wider uppercase">Room Number <span class="text-red-500">*</span></label>
-                                    <input type="text" id="add-routine-room" placeholder="e.g. 412, 1018..." class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-800 shadow-sm placeholder:text-slate-400">
+                                    <input type="text" id="add-routine-room" class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-700 shadow-sm" placeholder="e.g. 201">
                                 </div>
+                                
+                                <div class="pt-6 pb-4">
+                                    <button type="submit" class="w-full bg-[#4226E9] hover:bg-[#341BC5] text-white font-extrabold text-[15px] h-[52px] rounded-2xl shadow-xl shadow-indigo-600/30 active:scale-[0.98] transition-all">
+                                        Save Class
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
 
-                                <button type="submit" class="w-full mt-6 py-3.5 bg-[#4226E9] hover:bg-[#341BC5] text-white rounded-[14px] font-bold text-[16px] shadow-md shadow-indigo-600/20 transition-all active:scale-[0.98]">
-                                    Add to Routine
-                                </button>
+                    <!-- ========================================== -->
+                    <!-- SCREEN: ADD EXAM SCHEDULE                  -->
+                    <!-- ========================================== -->
+                    <div id="screen-add-exam-schedule" class="screen flex flex-col overflow-hidden bg-[#0F172A]">
+                        <div class="bg-[#0F172A] px-6 pt-12 pb-6 flex items-center gap-4 text-white shadow-sm z-10 shrink-0">
+                            <button onclick="navigate('screen-weekly-routine'); if(window.switchRoutineView) window.switchRoutineView('exams');" class="hover:opacity-75 transition-opacity">
+                                <i data-lucide="arrow-left" class="w-6 h-6 font-light"></i>
+                            </button>
+                            <div>
+                                <h2 class="text-[22px] font-bold leading-tight tracking-wide">Add Exam</h2>
+                                <p class="text-[13px] text-orange-200 mt-0.5">Schedule a new exam</p>
+                            </div>
+                        </div>
+                        <div class="flex-1 overflow-y-auto px-5 pt-5 pb-28 bg-[#EAECEF] scrollbar-hide">
+                            <form id="form-add-exam-schedule" onsubmit="window.handleAddExamSubmit ? window.handleAddExamSubmit(event) : null" class="space-y-4">
+                                <!-- Target Batch -->
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 tracking-wider uppercase">Target Batch <span class="text-red-500">*</span></label>
+                                    <div class="relative">
+                                        <select id="exam-target-batch" class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#f97316] focus:outline-none text-[14px] text-slate-700 appearance-none shadow-sm">
+                                            <option value="" disabled selected hidden>Select batch</option>
+                                        </select>
+                                        <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+                                    </div>
+                                </div>
+                                <!-- Course Name -->
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 tracking-wider uppercase">Course Name <span class="text-red-500">*</span></label>
+                                    <select id="exam-course-name" required class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#f97316] focus:outline-none text-[14px] text-slate-700 shadow-sm appearance-none">
+                                        <option value="" disabled selected hidden>Select course...</option>
+                                    </select>
+                                </div>
+                                <!-- Course Code -->
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 tracking-wider uppercase">Course Code <span class="text-red-500">*</span></label>
+                                    <input type="text" id="exam-course-code" required placeholder="Auto-filled" readonly class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-slate-100 cursor-not-allowed focus:outline-none text-[14px] text-slate-500 shadow-sm">
+                                </div>
+                                <!-- Exam Date -->
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 tracking-wider uppercase">Exam Date <span class="text-red-500">*</span></label>
+                                    <input type="date" id="exam-date" required class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#f97316] focus:outline-none text-[14px] text-slate-700 shadow-sm">
+                                </div>
+                                <!-- Time Group -->
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 tracking-wider uppercase">Start Time <span class="text-red-500">*</span></label>
+                                        <input type="time" id="exam-start-time" required class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#f97316] focus:outline-none text-[14px] text-slate-700 shadow-sm">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 tracking-wider uppercase">End Time <span class="text-red-500">*</span></label>
+                                        <input type="time" id="exam-end-time" required class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#f97316] focus:outline-none text-[14px] text-slate-700 shadow-sm">
+                                    </div>
+                                </div>
+                                <!-- Syllabus -->
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 tracking-wider uppercase">Syllabus</label>
+                                    <div class="bg-white border border-slate-300 rounded-[16px] overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-[#f97316] focus-within:border-transparent transition-all">
+                                        <div class="rich-text-toolbar flex items-center gap-1.5 p-2 bg-slate-50 border-b border-slate-200 overflow-x-auto hide-scrollbar">
+                                            <button type="button" onclick="applyFormat('bold')" class="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded transition"><i data-lucide="bold" class="w-4 h-4"></i></button>
+                                            <button type="button" onclick="applyFormat('italic')" class="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded transition"><i data-lucide="italic" class="w-4 h-4"></i></button>
+                                            <button type="button" onclick="applyFormat('underline')" class="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded transition"><i data-lucide="underline" class="w-4 h-4"></i></button>
+                                            <button type="button" onclick="applyFormat('link')" class="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded transition"><i data-lucide="link" class="w-4 h-4"></i></button>
+                                            <div class="w-px h-4 bg-slate-300 mx-0.5"></div>
+                                            <input type="color" value="#000000" onchange="applyFormat('color', this.value)" title="Choose Text Color" class="w-6 h-6 p-0 border-0 bg-transparent rounded cursor-pointer">
+                                        </div>
+                                        <textarea id="exam-syllabus-desc" rows="4" placeholder="Enter chapters, topics, or notes..." class="w-full p-4 bg-transparent focus:outline-none text-[14px] text-slate-700 resize-y min-h-[100px]"></textarea>
+                                    </div>
+                                </div>
+                                
+                                <!-- Reminders & Alerts Card -->
+                                <div class="bg-white rounded-[18px] p-5 shadow-sm border border-slate-100">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div>
+                                            <h3 class="font-extrabold text-[13px] text-slate-800 uppercase tracking-wider">Reminders & Alerts</h3>
+                                            <p class="text-[10px] text-slate-400 mt-0.5">Schedule push notifications</p>
+                                        </div>
+                                        <button type="button" onclick="addReminderRow('exam')" class="px-3 py-1.5 bg-orange-50 text-[#f97316] hover:bg-orange-100 rounded-[10px] text-[11px] font-bold transition-all flex items-center gap-1">
+                                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Reminder
+                                        </button>
+                                    </div>
+                                    <div id="exam-reminders-list" class="space-y-3">
+                                        <!-- Dynamic Reminder Rows Will Go Here -->
+                                    </div>
+                                </div>
+                                
+                                <div class="pt-6 pb-4">
+                                    <button type="submit" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-[15px] h-[52px] rounded-2xl shadow-xl shadow-orange-500/30 active:scale-[0.98] transition-all">
+                                        Create Exam Schedule
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- SCREEN: EDIT EXAM SCHEDULE                 -->
+                    <!-- ========================================== -->
+                    <div id="screen-edit-exam-schedule" class="screen flex flex-col overflow-hidden bg-[#0F172A]">
+                        <div class="bg-[#0F172A] px-6 pt-12 pb-6 flex items-center gap-4 text-white shadow-sm z-10 shrink-0">
+                            <button onclick="navigate('screen-weekly-routine'); if(window.switchRoutineView) window.switchRoutineView('exams');" class="hover:opacity-75 transition-opacity">
+                                <i data-lucide="arrow-left" class="w-6 h-6 font-light"></i>
+                            </button>
+                            <div>
+                                <h2 class="text-[22px] font-bold leading-tight tracking-wide">Edit Exam</h2>
+                                <p class="text-[13px] text-orange-200 mt-0.5">Modify scheduled exam details</p>
+                            </div>
+                        </div>
+                        <div class="flex-1 overflow-y-auto px-5 pt-5 pb-28 bg-[#EAECEF] scrollbar-hide">
+                            <form id="form-edit-exam-schedule" onsubmit="window.handleEditExamSubmit ? window.handleEditExamSubmit(event) : null" class="space-y-4">
+                                <input type="hidden" id="edit-exam-id">
+                                <!-- Target Batch -->
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 tracking-wider uppercase">Target Batch <span class="text-red-500">*</span></label>
+                                    <div class="relative">
+                                        <select id="edit-exam-target-batch" class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#f97316] focus:outline-none text-[14px] text-slate-700 appearance-none shadow-sm">
+                                            <option value="" disabled selected hidden>Select batch</option>
+                                        </select>
+                                        <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+                                    </div>
+                                </div>
+                                <!-- Course Name -->
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 tracking-wider uppercase">Course Name <span class="text-red-500">*</span></label>
+                                    <select id="edit-exam-course-name" required class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#f97316] focus:outline-none text-[14px] text-slate-700 shadow-sm appearance-none">
+                                        <option value="" disabled selected hidden>Select course...</option>
+                                    </select>
+                                </div>
+                                <!-- Course Code -->
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 tracking-wider uppercase">Course Code <span class="text-red-500">*</span></label>
+                                    <input type="text" id="edit-exam-course-code" required placeholder="Auto-filled" readonly class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-slate-100 cursor-not-allowed focus:outline-none text-[14px] text-slate-500 shadow-sm">
+                                </div>
+                                <!-- Exam Date -->
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 tracking-wider uppercase">Exam Date <span class="text-red-500">*</span></label>
+                                    <input type="date" id="edit-exam-date" required class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#f97316] focus:outline-none text-[14px] text-slate-700 shadow-sm">
+                                </div>
+                                <!-- Time Group -->
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 tracking-wider uppercase">Start Time <span class="text-red-500">*</span></label>
+                                        <input type="time" id="edit-exam-start-time" required class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#f97316] focus:outline-none text-[14px] text-slate-700 shadow-sm">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 tracking-wider uppercase">End Time <span class="text-red-500">*</span></label>
+                                        <input type="time" id="edit-exam-end-time" required class="w-full h-[46px] px-4 rounded-[14px] border border-slate-300 bg-white focus:ring-2 focus:ring-[#f97316] focus:outline-none text-[14px] text-slate-700 shadow-sm">
+                                    </div>
+                                </div>
+                                <!-- Syllabus -->
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 tracking-wider uppercase">Syllabus</label>
+                                    <div class="bg-white border border-slate-300 rounded-[16px] overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-[#f97316] focus-within:border-transparent transition-all">
+                                        <div class="rich-text-toolbar flex items-center gap-1.5 p-2 bg-slate-50 border-b border-slate-200 overflow-x-auto hide-scrollbar">
+                                            <button type="button" onclick="applyFormat('bold')" class="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded transition"><i data-lucide="bold" class="w-4 h-4"></i></button>
+                                            <button type="button" onclick="applyFormat('italic')" class="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded transition"><i data-lucide="italic" class="w-4 h-4"></i></button>
+                                            <button type="button" onclick="applyFormat('underline')" class="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded transition"><i data-lucide="underline" class="w-4 h-4"></i></button>
+                                            <button type="button" onclick="applyFormat('link')" class="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded transition"><i data-lucide="link" class="w-4 h-4"></i></button>
+                                            <div class="w-px h-4 bg-slate-300 mx-0.5"></div>
+                                            <input type="color" value="#000000" onchange="applyFormat('color', this.value)" title="Choose Text Color" class="w-6 h-6 p-0 border-0 bg-transparent rounded cursor-pointer">
+                                        </div>
+                                        <textarea id="edit-exam-syllabus-desc" rows="4" placeholder="Enter chapters, topics, or notes..." class="w-full p-4 bg-transparent focus:outline-none text-[14px] text-slate-700 resize-y min-h-[100px]"></textarea>
+                                    </div>
+                                </div>
+                                
+                                <!-- Reminders & Alerts Card -->
+                                <div class="bg-white rounded-[18px] p-5 shadow-sm border border-slate-100">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div>
+                                            <h3 class="font-extrabold text-[13px] text-slate-800 uppercase tracking-wider">Reminders & Alerts</h3>
+                                            <p class="text-[10px] text-slate-400 mt-0.5">Schedule push notifications</p>
+                                        </div>
+                                        <button type="button" onclick="addReminderRow('edit-exam')" class="px-3 py-1.5 bg-orange-50 text-[#f97316] hover:bg-orange-100 rounded-[10px] text-[11px] font-bold transition-all flex items-center gap-1">
+                                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Reminder
+                                        </button>
+                                    </div>
+                                    <div id="edit-exam-reminders-list" class="space-y-3">
+                                        <!-- Dynamic Reminder Rows Will Go Here -->
+                                    </div>
+                                </div>
+                                
+                                <div class="pt-6 pb-4">
+                                    <button type="submit" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-[15px] h-[52px] rounded-2xl shadow-xl shadow-orange-500/30 active:scale-[0.98] transition-all">
+                                        Save Exam Schedule
+                                    </button>
+                                </div>
                             </form>
                         </div>
                     </div>
@@ -4819,7 +5039,7 @@
 
     <!-- ARCHITECTURE INJECTIONS -->
     <script src="js/constants.js"></script>
-    <script type="module" src="main.js"></script>
+    <script type="module" src="main.js?v=2"></script>
     <script type="module" src="js/notifications.js"></script>
     <!-- MAIN APP ENGINE CODE -->
     <script>
@@ -5049,7 +5269,8 @@
                         support_contact: data.support_contact !== false,
                         alerts: data.alerts !== false,
                         polls: data.polls !== false,
-                        maintenance_mode: data.maintenance_mode === true
+                        maintenance_mode: data.maintenance_mode === true,
+                        is_exam_mode: data.is_exam_mode === true
                     };
                 }
                 applyContentSettingsToUI();
@@ -5062,7 +5283,7 @@
         // Apply settings to: admin toggles, student quick-access, maintenance modal
         function applyContentSettingsToUI() {
             // Sync admin toggle checkboxes
-            const keys = ['notices_center', 'schedule_hub', 'faculty_directory', 'material_center', 'my_courses', 'upload', 'support_contact', 'alerts', 'polls', 'maintenance_mode'];
+            const keys = ['notices_center', 'schedule_hub', 'faculty_directory', 'material_center', 'my_courses', 'upload', 'support_contact', 'alerts', 'polls', 'maintenance_mode', 'is_exam_mode'];
             keys.forEach(key => {
                 const el = document.getElementById('cm-' + key);
                 if (el) el.checked = contentSettings[key];
@@ -5133,7 +5354,11 @@
                     if (error) throw error;
                     contentSettingsRowId = data.id;
                 }
-                showGlobalToast("Saved", `${key.replace(/_/g, ' ')} updated successfully.`);
+                if (key === 'is_exam_mode') {
+                    showGlobalToast("Exam Mode", "Exam Mode is now " + (value ? "ON" : "OFF"), "success");
+                } else {
+                    showGlobalToast("Saved", `${key.replace(/_/g, ' ')} updated successfully.`);
+                }
             } catch (err) {
                 console.error("saveContentSetting error:", err);
                 // Revert on failure
@@ -6132,7 +6357,8 @@
                 navigate('screen-notification-permission');
                 if (typeof triggerUrgentPopupModal === 'function') triggerUrgentPopupModal();
                 if (typeof loadNotices === 'function') loadNotices();
-                setTimeout(() => { if (typeof loadDashboardTodayRoutine === 'function') loadDashboardTodayRoutine(); }, 600);
+                // Redundant loadDashboardTodayRoutine removed: handled safely by navigation triggers and auth.js
+
 
                 if (typeof requestNotificationPermission === 'function') requestNotificationPermission();
 
@@ -7767,9 +7993,14 @@
                     if (window.currentViewedFacultyId) window.loadFacultyDetails(window.currentViewedFacultyId);
                 } else if (screenId === 'screen-schedule-list') {
                     if (typeof loadScheduleList === 'function') loadScheduleList();
+                } else if (screenId === 'screen-weekly-routine') {
+                    if (typeof window.loadWeeklyRoutine === 'function') {
+                        console.log("[ROUTINE TRIGGER] Navigated to screen, firing routine fetch...");
+                        window.loadWeeklyRoutine();
+                    }
                 }
                 // Routine nav highlight
-                const isRoutine = ['screen-weekly-routine', 'screen-add-routine', 'screen-routine-details'].includes(screenId);
+                const isRoutine = ['screen-weekly-routine', 'screen-add-routine', 'screen-routine-details', 'screen-add-exam-schedule', 'screen-edit-exam-schedule'].includes(screenId);
                 document.querySelectorAll('.nav-routine-btn').forEach(btn => {
                     if (btn && btn.classList) {
                         if (isRoutine) { btn.classList.add('text-indigo-400'); btn.classList.remove('text-slate-400'); }
@@ -9453,7 +9684,10 @@
             if (type === 'schedule') containerId = 'schedule-reminders-list';
             else if (type === 'edit-schedule') containerId = 'edit-schedule-reminders-list';
             else if (type === 'notice') containerId = 'notice-reminders-list';
-            else return;const container = document.getElementById(containerId);
+            else if (type === 'exam') containerId = 'exam-reminders-list';
+            else if (type === 'edit-exam') containerId = 'edit-exam-reminders-list';
+            else return;
+            const container = document.getElementById(containerId);
             if (!container) return;
 
             const row = document.createElement('div');
@@ -9487,34 +9721,49 @@
                 row.remove();
             }
         };
-        window.triggerImmediateNotification = async function(type, id, btn) {
+        window.triggerImmediateNotification = async function(type, id, btnOrTitle, message) {
             if (!(window.currentUserRole === 'admin' || window.currentUserRole === 'cr' || window.isAdminEmail(currentUserEmail))) return;
             try {
-                btn.classList.add('opacity-50', 'pointer-events-none');
+                let btn = null;
                 let title = "MCT Notify";
-                let message = "A new update is available.";
+                let msg = message || "A new update is available.";
                 let route = "screen-student-dashboard";
-                
+
+                if (btnOrTitle && typeof btnOrTitle === 'object' && btnOrTitle.classList) {
+                    btn = btnOrTitle;
+                } else if (typeof btnOrTitle === 'string') {
+                    title = btnOrTitle;
+                }
+
+                if (btn) btn.classList.add('opacity-50', 'pointer-events-none');
+
                 if (type === 'notice') {
                     const n = currentNoticesList.find(x => x.id === id);
                     if (n) {
                         title = n.title;
-                        message = n.message || "New Notice published.";
+                        msg = n.message || "New Notice published.";
                         route = "screen-notices-list";
                     }
                 } else if (type === 'schedule') {
                     const s = currentSchedulesList.find(x => x.id === id);
                     if (s) {
                         title = s.title;
-                        message = s.message || "New Schedule published.";
+                        msg = s.message || "New Schedule published.";
                         route = "screen-schedule-list";
                     }
                 } else if (type === 'material') {
                     const m = currentMaterialsList.find(x => x.id === id);
                     if (m) {
                         title = m.title;
-                        message = m.description || "New Material published.";
+                        msg = m.description || "New Material published.";
                         route = "screen-materials-center";
+                    }
+                } else if (type === 'exam' || type === 'exam_schedules' || type === 'exams') {
+                    const { data: examData } = await _supabase.from('exam_schedules').select('*').eq('id', id).single();
+                    if (examData) {
+                        title = "Upcoming Exam: " + examData.course_name;
+                        msg = examData.syllabus_desc ? (window.stripRichTextForNotification ? window.stripRichTextForNotification(examData.syllabus_desc) : examData.syllabus_desc) : "An exam has been scheduled.";
+                        route = "screen-weekly-routine";
                     }
                 }
 
@@ -9523,10 +9772,10 @@
 
                 const payload = {
                     parent_id: id,
-                    parent_type: type,
+                    parent_type: type === 'exams' || type === 'exam_schedules' ? 'exam' : type,
                     reminder_time: reminderTime,
                     reminder_title: title,
-                    reminder_message: message,
+                    reminder_message: msg,
                     created_at: new Date().toISOString(),
                     sent: false,
                     created_by: authState.user?.id || null
@@ -9546,7 +9795,7 @@
                 console.error('[NOTIFY CLICK] Exception:', err);
                 showGlobalToast("Error", "An unexpected error occurred.");
             } finally {
-                btn.classList.remove('opacity-50', 'pointer-events-none');
+                if (btn) btn.classList.remove('opacity-50', 'pointer-events-none');
             }
         };
         window.openImagePreview = function(url) {
@@ -9932,6 +10181,8 @@
     <script src="js/pull-to-refresh.js"></script>
 </body>
 </html>
+
+
 
 
 

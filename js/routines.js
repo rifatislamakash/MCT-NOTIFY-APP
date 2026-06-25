@@ -16,6 +16,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
         let routineCoursesList = [];
         let routineFacultyList = [];
         let routineBatchesList = [];
+        let filteredRoutineData = []; // Store the filtered list
         let selectedRoutineId = null;
         let currentRoutineView = 'weekly'; // 'weekly' | 'daily'
 
@@ -134,10 +135,160 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 }
 
                 routineBatchesList = finalBatches;
+                window.routineBatchesList = finalBatches;
                 routineCoursesList = courses;
                 routineFacultyList = faculty;
             } catch (err) {
                 console.error('[ROUTINE DEPS ERROR]', err);
+            }
+        }
+
+        export async function renderExamRoutineView() {
+            const container = document.getElementById('exams-routine-container');
+            if (!container) return;
+            
+            container.innerHTML = `<div class="flex flex-col items-center justify-center py-16 text-center text-slate-400">
+                <div class="w-7 h-7 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+                <p class="text-xs font-semibold">Loading exams...</p>
+            </div>`;
+            
+            try {
+                  // Wait for authState to mount (checks every 100ms, max 5 seconds)
+                  let retries = 50;
+                  while ((!window.authState || !window.authState.profile) && retries > 0) {
+                      await new Promise(resolve => setTimeout(resolve, 100));
+                      retries--;
+                  }
+                  
+                  if (!window.authState || !window.authState.profile) {
+                      console.error("[EXAM ROUTINE] Fatal: Auth state never loaded.");
+                      container.innerHTML = `<div class="p-8 text-center text-red-500 font-bold">Error: Not Authenticated</div>`;
+                      return;
+                  }
+
+                  let query = _supabase.from('exam_schedules').select('*').order('exam_date', { ascending: true });
+                  if (window.currentUserRole !== 'admin') {
+                       console.log('[EXAM ROUTINE] Fetching data for Batch ID:', window.authState.profile.batch_id);
+                       query = query.eq('target_batch', window.authState.profile.batch_id);
+                  }
+                  const { data: exams, error } = await query;
+                  if (error) throw error;
+
+                  if (exams && exams.length > 0 && window.ReactionService) {
+                      const examIds = exams.map(e => e.id);
+                      try {
+                          await window.ReactionService.fetchReactionsForContent('exam_schedules', examIds);
+                      } catch (rxErr) {
+                          console.warn("Failed to fetch reactions for exams:", rxErr);
+                      }
+                  }
+                
+                if (!exams || exams.length === 0) {
+                    container.innerHTML = `<div class="flex flex-col items-center justify-center py-16 text-center text-slate-400 bg-white rounded-3xl border border-slate-100 shadow-sm px-6 mt-2">
+                        <i data-lucide="calendar-check" class="w-12 h-12 text-indigo-300 mb-4 opacity-50"></i>
+                        <h3 class="text-[16px] font-bold text-slate-700 mb-2">No Exams Scheduled</h3>
+                        <p class="text-[13px] leading-relaxed max-w-[250px]">You have no upcoming or past exams listed for your batch.</p>
+                    </div>`;
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                    return;
+                }
+                
+                let html = `<div class="space-y-4">`;
+                const isAdminOrCR = (window.currentUserRole === 'admin' || window.currentUserRole === 'cr');
+                
+                exams.forEach(exam => {
+                     const examDateObj = new Date(exam.exam_date + 'T00:00:00');
+                     const examDate = examDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                     const isPast = (new Date() > new Date(exam.exam_date + 'T23:59:59'));
+                     
+                     let facultyName = '';
+                     let courseCodeText = exam.course_code || '';
+                     const cList = routineCoursesList || window.currentCoursesList || [];
+                     const fList = routineFacultyList || window.currentFacultiesList || [];
+                     const matchedCourse = cList.find(c => 
+                         c.course_code === exam.course_code || 
+                         c.course_name.toLowerCase() === exam.course_name.toLowerCase()
+                     );
+                     if (matchedCourse) {
+                         if (!courseCodeText && matchedCourse.course_code) {
+                             courseCodeText = matchedCourse.course_code;
+                         }
+                         if (matchedCourse.faculty_id) {
+                             const matchedFaculty = fList.find(f => f.id === matchedCourse.faculty_id);
+                             if (matchedFaculty) {
+                                 facultyName = matchedFaculty.faculty_name;
+                             }
+                         }
+                     }
+
+                     const facultySub = facultyName ? ` • <span class="text-slate-500 font-semibold text-xs">${window.sanitizeHTML(facultyName)}</span>` : '';
+                     const codeSub = courseCodeText ? `<span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[11px] font-bold">${window.sanitizeHTML(courseCodeText)}</span>` : '';
+                     const subtitleHtml = codeSub || facultySub ? `<div class="flex items-center gap-2 mt-1 flex-wrap">${codeSub}${facultySub}</div>` : '';
+                     
+                     html += `<div id="exam-card-${exam.id}" class="bg-gradient-to-br from-indigo-50 to-white rounded-[24px] p-4 shadow-sm border border-indigo-100 relative ${isPast ? 'opacity-60 grayscale' : ''}">
+                          ${isAdminOrCR ? `
+                          <div class="absolute top-4 right-4 flex items-center gap-2 z-10">
+                              <button onclick="event.stopPropagation(); window.openEditExamSchedule('${exam.id}')" class="w-8 h-8 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-full hover:bg-indigo-100 transition active:scale-95" title="Edit Exam">
+                                  <i data-lucide="edit-2" class="w-4 h-4"></i>
+                              </button>
+                              <button onclick="event.stopPropagation(); window.executeGlobalDelete('exam_schedules', '${exam.id}', 'exam-card-${exam.id}')" class="w-8 h-8 flex items-center justify-center bg-red-50 text-red-500 rounded-full hover:bg-red-100 transition active:scale-95" title="Delete Exam">
+                                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                              </button>
+                          </div>
+                          ` : ''}
+                         <div class="flex items-start gap-4">
+                             <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border border-indigo-100/40">
+                                 <i data-lucide="graduation-cap" class="w-6 h-6"></i>
+                             </div>
+                             <div class="flex-1 min-w-0 pr-6">
+                                 <h3 class="text-[17px] font-extrabold text-slate-800 leading-tight">${window.sanitizeHTML(exam.course_name)}</h3>
+                                 ${subtitleHtml}
+                                 
+                                 <div class="flex items-center gap-1.5 mt-2.5 text-[11px] font-bold text-slate-500 whitespace-nowrap overflow-hidden">
+                                     <span class="flex items-center gap-1 text-indigo-600 shrink-0">
+                                         <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                                         ${examDate}
+                                     </span>
+                                     <span class="text-slate-300 shrink-0">•</span>
+                                     <span class="flex items-center gap-1 text-orange-600 shrink-0">
+                                         <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                                         ${window.formatTimeIfPossible(exam.start_time)} - ${window.formatTimeIfPossible(exam.end_time)}
+                                     </span>
+                                     ${isPast ? `
+                                     <span class="text-slate-300 shrink-0">•</span>
+                                     <span class="text-slate-400 font-extrabold text-[10px] uppercase shrink-0">PAST</span>
+                                     ` : ''}
+                                 </div>
+                             </div>
+                         </div>
+                         
+                         <div class="mt-4 flex items-center justify-between gap-3">
+                             <div>
+                                 ${exam.syllabus_desc ? `
+                                 <button onclick="event.stopPropagation(); window.toggleExamSyllabus('${exam.id}', this)" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50/50 border border-indigo-100/50 hover:bg-indigo-100/60 text-indigo-700 text-[11px] font-bold rounded-lg transition active:scale-95">
+                                     <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                     <span>Show Syllabus</span>
+                                 </button>
+                                 ` : ''}
+                             </div>
+                             <div class="shrink-0">
+                                 ${window.ReactionService ? window.ReactionService.renderReactionBlock('exam_schedules', exam.id) : ''}
+                             </div>
+                         </div>
+                         
+                         ${exam.syllabus_desc ? `
+                         <div id="exam-syllabus-${exam.id}" class="hidden mt-3 bg-white/70 rounded-xl p-4 text-[13px] text-slate-600 border border-slate-100 font-medium rich-text-content transition-all duration-300">
+                             ${window.safeFormatRichText ? window.safeFormatRichText(exam.syllabus_desc) : window.sanitizeHTML(exam.syllabus_desc)}
+                         </div>
+                         ` : ''}
+                     </div>`;
+                });
+                html += `</div>`;
+                container.innerHTML = html;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            } catch(e) {
+                console.error("[EXAMS FETCH ERROR]", e);
+                container.innerHTML = `<p class="text-red-500 text-center py-4 text-xs font-bold">Failed to load exams.</p>`;
             }
         }
 
@@ -151,41 +302,187 @@ import { ProfileStore } from './stores/ProfileStore.js';
             cancelActiveRequest('routine');
             const localController = new AbortController();
             window.activeLoadControllers['routine'] = localController;
-
             window.showLoader(true, 'Loading routine...');
             console.log("[ROUTINE] Loading weekly routine list...");
             try {
+                // Wait for authState to mount (checks every 100ms, max 5 seconds)
+                // NOTE: Do NOT require batch_id — CR users may not have one
+                let retries = 50;
+                while ((!window.authState || !window.authState.profile) && retries > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    retries--;
+                }
+                
+                if (!window.authState || !window.authState.profile) {
+                    console.error("[ROUTINE] Fatal: Auth state never loaded.");
+                    const errLabel = document.getElementById('wr-batch-label') || document.querySelector('.batch-subtitle');
+                    if (errLabel) errLabel.textContent = "Error: Not Authenticated";
+                    window.showGlobalToast('Error', 'Authentication failed to load.', 'error');
+                    window.showLoader(false);
+                    return; // Now it is safe to abort, we gave it 5 seconds.
+                }
+
+                // Wait for dependencies (batches, etc.) to ensure we have batch names
+                try {
+                    await fetchRoutineDependencies();
+                } catch (e) {
+                    console.warn("Failed to prefetch routine dependencies", e);
+                }
+
+                // Global helper for Batch Label — works for ALL roles
+                window.updateRoutineBatchLabel = function() {
+                    const batchLabel = document.getElementById('wr-batch-label');
+                    if (!batchLabel) return;
+                    
+                    const profile = window.authState?.profile;
+                    if (!profile) return;
+                    const bList = routineBatchesList || window.routineBatchesList || [];
+                    
+                    if (window.currentUserRole === 'student') {
+                        let labelText = 'Your Batch';
+                        if (bList.length > 0) {
+                            const mainBatch = bList.find(b => b.id === profile.batch_id);
+                            const secBatch = bList.find(b => b.id === profile.secondary_batch_id);
+                            if (mainBatch) {
+                                labelText = mainBatch.batch_name;
+                                if (secBatch) {
+                                    labelText += " & " + secBatch.batch_name;
+                                }
+                            }
+                        } else {
+                            labelText = profile.batches?.batch_name || 'Your Batch';
+                        }
+                        batchLabel.textContent = labelText;
+                    } else if (window.currentUserRole === 'cr') {
+                        // CR: show their assigned batches
+                        if (bList.length > 0) {
+                            const batchNames = bList.map(b => b.batch_name).join(' & ');
+                            batchLabel.textContent = batchNames;
+                        } else {
+                            batchLabel.textContent = profile.batches?.batch_name || 'Your Batch';
+                        }
+                    } else {
+                        // Admin: show 'All Batches' or the filtered batch
+                        const batchFilterEl = document.getElementById('admin-routine-batch-filter');
+                        if (batchFilterEl && !batchFilterEl.classList.contains('hidden') && batchFilterEl.value) {
+                            const opt = batchFilterEl.options[batchFilterEl.selectedIndex];
+                            batchLabel.textContent = opt ? opt.text : 'All Batches';
+                        } else {
+                            batchLabel.textContent = 'All Batches';
+                        }
+                    }
+                };
+
+                // UI BATCH TEXT UPDATE (Now using accurate lookup)
+                try {
+                    window.updateRoutineBatchLabel();
+                } catch (err) {
+                    console.warn("Non-fatal error updating batch text:", err);
+                }
+
+                // EXAM MODE SHORT-CIRCUIT
+                const contentSettings = window.contentSettings || {};
+                const isExamModeOn = (contentSettings.is_exam_mode === true || String(contentSettings.is_exam_mode).toLowerCase() === 'true' || contentSettings.is_exam_mode === '1' || contentSettings.is_exam_mode === 1);
+                
+                if (isExamModeOn) {
+                    console.log("[ROUTINE] Exam Mode is ON. Skipping weekly routine fetch.");
+                    // Ensure the UI visually updates to lock tabs
+                    const btnWeekly = document.getElementById('btn-view-weekly');
+                    const btnDaily = document.getElementById('btn-view-daily');
+                    const btnExams = document.getElementById('btn-view-exams');
+                    if (btnWeekly) btnWeekly.classList.add('opacity-40', 'cursor-not-allowed');
+                    if (btnDaily) btnDaily.classList.add('opacity-40', 'cursor-not-allowed');
+                    if (btnExams) btnExams.classList.remove('opacity-40', 'cursor-not-allowed');
+                    
+                    // Show admin Add button
+                    const adminAddBtn = document.getElementById('wr-admin-add-btn');
+                    const batchFilter = document.getElementById('admin-routine-batch-filter');
+                    if (adminAddBtn) {
+                        if ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr')) {
+                            adminAddBtn.classList.remove('hidden');
+                            if (batchFilter) {
+                                const isStrictAdmin = (window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail));
+                                if (isStrictAdmin) {
+                                    batchFilter.classList.remove('hidden');
+                                    if (batchFilter.options.length <= 1) {
+                                        try {
+                                            const { data: batchesData } = await _supabase.from('batches').select('id, batch_name').order('batch_name');
+                                            let optionsHTML = '<option value="" disabled selected class="text-black">Select Batch</option>';
+                                            if (batchesData) {
+                                                optionsHTML += batchesData.map(b => `<option value="${b.id}" class="text-black">${b.batch_name}</option>`).join('');
+                                            }
+                                            batchFilter.innerHTML = optionsHTML;
+                                        } catch(e) { console.warn("Failed to load batches", e); }
+                                    }
+                                } else {
+                                    batchFilter.classList.add('hidden');
+                                }
+                            }
+                        } else {
+                            adminAddBtn.classList.add('hidden');
+                            if (batchFilter) batchFilter.classList.add('hidden');
+                        }
+                    }
+
+                    // Switch view to exams (handles container display and renders exams)
+                    switchRoutineView('exams');
+                    
+                    loadDashboardTodayRoutine();
+                    
+                    // Clean up loader and module loading state
+                    window.setModuleLoading('routine', false);
+                    if (window.activeLoadControllers['routine'] === localController) {
+                        window.activeLoadControllers['routine'] = null;
+                    }
+                    window.showLoader(false);
+                    return;
+                }
+
+                // STEP 3: EXAM MODE OFF: RUN LEGACY FETCH
                 let routineList;
 
                 if (crPermissionService.isCR()) {
                     routineList = await crPermissionService.getVisibleRoutines();
                 } else {
                     routineList = await fetchCachedOrDeduplicated('weekly_routines', async () => {
-                        return await fetchWithRetry(async (signal) => {
-                            const { data, error } = await _supabase
-                                .from('weekly_routines')
-                                .select(`
-                                        id,
-                                        batch_id,
-                                        day_name,
-                                        start_time,
-                                        section_name,
-                                        room_number,
-                                        course_id,
-                                        faculty_id,
-                                        courses ( id, course_name, short_name, sections_name ),
-                                        faculty ( id, faculty_name, teacher_initial ),
-                                        batches ( id, batch_name )
-                                    `)
-                                .order('start_time', { ascending: true })
-                                .abortSignal(signal);
+                        try {
+                            return await fetchWithRetry(async (signal) => {
+                                let query = _supabase
+                                    .from('weekly_routines')
+                                    .select(`
+                                            id,
+                                            batch_id,
+                                            day_name,
+                                            start_time,
+                                            section_name,
+                                            room_number,
+                                            course_id,
+                                            faculty_id,
+                                            courses ( id, course_name, short_name, sections_name ),
+                                            faculty ( id, faculty_name, teacher_initial ),
+                                            batches ( id, batch_name )
+                                        `);
+                                
+                                const isAdmin = window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail);
+                                if (!isAdmin) {
+                                    console.log('[WEEKLY ROUTINE] Fetching data for Batch ID:', window.authState.profile.batch_id);
+                                    query = query.eq('batch_id', window.authState.profile.batch_id);
+                                }
 
-                            if (error) {
-                                console.error("[ROUTINE] Fetch error:", error);
-                                throw error;
-                            }
-                            return data || [];
-                        }, 2, 1000, 30000, localController.signal);
+                                const { data, error } = await query
+                                    .order('start_time', { ascending: true })
+                                    .abortSignal(signal);
+
+                                if (error) {
+                                    console.error("[ROUTINE] Fetch error:", error);
+                                    throw error;
+                                }
+                                return data || [];
+                            }, 2, 1000, 30000, localController.signal);
+                        } catch (fetchErr) {
+                            console.error("[ROUTINE] Fallback fetch failed:", fetchErr);
+                            return [];
+                        }
                     });
                 }
 
@@ -196,8 +493,6 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                 routineData = (routineList || []).filter(r => r.room_number !== 'Break');
                 console.log(`[ROUTINE] Successfully loaded ${routineData.length} records.`);
-
-                // batchLabel update moved to renderWeeklyTimetable / renderDailyRoutineView
 
                 // Show admin Add button
                 const adminAddBtn = document.getElementById('wr-admin-add-btn');
@@ -229,9 +524,27 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         if (batchFilter) batchFilter.classList.add('hidden');
                     }
                 }
+                
+                // Sync tab states based on Exam Mode for when it's OFF
+                const btnExams = document.getElementById('btn-view-exams');
+                const btnWeekly = document.getElementById('btn-view-weekly');
+                const btnDaily = document.getElementById('btn-view-daily');
+                if (btnExams) btnExams.classList.add('opacity-40', 'cursor-not-allowed');
+                if (btnWeekly) btnWeekly.classList.remove('opacity-40', 'cursor-not-allowed');
+                if (btnDaily) btnDaily.classList.remove('opacity-40', 'cursor-not-allowed');
+                
+                if (currentRoutineView === 'exams') {
+                    currentRoutineView = 'weekly';
+                }
 
+                // Filter data globally first
+                refreshFilteredRoutineData();
+
+                // Now render
                 if (currentRoutineView === 'weekly') {
-                    renderWeeklyTimetable();
+                    renderWeeklyTimetable(filteredRoutineData);
+                } else if (currentRoutineView === 'exams') {
+                    renderExamRoutineView();
                 } else {
                     renderDailyRoutineView();
                 }
@@ -261,12 +574,26 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
         // Switch between weekly/daily view tabs
         function switchRoutineView(mode) {
+            const contentSettings = window.contentSettings || {};
+            const isExamModeOn = (contentSettings.is_exam_mode === true || String(contentSettings.is_exam_mode).toLowerCase() === 'true' || contentSettings.is_exam_mode === '1' || contentSettings.is_exam_mode === 1);
+            
+            if (isExamModeOn && (mode === 'weekly' || mode === 'daily')) {
+                window.showGlobalToast('Exam Mode is Active', 'Weekly and Daily routines are currently disabled.', 'info');
+                return;
+            } else if (!isExamModeOn && mode === 'exams') {
+                window.showGlobalToast('Exam Mode is Disabled', 'Exams tab is currently disabled.', 'info');
+                return;
+            }
+
             currentRoutineView = mode;
 
             const weeklyView = document.getElementById('routine-weekly-view');
             const dailyView = document.getElementById('routine-daily-view');
+            const examsView = document.getElementById('routine-exams-view');
+            
             const btnWeekly = document.getElementById('btn-view-weekly');
             const btnDaily = document.getElementById('btn-view-daily');
+            const btnExams = document.getElementById('btn-view-exams');
             const tabLabel = document.getElementById('daily-tab-label');
 
             // Update tab label to reflect Today / Tomorrow
@@ -275,31 +602,123 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 tabLabel.textContent = isToday ? 'Today' : 'Tomorrow';
             }
 
+            // Reset all classes
+            [weeklyView, dailyView, examsView].forEach(v => v?.classList.add('hidden'));
+            
+            // Reset buttons
+            const resetBtn = (btn) => {
+                if(btn) {
+                    btn.classList.remove('bg-white', 'text-slate-900');
+                    btn.classList.add('text-slate-300');
+                }
+            };
+            const activateBtn = (btn) => {
+                if(btn) {
+                    btn.classList.remove('text-slate-300');
+                    btn.classList.add('bg-white', 'text-slate-900');
+                }
+            };
+            
+            [btnWeekly, btnDaily, btnExams].forEach(resetBtn);
+
+            const dynBtn = document.getElementById('wr-admin-dynamic-btn');
+            const dynIcon = document.getElementById('wr-admin-dynamic-icon');
+            const dynText = document.getElementById('wr-admin-dynamic-text');
+
+            // Strictly hide controls from standard students
+            const actualRole = window.authState?.profile?.role;
+            const hasAdminControls = (actualRole === 'cr' || actualRole === 'admin' || actualRole === 'CR' || actualRole === 'ADMIN');
+            
+            if (dynBtn) {
+                if (!hasAdminControls) {
+                    dynBtn.style.display = 'none';
+                } else {
+                    dynBtn.style.display = 'flex';
+                }
+            }
+
             if (mode === 'weekly') {
-                weeklyView.classList.remove('hidden');
-                dailyView.classList.add('hidden');
-                if (btnWeekly) { btnWeekly.classList.add('bg-white', 'text-slate-900'); btnWeekly.classList.remove('text-white/70'); }
-                if (btnDaily) { btnDaily.classList.remove('bg-white', 'text-slate-900'); btnDaily.classList.add('text-white/70'); }
-                renderWeeklyTimetable();
+                if(weeklyView) weeklyView.classList.remove('hidden');
+                activateBtn(btnWeekly);
+                if(dynBtn) {
+                    dynBtn.onclick = () => { if(window.openAddRoutine) window.openAddRoutine(); };
+                    dynBtn.className = 'px-3 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-100 rounded-xl flex items-center gap-1.5 active:scale-95 transition-all shadow-sm';
+                }
+                if(dynIcon) dynIcon.setAttribute('data-lucide', 'plus');
+                if(dynText) dynText.textContent = 'Class';
+                refreshFilteredRoutineData();
+                renderWeeklyTimetable(filteredRoutineData);
+            } else if (mode === 'exams') {
+                if(examsView) examsView.classList.remove('hidden');
+                activateBtn(btnExams);
+                if(dynBtn) {
+                    dynBtn.onclick = () => { if(window.openAddExamSchedule) window.openAddExamSchedule(); };
+                    dynBtn.className = 'px-3 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-100 rounded-xl flex items-center gap-1.5 active:scale-95 transition-all shadow-sm';
+                }
+                if(dynIcon) dynIcon.setAttribute('data-lucide', 'calendar-plus');
+                if(dynText) dynText.textContent = 'Exam';
+                renderExamRoutineView();
             } else {
-                weeklyView.classList.add('hidden');
-                dailyView.classList.remove('hidden');
-                if (btnDaily) { btnDaily.classList.add('bg-white', 'text-slate-900'); btnDaily.classList.remove('text-white/70'); }
-                if (btnWeekly) { btnWeekly.classList.remove('bg-white', 'text-slate-900'); btnWeekly.classList.add('text-white/70'); }
+                if(dailyView) dailyView.classList.remove('hidden');
+                activateBtn(btnDaily);
+                if(dynBtn) {
+                    dynBtn.onclick = () => { if(window.openAddRoutine) window.openAddRoutine(); };
+                    dynBtn.className = 'px-3 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-100 rounded-xl flex items-center gap-1.5 active:scale-95 transition-all shadow-sm';
+                }
+                if(dynIcon) dynIcon.setAttribute('data-lucide', 'plus');
+                if(dynText) dynText.textContent = 'Class';
                 renderDailyRoutineView();
             }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         window.filterRoutinesByBatch = function() {
+            refreshFilteredRoutineData();
             if (currentRoutineView === 'weekly') {
-                renderWeeklyTimetable();
+                renderWeeklyTimetable(filteredRoutineData);
+            } else if (currentRoutineView === 'exams') {
+                renderExamRoutineView();
             } else {
                 renderDailyRoutineView();
             }
         };
 
+        // ---- REFRESH FILTERED DATA ----
+        function refreshFilteredRoutineData() {
+            const batchFilterEl = document.getElementById('admin-routine-batch-filter');
+            const batchVal = (batchFilterEl && !batchFilterEl.classList.contains('hidden')) ? batchFilterEl.value : 'all';
+
+            filteredRoutineData = routineData;
+            const isStrictAdmin = window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail);
+            
+            if (!isStrictAdmin && (!batchVal || batchVal === 'all')) {
+                const enrolledCourses = window.currentUserCoursesList || [];
+                const myCourseIds = enrolledCourses.map(uc => uc.course_id);
+                
+                const profileBatchId = window.authState?.profile?.batch_id;
+
+                filteredRoutineData = routineData.filter(r => {
+                    if (!r.course_id || r.room_number === 'Break') {
+                        return String(r.batch_id) === String(profileBatchId);
+                    }
+                    if (!myCourseIds.includes(r.course_id)) return false;
+
+                    const enrolledRecord = enrolledCourses.find(uc => uc.course_id === r.course_id);
+                    if (r.section_name) {
+                         if (!enrolledRecord || !enrolledRecord.section_name) return true;
+                         const userSecs = window.parseSectionsName(enrolledRecord.section_name).map(s => s.toLowerCase());
+                         const classSections = window.parseSectionsName(r.section_name).map(s => s.toLowerCase());
+                         if (classSections.length > 0 && !userSecs.some(us => classSections.includes(us))) return false;
+                     }
+                    return true;
+                });
+            } else if (batchVal !== 'all') {
+                filteredRoutineData = routineData.filter(r => r.batch_id === batchVal);
+            }
+        }
+
         // ---- RENDER WEEKLY TIMETABLE ----
-        function renderWeeklyTimetable() {
+        function renderWeeklyTimetable(dataArray) {
             const container = document.getElementById('weekly-timetable-container');
             if (!container) return;
 
@@ -330,6 +749,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const opt = batchFilterEl.options[batchFilterEl.selectedIndex];
                 const title = document.getElementById('wr-header-title');
                 if (title && opt) title.textContent = "Weekly Routine " + opt.text.replace('Batch ', '');
+                
+                const batchLabel = document.getElementById('wr-batch-label');
+                if (batchLabel && opt) batchLabel.textContent = opt.text;
+                
                 console.log(`[BATCH FILTER SELECT] Routine batch changed to: ${batchVal}`);
                 console.log(`[ROUTINE BATCH] Rendering routines for batch: ${batchVal}`);
             } else {
@@ -337,62 +760,34 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 if (title) title.textContent = "Weekly Routine";
             }
 
-            if (routineData.length === 0) {
+            if (!dataArray || dataArray.length === 0) {
                 container.innerHTML = `
                         <div class="flex flex-col items-center justify-center py-16 text-center text-slate-400 px-8">
                             <div class="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mb-4">
                                 <i data-lucide="calendar-x" class="w-8 h-8 text-indigo-300"></i>
                             </div>
+                            <h3 class="font-bold text-slate-500 mb-1">No classes found</h3>
+                            <p class="text-[12px]">There is no weekly routine data available.</p>
                         <button onclick="renderDailyRoutineView()" class="mt-3 text-[11px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full">Retry</button>
                     </div>`;
                 if (typeof lucide !== 'undefined') lucide.createIcons();
-                console.error('[DAILY VIEW FETCH ERROR]', err);
                 return;
             }
 
-            // PART 11: Filter by student's enrolled courses (admins see all)
-            let filteredRoutineData = routineData;
-            const isStrictAdmin = window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail);
-            
-            if (!isStrictAdmin && (!batchVal || batchVal === 'all')) {
-                const enrolledCourses = window.currentUserCoursesList || [];
-                const myCourseIds = enrolledCourses.map(uc => uc.course_id);
-                
-                const profileBatchId = window.authState?.profile?.batch_id;
-
-                filteredRoutineData = routineData.filter(r => {
-                    if (!r.course_id || r.room_number === 'Break') {
-                        return String(r.batch_id) === String(profileBatchId);
-                    }
-                    if (!myCourseIds.includes(r.course_id)) return false;
-
-                    const enrolledRecord = enrolledCourses.find(uc => uc.course_id === r.course_id);
-                    if (r.section_name) {
-                         if (!enrolledRecord || !enrolledRecord.section_name) return true;
-                         const userSecs = window.parseSectionsName(enrolledRecord.section_name).map(s => s.toLowerCase());
-                         const classSections = window.parseSectionsName(r.section_name).map(s => s.toLowerCase());
-                         if (classSections.length > 0 && !userSecs.some(us => classSections.includes(us))) return false;
-                     }
-                    return true;
-                });
-            } else if (batchVal !== 'all') {
-                filteredRoutineData = routineData.filter(r => r.batch_id === batchVal);
-            }
-
             // Update batch label based on filtered data
-            const batchLabel = document.getElementById('wr-batch-label');
-            if (batchLabel) {
-                if (window.currentUserRole === 'student') {
-                    batchLabel.textContent = window.authState?.profile?.batches?.batch_name || 'Current Batch';
-                } else {
-                    const firstBatch = filteredRoutineData.find(r => r.batches)?.batches;
+            if (typeof window.updateRoutineBatchLabel === 'function') {
+                window.updateRoutineBatchLabel();
+            } else {
+                const batchLabel = document.getElementById('wr-batch-label');
+                if (batchLabel) {
+                    const firstBatch = dataArray.find(r => r.batches)?.batches;
                     batchLabel.textContent = firstBatch?.batch_name || window.authState?.profile?.batches?.batch_name || 'Current Batch';
                 }
             }
 
             // Build lookup map: day -> start_time -> array of entries
             const lookup = {};
-            filteredRoutineData.forEach(r => {
+            dataArray.forEach(r => {
                 if (!lookup[r.day_name]) lookup[r.day_name] = {};
                 const key = `${r.start_time}`;
                 if (!lookup[r.day_name][key]) lookup[r.day_name][key] = [];
@@ -400,7 +795,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             });
 
             // Only show days that actually have data (dynamic columns)
-            const daysWithData = ROUTINE_DAYS.filter(d => filteredRoutineData.some(r => r.day_name === d));
+            const daysWithData = ROUTINE_DAYS.filter(d => dataArray.some(r => r.day_name === d));
             const renderDays = daysWithData.length > 0 ? daysWithData : ROUTINE_DAYS;
 
             // Today highlight
@@ -1176,4 +1571,530 @@ window.openAddRoutine = openAddRoutine;
 window.openRoutineDetails = openRoutineDetails;
 window.switchRoutineView = switchRoutineView;
 
+
+
+        export async function openAddExamSchedule() {
+            const role = String(window.currentUserRole || '').toLowerCase();
+            if (role !== 'admin' && role !== 'cr') return;
+            
+            window.showLoader(true, 'Preparing form...');
+            try {
+                await fetchRoutineDependencies();
+                const form = document.getElementById('form-add-exam-schedule');
+                if (form) form.reset();
+                
+                const batchSel = document.getElementById('exam-target-batch');
+                if (batchSel) {
+                    batchSel.innerHTML = '<option value="" disabled selected hidden>Select batch</option>' +
+                        routineBatchesList.map(s => `<option value="${s.id}">${window.sanitizeHTML(s.batch_name)}</option>`).join('');
+                        
+                    if (routineBatchesList.length === 1) {
+                        batchSel.value = routineBatchesList[0].id;
+                        batchSel.parentElement.parentElement.classList.add('hidden');
+                    } else {
+                        batchSel.parentElement.parentElement.classList.remove('hidden');
+                    }
+                }
+                
+                const courseSel = document.getElementById('exam-course-name');
+                const courseCodeInput = document.getElementById('exam-course-code');
+                
+                if (courseSel && routineCoursesList) {
+                    const batchId = batchSel ? batchSel.value : null;
+                    const filteredCourses = batchId ? routineCoursesList.filter(c => c.batch_id === batchId) : routineCoursesList;
+                    
+                    courseSel.innerHTML = '<option value="" disabled selected hidden>Select course...</option>' +
+                        filteredCourses.map(c => `<option value="${window.sanitizeHTML(c.course_name)}" data-code="${window.sanitizeHTML(c.course_code || '')}">${window.sanitizeHTML(c.course_name)}${c.short_name ? ' (' + c.short_name + ')' : ''}</option>`).join('');
+                        
+                    courseSel.onchange = (e) => {
+                        const selectedOption = e.target.options[e.target.selectedIndex];
+                        if (selectedOption && courseCodeInput) {
+                            courseCodeInput.value = selectedOption.getAttribute('data-code') || '';
+                        }
+                    };
+                }
+                
+                window.navigate('screen-add-exam-schedule');
+                
+                // Re-initialize rich text editors for the exam syllabus
+                // Remove old init flag so it re-creates the contenteditable overlay
+                const examToolbar = document.querySelector('#screen-add-exam-schedule .rich-text-toolbar');
+                if (examToolbar) {
+                    delete examToolbar.dataset.richInit;
+                    // Remove any stale contenteditable overlay
+                    const oldEditor = examToolbar.parentElement.querySelector('[contenteditable]');
+                    if (oldEditor) oldEditor.remove();
+                    // Show the textarea again so initRichEditors can process it
+                    const ta = document.getElementById('exam-syllabus-desc');
+                    if (ta) ta.style.display = '';
+                }
+                if (typeof window.initRichEditors === 'function') window.initRichEditors();
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            } catch (err) {
+                console.error('Failed to open add exam schedule:', err);
+                window.showGlobalToast('Error', 'Failed to load dependencies', 'error');
+            } finally {
+                window.showLoader(false);
+            }
+        }
+
+        export async function handleAddExamSubmit(e) {
+            e.preventDefault();
+            const role = String(window.currentUserRole || '').toLowerCase();
+            if (role !== 'admin' && role !== 'cr') return;
+
+            const courseName = document.getElementById('exam-course-name').value.trim();
+            const courseCode = document.getElementById('exam-course-code').value.trim();
+            const examDate = document.getElementById('exam-date').value;
+            const startTime = document.getElementById('exam-start-time').value;
+            const endTime = document.getElementById('exam-end-time').value;
+            const targetBatch = document.getElementById('exam-target-batch').value;
+            const syllabusDesc = document.getElementById('exam-syllabus-desc').value.trim();
+
+            if (!courseName || !courseCode || !examDate || !startTime || !endTime || !targetBatch) {
+                window.showGlobalToast('Required', 'Please fill all required fields.', 'error');
+                return;
+            }
+
+            window.showLoader(true, 'Creating exam...');
+            try {
+                const { data: newExam, error } = await _supabase
+                    .from('exam_schedules')
+                    .insert([{
+                        course_name: courseName,
+                        course_code: courseCode,
+                        exam_date: examDate,
+                        start_time: startTime,
+                        end_time: endTime,
+                        syllabus_desc: syllabusDesc,
+                        target_batch: targetBatch,
+                        author_id: window.authState.user.id,
+                        author_role: role
+                    }])
+                    .select()
+                    .single();
+
+                if (error) throw error;
+                
+                // Parse and save reminders
+                try {
+                    const reminderRows = [];
+                    const eventDateTime = new Date(examDate + 'T' + startTime);
+                    const listContainer = document.getElementById('exam-reminders-list');
+                    if (listContainer) {
+                        listContainer.querySelectorAll('.reminder-row').forEach(div => {
+                            const offsetSelect = div.querySelector('.reminder-offset');
+                            if (!offsetSelect) return;
+                            const offsetVal = offsetSelect.value;
+                            let targetTime;
+                            
+                            if (offsetVal === 'custom') {
+                                const customInput = div.querySelector('.reminder-custom-time');
+                                if (customInput && customInput.value) {
+                                    targetTime = new Date(customInput.value);
+                                }
+                            } else {
+                                const offsetMinutes = parseInt(offsetVal, 10);
+                                if (!isNaN(offsetMinutes)) {
+                                    targetTime = new Date(eventDateTime.getTime() - offsetMinutes * 60 * 1000);
+                                }
+                            }
+                            
+                            if (targetTime && !isNaN(targetTime.getTime())) {
+                                reminderRows.push({
+                                    parent_type: 'exam',
+                                    parent_id: newExam.id,
+                                    reminder_time: targetTime.toISOString(),
+                                    sent: false,
+                                    reminder_title: `Upcoming Exam: ${courseCode}`,
+                                    reminder_message: `${courseName} exam starts at ${startTime}.`,
+                                    created_by: window.authState.user.id
+                                });
+                            }
+                        });
+                        
+                        if (reminderRows.length > 0) {
+                            console.log("[REMINDERS] Inserting exam reminder rows...", reminderRows);
+                            const { error: reminderError } = await _supabase
+                                .from('notification_reminders')
+                                .insert(reminderRows);
+                                
+                            if (reminderError) {
+                                console.error("[REMINDERS] Error inserting exam reminders:", reminderError);
+                            }
+                        }
+                    }
+                } catch (remErr) {
+                    console.error("[REMINDERS] Exception during exam reminder calculation or insert:", remErr);
+                }
+
+                // Fire push notification using edge function (similar to notice creation)
+                const targetTopic = `batch_${targetBatch}_topic`;
+                
+                window.stripRichTextForNotification = function(text) {
+                    if (!text) return '';
+                    let plain = String(text);
+                    // Strip Markdown bold, italic, underline
+                    plain = plain.replace(/\*\*(.*?)\*\*/g, '$1');
+                    plain = plain.replace(/\*(.*?)\*/g, '$1');
+                    plain = plain.replace(/__(.*?)__/g, '$1');
+                    // Strip Markdown Links
+                    plain = plain.replace(/\[(.*?)\]\([^)]+\)/g, '$1');
+                    // Strip Colors
+                    plain = plain.replace(/\[color=#[0-9a-fA-F]{6}\](.*?)\[\/color\]/g, '$1');
+                    // Strip HTML (if any)
+                    plain = plain.replace(/<[^>]+>/g, '');
+                    // Normalize newlines for push
+                    plain = plain.replace(/\n+/g, ' ');
+                    return plain.trim();
+                }
+
+                await window._supabase.functions.invoke('send-reminders', {
+                    body: {
+                        target_id: newExam.id,
+                        title: `New Exam: ${courseCode} - ${courseName}`,
+                        body: syllabusDesc ? `Syllabus: ${window.stripRichTextForNotification(syllabusDesc)}` : `Exam scheduled on ${examDate} at ${startTime}.`,
+                        type: 'NEW_EXAM',
+                        topic: targetTopic,
+                        time: new Date().toISOString()
+                    }
+                }).catch(err => console.warn('Failed to send push notification', err));
+
+                window.showGlobalToast('Created', 'Exam schedule added successfully!');
+                window.navigate('screen-weekly-routine');
+                loadWeeklyRoutine();
+            } catch (err) {
+                console.error('[ADD EXAM ERROR]', err);
+                window.showGlobalToast('Error', 'Failed to create exam.', 'error');
+            } finally {
+                window.showLoader(false);
+            }
+        }
+        
+        window.toggleExamSyllabus = function(examId, btn) {
+            const container = document.getElementById(`exam-syllabus-${examId}`);
+            if (!container) return;
+            const isHidden = container.classList.contains('hidden');
+            
+            if (isHidden) {
+                container.classList.remove('hidden');
+                btn.querySelector('span').textContent = 'Hide Syllabus';
+                const icon = btn.querySelector('i');
+                if (icon) {
+                    icon.setAttribute('data-lucide', 'eye-off');
+                }
+            } else {
+                container.classList.add('hidden');
+                btn.querySelector('span').textContent = 'Show Syllabus';
+                const icon = btn.querySelector('i');
+                if (icon) {
+                    icon.setAttribute('data-lucide', 'eye');
+                }
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        };
+
+        export async function openEditExamSchedule(examId) {
+            const role = String(window.currentUserRole || '').toLowerCase();
+            if (role !== 'admin' && role !== 'cr') return;
+            
+            window.showLoader(true, 'Loading exam details...');
+            try {
+                await fetchRoutineDependencies();
+                
+                const { data: exam, error } = await _supabase
+                    .from('exam_schedules')
+                    .select('*')
+                    .eq('id', examId)
+                    .single();
+                    
+                if (error) throw error;
+                if (!exam) throw new Error('Exam not found');
+                
+                document.getElementById('edit-exam-id').value = exam.id;
+                
+                const batchSel = document.getElementById('edit-exam-target-batch');
+                const courseSel = document.getElementById('edit-exam-course-name');
+                const courseCodeInput = document.getElementById('edit-exam-course-code');
+                
+                const updateEditCoursesList = (batchId) => {
+                    if (courseSel && routineCoursesList) {
+                        const filteredCourses = batchId ? routineCoursesList.filter(c => c.batch_id === batchId) : routineCoursesList;
+                        courseSel.innerHTML = '<option value="" disabled hidden>Select course...</option>' +
+                            filteredCourses.map(c => `<option value="${window.sanitizeHTML(c.course_name)}" data-code="${window.sanitizeHTML(c.course_code || '')}">${window.sanitizeHTML(c.course_name)}${c.short_name ? ' (' + c.short_name + ')' : ''}</option>`).join('');
+                    }
+                };
+
+                if (batchSel) {
+                    batchSel.innerHTML = '<option value="" disabled hidden>Select batch</option>' +
+                        routineBatchesList.map(s => `<option value="${s.id}">${window.sanitizeHTML(s.batch_name)}</option>`).join('');
+                    batchSel.value = exam.target_batch;
+                    
+                    batchSel.onchange = (e) => {
+                        updateEditCoursesList(e.target.value);
+                        if (courseCodeInput) courseCodeInput.value = '';
+                    };
+                    
+                    if (routineBatchesList.length === 1) {
+                        batchSel.value = routineBatchesList[0].id;
+                        batchSel.parentElement.parentElement.classList.add('hidden');
+                    } else {
+                        batchSel.parentElement.parentElement.classList.remove('hidden');
+                    }
+                }
+                
+                updateEditCoursesList(exam.target_batch);
+                if (courseSel) {
+                    courseSel.value = exam.course_name;
+                    courseSel.onchange = (e) => {
+                        const selectedOption = e.target.options[e.target.selectedIndex];
+                        if (selectedOption && courseCodeInput) {
+                            courseCodeInput.value = selectedOption.getAttribute('data-code') || '';
+                        }
+                    };
+                }
+                if (courseCodeInput) {
+                    courseCodeInput.value = exam.course_code || '';
+                }
+                
+                document.getElementById('edit-exam-date').value = exam.exam_date;
+                document.getElementById('edit-exam-start-time').value = exam.start_time ? exam.start_time.substring(0, 5) : '';
+                document.getElementById('edit-exam-end-time').value = exam.end_time ? exam.end_time.substring(0, 5) : '';
+                
+                document.getElementById('edit-exam-syllabus-desc').value = exam.syllabus_desc || '';
+                
+                const remindersList = document.getElementById('edit-exam-reminders-list');
+                if (remindersList) {
+                    remindersList.innerHTML = '';
+                    const { data: reminders, error: remError } = await _supabase
+                        .from('notification_reminders')
+                        .select('*')
+                        .eq('parent_type', 'exam')
+                        .eq('parent_id', examId);
+                        
+                    if (remError) {
+                        console.error("[REMINDERS] Error loading exam reminders:", remError);
+                    } else if (reminders && reminders.length > 0) {
+                        const eventDateTime = new Date(exam.exam_date + 'T' + exam.start_time);
+                        reminders.forEach(rem => {
+                            const row = document.createElement('div');
+                            row.className = 'reminder-row bg-slate-50 border border-slate-100 rounded-[12px] p-3 flex flex-wrap gap-2 items-center';
+                            
+                            let offsetMinutes = '';
+                            let isCustom = false;
+                            let customVal = '';
+                            
+                            const remTime = new Date(rem.reminder_time);
+                            if (eventDateTime && !isNaN(eventDateTime.getTime()) && remTime && !isNaN(remTime.getTime())) {
+                                const diffMs = eventDateTime.getTime() - remTime.getTime();
+                                const diffMin = Math.round(diffMs / (60 * 1000));
+                                if ([15, 30, 60, 1440].includes(diffMin)) {
+                                    offsetMinutes = String(diffMin);
+                                } else {
+                                    isCustom = true;
+                                    offsetMinutes = 'custom';
+                                    
+                                    const pad = (n) => String(n).padStart(2, '0');
+                                    const localYear = remTime.getFullYear();
+                                    const localMonth = pad(remTime.getMonth() + 1);
+                                    const localDate = pad(remTime.getDate());
+                                    const localHours = pad(remTime.getHours());
+                                    const localMinutes = pad(remTime.getMinutes());
+                                    customVal = `${localYear}-${localMonth}-${localDate}T${localHours}:${localMinutes}`;
+                                }
+                            }
+                            
+                            row.innerHTML = `
+                                <div class="flex-1 min-w-[140px]">
+                                    <select class="reminder-offset w-full text-[12px] bg-white border border-slate-200 rounded-[8px] px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#4226E9]" onchange="this.nextElementSibling.style.display = (this.value === 'custom') ? 'block' : 'none'">
+                                        <option value="15" ${offsetMinutes === '15' ? 'selected' : ''}>15 minutes before</option>
+                                        <option value="30" ${offsetMinutes === '30' ? 'selected' : ''}>30 minutes before</option>
+                                        <option value="60" ${offsetMinutes === '60' ? 'selected' : ''}>1 hour before</option>
+                                        <option value="1440" ${offsetMinutes === '1440' ? 'selected' : ''}>1 day before</option>
+                                        <option value="custom" ${isCustom ? 'selected' : ''}>Custom Time</option>
+                                    </select>
+                                    <input type="datetime-local" class="reminder-custom-time w-full text-[12px] bg-white border border-slate-200 rounded-[8px] px-2 py-1.5 mt-2 focus:outline-none focus:ring-1 focus:ring-[#4226E9]" style="display: ${isCustom ? 'block' : 'none'};" value="${customVal}">
+                                </div>
+                                <button type="button" onclick="removeReminderRow(this)" class="p-1.5 text-red-500 hover:bg-red-50 rounded-[8px] transition-colors shrink-0" title="Remove Reminder">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            `;
+                            remindersList.appendChild(row);
+                        });
+                    }
+                }
+                
+                window.navigate('screen-edit-exam-schedule');
+                
+                const examToolbar = document.querySelector('#screen-edit-exam-schedule .rich-text-toolbar');
+                if (examToolbar) {
+                    delete examToolbar.dataset.richInit;
+                    const oldEditor = examToolbar.parentElement.querySelector('[contenteditable]');
+                    if (oldEditor) oldEditor.remove();
+                    const ta = document.getElementById('edit-exam-syllabus-desc');
+                    if (ta) ta.style.display = '';
+                }
+                if (typeof window.initRichEditors === 'function') window.initRichEditors();
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                
+            } catch (err) {
+                console.error('Failed to open edit exam schedule:', err);
+                window.showGlobalToast('Error', 'Failed to load exam details', 'error');
+            } finally {
+                window.showLoader(false);
+            }
+        }
+
+        export async function handleEditExamSubmit(e) {
+            e.preventDefault();
+            const role = String(window.currentUserRole || '').toLowerCase();
+            if (role !== 'admin' && role !== 'cr') return;
+
+            const examId = document.getElementById('edit-exam-id').value;
+            const courseName = document.getElementById('edit-exam-course-name').value.trim();
+            const courseCode = document.getElementById('edit-exam-course-code').value.trim();
+            const examDate = document.getElementById('edit-exam-date').value;
+            const startTime = document.getElementById('edit-exam-start-time').value;
+            const endTime = document.getElementById('edit-exam-end-time').value;
+            const targetBatch = document.getElementById('edit-exam-target-batch').value;
+            const syllabusDesc = document.getElementById('edit-exam-syllabus-desc').value.trim();
+
+            if (!examId || !courseName || !courseCode || !examDate || !startTime || !endTime || !targetBatch) {
+                window.showGlobalToast('Required', 'Please fill all required fields.', 'error');
+                return;
+            }
+
+            window.showLoader(true, 'Updating exam...');
+            try {
+                const { error } = await _supabase
+                    .from('exam_schedules')
+                    .update({
+                        course_name: courseName,
+                        course_code: courseCode,
+                        exam_date: examDate,
+                        start_time: startTime,
+                        end_time: endTime,
+                        syllabus_desc: syllabusDesc,
+                        target_batch: targetBatch
+                    })
+                    .eq('id', examId);
+
+                if (error) throw error;
+                
+                const { error: delRemError } = await _supabase
+                    .from('notification_reminders')
+                    .delete()
+                    .eq('parent_type', 'exam')
+                    .eq('parent_id', examId);
+                    
+                if (delRemError) {
+                    console.error("[REMINDERS] Error deleting old exam reminders:", delRemError);
+                }
+
+                try {
+                    const reminderRows = [];
+                    const eventDateTime = new Date(examDate + 'T' + startTime);
+                    const listContainer = document.getElementById('edit-exam-reminders-list');
+                    if (listContainer) {
+                        listContainer.querySelectorAll('.reminder-row').forEach(div => {
+                            const offsetSelect = div.querySelector('.reminder-offset');
+                            if (!offsetSelect) return;
+                            const offsetVal = offsetSelect.value;
+                            let targetTime;
+                            
+                            if (offsetVal === 'custom') {
+                                const customInput = div.querySelector('.reminder-custom-time');
+                                if (customInput && customInput.value) {
+                                    targetTime = new Date(customInput.value);
+                                }
+                            } else {
+                                const offsetMinutes = parseInt(offsetVal, 10);
+                                if (!isNaN(offsetMinutes)) {
+                                    targetTime = new Date(eventDateTime.getTime() - offsetMinutes * 60 * 1000);
+                                }
+                            }
+                            
+                            if (targetTime && !isNaN(targetTime.getTime())) {
+                                reminderRows.push({
+                                    parent_type: 'exam',
+                                    parent_id: examId,
+                                    reminder_time: targetTime.toISOString(),
+                                    sent: false,
+                                    reminder_title: `Upcoming Exam: ${courseCode}`,
+                                    reminder_message: `${courseName} exam starts at ${startTime}.`,
+                                    created_by: window.authState.user.id
+                                });
+                            }
+                        });
+                        
+                        if (reminderRows.length > 0) {
+                            console.log("[REMINDERS] Inserting exam reminder rows...", reminderRows);
+                            const { error: reminderError } = await _supabase
+                                .from('notification_reminders')
+                                .insert(reminderRows);
+                                
+                            if (reminderError) {
+                                console.error("[REMINDERS] Error inserting exam reminders:", reminderError);
+                            }
+                        }
+                    }
+                } catch (remErr) {
+                    console.error("[REMINDERS] Exception during exam reminder calculation or insert:", remErr);
+                }
+
+                const targetTopic = `batch_${targetBatch}_topic`;
+                const stripFn = window.stripRichTextForNotification || ((text) => {
+                    if (!text) return '';
+                    let plain = String(text);
+                    plain = plain.replace(/\*\*(.*?)\*\*/g, '$1');
+                    plain = plain.replace(/\*(.*?)\*/g, '$1');
+                    plain = plain.replace(/__(.*?)__/g, '$1');
+                    plain = plain.replace(/\[(.*?)\]\([^)]+\)/g, '$1');
+                    plain = plain.replace(/\[color=#[0-9a-fA-F]{6}\](.*?)\[\/color\]/g, '$1');
+                    plain = plain.replace(/<[^>]+>/g, '');
+                    plain = plain.replace(/\n+/g, ' ');
+                    return plain.trim();
+                });
+
+                await window._supabase.functions.invoke('send-reminders', {
+                    body: {
+                        target_id: examId,
+                        title: `Exam Updated: ${courseCode} - ${courseName}`,
+                        body: syllabusDesc ? `Syllabus: ${stripFn(syllabusDesc)}` : `Exam details updated for ${examDate} at ${startTime}.`,
+                        type: 'NEW_EXAM',
+                        topic: targetTopic,
+                        time: new Date().toISOString()
+                    }
+                }).catch(err => console.warn('Failed to send push notification', err));
+
+                window.showGlobalToast('Updated', 'Exam schedule updated successfully!');
+                window.navigate('screen-weekly-routine');
+                loadWeeklyRoutine();
+            } catch (err) {
+                console.error('[EDIT EXAM ERROR]', err);
+                window.showGlobalToast('Error', 'Failed to update exam.', 'error');
+            } finally {
+                window.showLoader(false);
+            }
+        }
+
+        window.openAddExamSchedule = openAddExamSchedule;
+        window.handleAddExamSubmit = handleAddExamSubmit;
+        window.openEditExamSchedule = openEditExamSchedule;
+        window.handleEditExamSubmit = handleEditExamSubmit;
+        window.loadWeeklyRoutine = loadWeeklyRoutine;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // If the user starts on this page, load it.
+            setTimeout(() => {
+                if (typeof window.loadWeeklyRoutine === 'function') {
+                    console.log("[ROUTINE TRIGGER] DOM loaded, firing routine fetch...");
+                    window.loadWeeklyRoutine();
+                }
+            }, 500); // Small delay to let Auth mount
+        });
+
 console.log("[ARCHITECTURE]\nroutines loaded");
+
+
+
