@@ -458,10 +458,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     }
                 }
 
-                // Helper to merge consecutive routine blocks
                 const mergedClasses = [];
                 let i = 0;
                 while (i < todayClasses.length) {
+                    if (i % 20 === 0) await new Promise(r => setTimeout(r, 0)); // Yield to main thread to prevent iOS Safari crash
+
                     const current = { ...todayClasses[i], isMerged: false, durationHrs: 1.5 };
                     const isBreak = !current.course_id || current.room_number === 'Break';
 
@@ -591,7 +592,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     console.error("[DASHBOARD] Render loop crash detected:", renderError);
                     if (!window._dashboardRetryAttempted) {
                         window._dashboardRetryAttempted = true;
-                        if (typeof RoutineStore !== 'undefined') RoutineStore.invalidate();
+                        // RoutineStore.invalidate() doesn't exist, safely refresh instead or just rely on the retry
+                        if (typeof RoutineStore !== 'undefined' && typeof RoutineStore.refresh === 'function') {
+                            RoutineStore.refresh().catch(() => {});
+                        }
                         setTimeout(loadDashboardTodayRoutine, 500);
                         return;
                     }

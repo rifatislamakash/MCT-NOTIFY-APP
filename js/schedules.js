@@ -1156,17 +1156,21 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                 // Task 3: Insert Reminders and Automatic Push Notification for Schedule AFTER targets are securely saved
                 try {
+                    const notifyAudience = document.getElementById('notify-audience-schedule')?.checked !== false;
                     const reminderRows = [];
-                    // Automatically queue push notification immediately for schedule
-                    reminderRows.push({
-                        parent_type: 'schedule',
-                        parent_id: newSchedule.id,
-                        reminder_time: new Date(Date.now() + 30000).toISOString(),
-                        sent: false,
-                        reminder_title: title,
-                        reminder_message: message,
-                        created_by: window.authState.user?.id || null
-                    });
+                    
+                    if (notifyAudience) {
+                        // Automatically queue push notification immediately for schedule
+                        reminderRows.push({
+                            parent_type: 'schedule',
+                            parent_id: newSchedule.id,
+                            reminder_time: new Date(Date.now() + 30000).toISOString(),
+                            sent: false,
+                            reminder_title: title,
+                            reminder_message: message,
+                            created_by: window.authState.user?.id || null
+                        });
+                    }
 
                     const reminderDivs = document.querySelectorAll('#schedule-reminders-list .reminder-row');
                     if (reminderDivs.length > 0) {
