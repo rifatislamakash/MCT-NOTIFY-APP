@@ -373,6 +373,8 @@ export class PollService {
             batch = window.authState.profile.batch_id;
         }
 
+        const notifyAudience = document.getElementById('notify-audience-poll') ? document.getElementById('notify-audience-poll').checked : true;
+
         showLoader(true, "Creating Poll...");
         try {
             const pollData = {
@@ -401,30 +403,45 @@ export class PollService {
                 }]);
 
                 // Dispatch FCM Push Notification via Edge Function
-                const { data: targetProfiles } = await _supabase
-                    .from('profiles')
-                    .select('fcm_token')
-                    .eq('batch_id', batch)
-                    .not('fcm_token', 'is', null);
+                if (notifyAudience) {
+                    const { data: targetProfiles } = await _supabase
+                        .from('profiles')
+                        .select('fcm_token')
+                        .eq('batch_id', batch)
+                        .not('fcm_token', 'is', null);
 
-                if (targetProfiles && targetProfiles.length > 0) {
-                    const tokens = targetProfiles.map(p => p.fcm_token).filter(Boolean);
-                    if (tokens.length > 0) {
-                        _supabase.functions.invoke('send-notification', {
-                            body: {
-                                tokens: tokens,
-                                data: { 
-                                    title: "New Batch Poll",
-                                    body: `New Batch Poll: ${title}`,
-                                    type: "poll", 
-                                    id: data[0].id,
-                                    target_type: "batch_students",
-                                    target_id: batch
+                    if (targetProfiles && targetProfiles.length > 0) {
+                        const tokens = targetProfiles.map(p => p.fcm_token).filter(Boolean);
+                        if (tokens.length > 0) {
+                            _supabase.functions.invoke('send-notification', {
+                                body: {
+                                    tokens: tokens,
+                                    data: { 
+                                        title: "New Batch Poll",
+                                        body: `New Batch Poll: ${title}`,
+                                        type: "poll", 
+                                        id: data[0].id,
+                                        target_type: "batch_students",
+                                        target_id: batch
+                                    }
                                 }
-                            }
-                        }).catch(e => console.error("FCM Edge Invoke Error:", e));
+                            }).catch(e => console.error("FCM Edge Invoke Error:", e));
+                        }
                     }
                 }
+            } else if (batch === 'global' && notifyAudience && data && data.length > 0) {
+                // Global push notification
+                _supabase.functions.invoke('send-notification', {
+                    body: {
+                        topic: 'global',
+                        data: {
+                            title: "New Global Poll",
+                            body: `New Poll: ${title}`,
+                            type: "poll",
+                            id: data[0].id
+                        }
+                    }
+                }).catch(e => console.error("Global FCM Error:", e));
             }
 
             showGlobalToast("Success", "Poll created!");

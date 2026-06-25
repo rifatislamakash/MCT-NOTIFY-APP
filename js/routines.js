@@ -1740,8 +1740,8 @@ window.switchRoutineView = switchRoutineView;
                                     parent_id: newExam.id,
                                     reminder_time: targetTime.toISOString(),
                                     sent: false,
-                                    reminder_title: `Upcoming Exam: ${courseCode}`,
-                                    reminder_message: `${courseName} exam starts at ${startTime}.`,
+                                    reminder_title: `Knock knock...! '${courseName}' is knocking at the door.`,
+                                    reminder_message: `Upcoming Exam is '${courseName}' at '${examDate} & ${window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime}'. Open the app to see the syllabus.`,
                                     created_by: window.authState.user.id
                                 });
                             }
@@ -1790,7 +1790,7 @@ window.switchRoutineView = switchRoutineView;
                         body: {
                             target_id: newExam.id,
                             title: `Knock knock...! '${courseName}' is knocking at the door.`,
-                            body: `Upcoming Exam is '${courseName}' at '${examDate} ${window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime}'. Open the app to see the syllabus.`,
+                            body: `Upcoming Exam is '${courseName}' at '${examDate} & ${window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime}'. Open the app to see the syllabus.`,
                             type: 'NEW_EXAM',
                             topic: targetTopic,
                             time: new Date().toISOString()
@@ -2060,8 +2060,8 @@ window.switchRoutineView = switchRoutineView;
                                     parent_id: examId,
                                     reminder_time: targetTime.toISOString(),
                                     sent: false,
-                                    reminder_title: `Upcoming Exam: ${courseCode}`,
-                                    reminder_message: `${courseName} exam starts at ${startTime}.`,
+                                    reminder_title: `Knock knock...! '${courseName}' is knocking at the door.`,
+                                    reminder_message: `Upcoming Exam is '${courseName}' at '${examDate} & ${window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime}'. Open the app to see the syllabus.`,
                                     created_by: window.authState.user.id
                                 });
                             }
@@ -2103,7 +2103,7 @@ window.switchRoutineView = switchRoutineView;
                         body: {
                             target_id: examId,
                             title: `Knock knock...! '${courseName}' is knocking at the door.`,
-                            body: `Upcoming Exam is '${courseName}' at '${examDate} ${window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime}'. Open the app to see the syllabus.`,
+                            body: `Upcoming Exam is '${courseName}' at '${examDate} & ${window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime}'. Open the app to see the syllabus.`,
                             type: 'NEW_EXAM',
                             topic: targetTopic,
                             time: new Date().toISOString()

@@ -627,12 +627,19 @@ import { ProfileStore } from './stores/ProfileStore.js';
             isNavigatingToExams = true;
             
             try {
-                if (typeof showScreen === 'function') showScreen('screen-weekly-routine');
-                else if (typeof navigate === 'function') navigate('screen-weekly-routine');
+                // 1. Visually wipe the DOM cache immediately to prevent stale UI
+                const examContainer = document.getElementById('exams-routine-container');
+                if (examContainer) examContainer.innerHTML = '';
                 
-                // Wait 50ms for DOM to catch up before clicking tab
-                await new Promise(resolve => setTimeout(resolve, 50));
+                // 2. Show safe loader
+                if (typeof window.showLoader === 'function') {
+                    window.showLoader(true, 'Opening Exams...');
+                }
+
+                // 3. Force Router Navigation
+                if (typeof navigate === 'function') navigate('screen-weekly-routine');
                 
+                // 4. Safely set view state immediately (no timeout race conditions)
                 if (typeof window.switchToExamTab === 'function') {
                     window.switchToExamTab();
                 } else {
@@ -643,7 +650,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 console.error("[ROUTER ERROR] Failed to navigate to Exam Panel:", error);
             } finally {
                 // Release the lock after a safe delay
-                setTimeout(() => { isNavigatingToExams = false; }, 500);
+                setTimeout(() => { isNavigatingToExams = false; }, 800);
             }
         };
 

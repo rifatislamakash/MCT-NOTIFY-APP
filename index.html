@@ -3406,6 +3406,10 @@
                                     </label>
                                 </div>
 
+                                <div class="flex items-center mt-2 mb-4">
+                                    <input type="checkbox" id="notify-audience-group" class="w-4 h-4 text-[#4226E9] bg-gray-100 border-gray-300 rounded focus:ring-[#4226E9]" checked>
+                                    <label for="notify-audience-group" class="ml-2 text-[13px] font-bold text-indigo-900">Notify Targeted Audience</label>
+                                </div>
                                 <div class="flex gap-3 pt-4">
                                     <button id="btn-delete-group" onclick="deleteGroup()" type="button" class="hidden w-[56px] h-[52px] bg-red-50 text-red-600 border border-red-200 rounded-[14px] flex items-center justify-center shadow-sm active:scale-95 transition-all">
                                         <i data-lucide="trash-2" class="w-5 h-5"></i>
@@ -4793,6 +4797,10 @@
                                     </div>
                                 </div>
 
+                                <div class="flex items-center mt-2 mb-4 px-1">
+                                    <input type="checkbox" id="notify-audience-poll" class="w-4 h-4 text-[#4226E9] bg-gray-100 border-gray-300 rounded focus:ring-[#4226E9]" checked>
+                                    <label for="notify-audience-poll" class="ml-2 text-[13px] font-bold text-indigo-900">Notify Targeted Audience</label>
+                                </div>
                                 <button type="submit" class="w-full py-3.5 bg-[#4226E9] text-white rounded-xl font-bold shadow-lg shadow-indigo-600/30 active:scale-[0.98] transition">Create Poll & Notify</button>
                             </form>
                         </div>
@@ -9478,7 +9486,8 @@
                             throw error;
                         }
                         console.log("[GROUPS DB INSERT SUCCESS] Response:", JSON.stringify(data));
-                        if (data && data.length > 0 && window.triggerImmediateNotification) {
+                        const notifyAudience = document.getElementById('notify-audience-group') ? document.getElementById('notify-audience-group').checked : true;
+                        if (data && data.length > 0 && window.triggerImmediateNotification && notifyAudience) {
                             window.triggerImmediateNotification('group', data[0].id, 'New Group Link', `A new group link ${payload.title} was added.`);
                         }
                         
