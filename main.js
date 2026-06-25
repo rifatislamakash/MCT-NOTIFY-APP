@@ -135,7 +135,7 @@ window.clearEditAttachment = ScheduleService.clearEditAttachment;
 window.handleUpdateSchedule = ScheduleService.handleUpdateSchedule;
 window.handleDeleteSchedule = ScheduleService.handleDeleteSchedule;
 
-import { fetchRoutineDependencies, loadWeeklyRoutine, renderDailyRoutineView, openAddRoutine, handleSaveRoutine, openRoutineDetails, handleUpdateRoutine, handleDeleteRoutine } from './js/routines.js?v=2';
+import { fetchRoutineDependencies, loadWeeklyRoutine, renderDailyRoutineView, openAddRoutine, handleSaveRoutine, openRoutineDetails, handleUpdateRoutine, handleDeleteRoutine, openAddExamSchedule, handleAddExamSubmit, openEditExamSchedule, handleEditExamSubmit } from './js/routines.js?v=2';
 window.fetchRoutineDependencies = fetchRoutineDependencies;
 window.loadWeeklyRoutine = loadWeeklyRoutine;
 window.renderDailyRoutineView = renderDailyRoutineView;
@@ -144,6 +144,10 @@ window.handleSaveRoutine = handleSaveRoutine;
 window.openRoutineDetails = openRoutineDetails;
 window.handleUpdateRoutine = handleUpdateRoutine;
 window.handleDeleteRoutine = handleDeleteRoutine;
+window.openAddExamSchedule = openAddExamSchedule;
+window.handleAddExamSubmit = handleAddExamSubmit;
+window.openEditExamSchedule = openEditExamSchedule;
+window.handleEditExamSubmit = handleEditExamSubmit;
 
 import { RoutineService } from './js/routines.js?v=2';
 window.RoutineService = RoutineService;
@@ -176,4 +180,11 @@ window.ReportService = ReportService;
 window.loadMyReports = ReportService.loadMyReports.bind(ReportService);
 window.loadAdminReports = ReportService.loadAdminReports.bind(ReportService);
 
-
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+        console.log("[BFCACHE] Page loaded from back-forward cache. Force-hiding loader.");
+        if (typeof window.forceHideLoader === 'function') {
+            window.forceHideLoader();
+        }
+    }
+});

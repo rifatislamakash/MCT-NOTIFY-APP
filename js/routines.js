@@ -145,12 +145,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
         export async function renderExamRoutineView() {
             const container = document.getElementById('exams-routine-container');
-            if (!container) return;
+            if (container) container.innerHTML = ''; // CACHE BUSTER: Instantly clear stale UI
             
-            container.innerHTML = `<div class="flex flex-col items-center justify-center py-16 text-center text-slate-400">
-                <div class="w-7 h-7 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3"></div>
-                <p class="text-xs font-semibold">Loading exams...</p>
-            </div>`;
+            if (typeof window.showLoader === 'function') {
+                window.showLoader(true, 'Loading exams...');
+            }
             
             try {
                   // Wait for authState to mount (checks every 100ms, max 5 seconds)
@@ -162,7 +161,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                   
                   if (!window.authState || !window.authState.profile) {
                       console.error("[EXAM ROUTINE] Fatal: Auth state never loaded.");
-                      container.innerHTML = `<div class="p-8 text-center text-red-500 font-bold">Error: Not Authenticated</div>`;
+                      if (container) container.innerHTML = `<div class="p-8 text-center text-red-500 font-bold">Error: Not Authenticated</div>`;
                       return;
                   }
 
@@ -184,11 +183,13 @@ import { ProfileStore } from './stores/ProfileStore.js';
                   }
                 
                 if (!exams || exams.length === 0) {
-                    container.innerHTML = `<div class="flex flex-col items-center justify-center py-16 text-center text-slate-400 bg-white rounded-3xl border border-slate-100 shadow-sm px-6 mt-2">
-                        <i data-lucide="calendar-check" class="w-12 h-12 text-indigo-300 mb-4 opacity-50"></i>
-                        <h3 class="text-[16px] font-bold text-slate-700 mb-2">No Exams Scheduled</h3>
-                        <p class="text-[13px] leading-relaxed max-w-[250px]">You have no upcoming or past exams listed for your batch.</p>
-                    </div>`;
+                    if (container) {
+                        container.innerHTML = `<div class="flex flex-col items-center justify-center py-16 text-center text-slate-400 bg-white rounded-3xl border border-slate-100 shadow-sm px-6 mt-2">
+                            <i data-lucide="calendar-check" class="w-12 h-12 text-indigo-300 mb-4 opacity-50"></i>
+                            <h3 class="text-[16px] font-bold text-slate-700 mb-2">No Exams Scheduled</h3>
+                            <p class="text-[13px] leading-relaxed max-w-[250px]">You have no upcoming or past exams listed for your batch.</p>
+                        </div>`;
+                    }
                     if (typeof lucide !== 'undefined') lucide.createIcons();
                     return;
                 }
@@ -236,59 +237,65 @@ import { ProfileStore } from './stores/ProfileStore.js';
                               </button>
                           </div>
                           ` : ''}
-                         <div class="flex items-start gap-4">
-                             <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border border-indigo-100/40">
-                                 <i data-lucide="graduation-cap" class="w-6 h-6"></i>
-                             </div>
-                             <div class="flex-1 min-w-0 pr-6">
-                                 <h3 class="text-[17px] font-extrabold text-slate-800 leading-tight">${window.sanitizeHTML(exam.course_name)}</h3>
-                                 ${subtitleHtml}
-                                 
-                                 <div class="flex items-center gap-1.5 mt-2.5 text-[11px] font-bold text-slate-500 whitespace-nowrap overflow-hidden">
-                                     <span class="flex items-center gap-1 text-indigo-600 shrink-0">
-                                         <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
-                                         ${examDate}
-                                     </span>
-                                     <span class="text-slate-300 shrink-0">•</span>
-                                     <span class="flex items-center gap-1 text-orange-600 shrink-0">
-                                         <i data-lucide="clock" class="w-3.5 h-3.5"></i>
-                                         ${window.formatTimeIfPossible(exam.start_time)} - ${window.formatTimeIfPossible(exam.end_time)}
-                                     </span>
-                                     ${isPast ? `
-                                     <span class="text-slate-300 shrink-0">•</span>
-                                     <span class="text-slate-400 font-extrabold text-[10px] uppercase shrink-0">PAST</span>
-                                     ` : ''}
-                                 </div>
-                             </div>
-                         </div>
-                         
-                         <div class="mt-4 flex items-center justify-between gap-3">
-                             <div>
-                                 ${exam.syllabus_desc ? `
-                                 <button onclick="event.stopPropagation(); window.toggleExamSyllabus('${exam.id}', this)" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50/50 border border-indigo-100/50 hover:bg-indigo-100/60 text-indigo-700 text-[11px] font-bold rounded-lg transition active:scale-95">
-                                     <i data-lucide="eye" class="w-3.5 h-3.5"></i>
-                                     <span>Show Syllabus</span>
-                                 </button>
-                                 ` : ''}
-                             </div>
-                             <div class="shrink-0">
-                                 ${window.ReactionService ? window.ReactionService.renderReactionBlock('exam_schedules', exam.id) : ''}
-                             </div>
-                         </div>
-                         
-                         ${exam.syllabus_desc ? `
-                         <div id="exam-syllabus-${exam.id}" class="hidden mt-3 bg-white/70 rounded-xl p-4 text-[13px] text-slate-600 border border-slate-100 font-medium rich-text-content transition-all duration-300">
-                             ${window.safeFormatRichText ? window.safeFormatRichText(exam.syllabus_desc) : window.sanitizeHTML(exam.syllabus_desc)}
-                         </div>
-                         ` : ''}
-                     </div>`;
+                          <div class="flex items-start gap-4">
+                              <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border border-indigo-100/40">
+                                  <i data-lucide="graduation-cap" class="w-6 h-6"></i>
+                              </div>
+                              <div class="flex-1 min-w-0 pr-6">
+                                  <h3 class="text-[17px] font-extrabold text-slate-800 leading-tight">${window.sanitizeHTML(exam.course_name)}</h3>
+                                  ${subtitleHtml}
+                                  
+                                  <div class="flex items-center gap-1.5 mt-2.5 text-[11px] font-bold text-slate-500 whitespace-nowrap overflow-hidden">
+                                      <span class="flex items-center gap-1 text-indigo-600 shrink-0">
+                                          <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                                          ${examDate}
+                                      </span>
+                                      <span class="text-slate-300 shrink-0">•</span>
+                                      <span class="flex items-center gap-1 text-orange-600 shrink-0">
+                                          <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                                          ${window.formatTimeIfPossible(exam.start_time)} - ${window.formatTimeIfPossible(exam.end_time)}
+                                      </span>
+                                      ${isPast ? `
+                                      <span class="text-slate-300 shrink-0">•</span>
+                                      <span class="text-slate-400 font-extrabold text-[10px] uppercase shrink-0">PAST</span>
+                                      ` : ''}
+                                  </div>
+                              </div>
+                          </div>
+                          
+                          <div class="mt-4 flex items-center justify-between gap-3">
+                              <div>
+                                  ${exam.syllabus_desc ? `
+                                  <button onclick="event.stopPropagation(); window.toggleExamSyllabus('${exam.id}', this)" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50/50 border border-indigo-100/50 hover:bg-indigo-100/60 text-indigo-700 text-[11px] font-bold rounded-lg transition active:scale-95">
+                                      <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                      <span>Show Syllabus</span>
+                                  </button>
+                                  ` : ''}
+                              </div>
+                              <div class="shrink-0">
+                                  ${window.ReactionService ? window.ReactionService.renderReactionBlock('exam_schedules', exam.id) : ''}
+                              </div>
+                          </div>
+                          
+                          ${exam.syllabus_desc ? `
+                          <div id="exam-syllabus-${exam.id}" class="hidden mt-3 bg-white/70 rounded-xl p-4 text-[13px] text-slate-600 border border-slate-100 font-medium rich-text-content transition-all duration-300">
+                              ${window.safeFormatRichText ? window.safeFormatRichText(exam.syllabus_desc) : window.sanitizeHTML(exam.syllabus_desc)}
+                          </div>
+                          ` : ''}
+                      </div>`;
                 });
                 html += `</div>`;
-                container.innerHTML = html;
+                if (container) container.innerHTML = html;
                 if (typeof lucide !== 'undefined') lucide.createIcons();
             } catch(e) {
                 console.error("[EXAMS FETCH ERROR]", e);
-                container.innerHTML = `<p class="text-red-500 text-center py-4 text-xs font-bold">Failed to load exams.</p>`;
+                if (container) {
+                    container.innerHTML = `<div class="p-8 text-center text-red-500 font-bold bg-white rounded-3xl border border-red-100 shadow-sm mt-2">Failed to load exams. Please try again.</div>`;
+                }
+            } finally {
+                if (typeof window.showLoader === 'function') {
+                    window.showLoader(false);
+                }
             }
         }
 

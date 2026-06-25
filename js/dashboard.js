@@ -224,8 +224,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         if (sectionHeader.nextElementSibling) {
                             sectionHeader.nextElementSibling.textContent = "View full schedule";
                             sectionHeader.nextElementSibling.onclick = () => {
-                                navigate('screen-weekly-routine');
-                                if(window.switchRoutineView) window.switchRoutineView('exams');
+                                window.openDedicatedExamPanel();
                             };
                         }
                     }
@@ -268,7 +267,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         const examDate = examDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
                         
                         dashContainer.innerHTML = `<div class="space-y-3">
-                            <div onclick="navigate('screen-weekly-routine'); if(window.switchRoutineView) window.switchRoutineView('exams');" class="bg-gradient-to-br from-indigo-50 to-white rounded-[24px] p-4 border border-indigo-100/80 relative cursor-pointer hover:shadow-md transition-all active:scale-[0.98]">
+                            <div onclick="window.openDedicatedExamPanel()" class="bg-gradient-to-br from-indigo-50 to-white rounded-[24px] p-4 border border-indigo-100/80 relative cursor-pointer hover:shadow-md transition-all active:scale-[0.98]">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0 shadow-sm">
                                         <i data-lucide="graduation-cap" class="w-5 h-5"></i>
@@ -596,6 +595,31 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (!dashContainer || typeof window._dashboardRoutineHTML === 'undefined') return;
             dashContainer.innerHTML = window._dashboardRoutineHTML;
             if (typeof lucide !== 'undefined') lucide.createIcons();
+        };
+
+        window.openDedicatedExamPanel = async function() {
+            try {
+                if (typeof navigate === 'function') navigate('screen-weekly-routine');
+                else if (typeof showScreen === 'function') showScreen('screen-weekly-routine');
+                
+                if (typeof window.switchToExamTab === 'function') {
+                    window.switchToExamTab();
+                } else {
+                    const examTabBtn = document.getElementById('btn-view-exams') || document.getElementById('tab-exams');
+                    if (examTabBtn) examTabBtn.click();
+                }
+            } catch (error) {
+                console.error("[ROUTER ERROR] Failed to navigate to Exam Panel:", error);
+            }
+        };
+
+        window.switchToExamTab = function() {
+            if (typeof window.switchRoutineView === 'function') {
+                window.switchRoutineView('exams');
+            } else {
+                const examTabBtn = document.getElementById('btn-view-exams') || document.getElementById('tab-exams');
+                if (examTabBtn) examTabBtn.click();
+            }
         };
 
 
