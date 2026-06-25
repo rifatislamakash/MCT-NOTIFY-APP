@@ -180,18 +180,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const localController = new AbortController();
             window.activeLoadControllers['dashboard'] = localController;
 
-            try {
-                // Wait for authState to mount (checks every 100ms, max 5 seconds)
-                let retries = 50;
-                while ((!window.authState || !window.authState.profile || !window.authState.profile.batch_id) && retries > 0) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    retries--;
-                }
-                
-                if (!window.authState || !window.authState.profile) {
-                    console.warn("[DASHBOARD] Auth failed or timed out. Aborting routine widget fetch.");
+                if (!window.authState || !window.authState.profile || !window.authState.profile.batch_id) {
+                    console.warn("Auth state not ready. Aborting fetch. Will rely on Auth listener to re-trigger.");
                     window.setModuleLoading('dashboard', false);
-                    return;
+                    return; 
                 }
 
                 // 1. Fetch the global setting explicitly to prevent race conditions
@@ -368,7 +360,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             faculty ( id, faculty_name, teacher_initial ),
                             batches ( id, batch_name )
                         `)
-                    .eq('day_name', targetDay);
+                    .eq('day_name', targetDay)
+                    .order('start_time', { ascending: true })
+                    .limit(10);
                     
                 if (window.currentUserRole !== 'admin') {
                     if (!window.authState.profile.batch_id) {
@@ -458,48 +452,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     }
                 }
 
-                const mergedClasses = [];
-                let i = 0;
-                while (i < todayClasses.length) {
-                    if (i % 20 === 0) await new Promise(r => setTimeout(r, 0)); // Yield to main thread to prevent iOS Safari crash
-
-                    const current = { ...todayClasses[i], isMerged: false, durationHrs: 1.5 };
-                    const isBreak = !current.course_id || current.room_number === 'Break';
-
-                    if (!isBreak) {
-                        while (i + 1 < todayClasses.length) {
-                            const next = todayClasses[i + 1];
-                            const nextIsBreak = !next.course_id || next.room_number === 'Break';
-                            if (nextIsBreak) break;
-
-                            const sameCourse = current.course_id === next.course_id;
-                            const sameFaculty = current.faculty_id === next.faculty_id;
-                            const sameDay = current.day_name === next.day_name;
-                            const currentSecs = window.parseSectionsName(current.section_name).map(s => s.toLowerCase()).sort().join(',');
-                            const nextSecs = window.parseSectionsName(next.section_name).map(s => s.toLowerCase()).sort().join(',');
-                            const sameSection = currentSecs === nextSecs;
-
-                            // Parse times
-                            const [currHH, currMM] = current.start_time.split(':').map(Number);
-                            const [nextHH, nextMM] = next.start_time.split(':').map(Number);
-                            const currMins = currHH * 60 + currMM;
-                            const nextMins = nextHH * 60 + nextMM;
-
-                            const timeDiff = nextMins - currMins;
-                            const expectedDiff = current.durationHrs * 60;
-
-                            if (sameCourse && sameFaculty && sameDay && sameSection && timeDiff === expectedDiff) {
-                                current.durationHrs += 1.5;
-                                current.isMerged = true;
-                                i++; // merge it (advance pointer)
-                            } else {
-                                break;
-                            }
-                        }
-                    }
-                    mergedClasses.push(current);
-                    i++;
-                }
+                // Ensure durationHrs exists for rendering
+                const mergedClasses = todayClasses.map(c => ({...c, isMerged: false, durationHrs: 1.5}));
 
                 const now = new Date();
                 // When showing tomorrow: use nowMins=-1 so all classes are Upcoming, not Done
@@ -590,15 +544,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     }).join('');
                 } catch (renderError) {
                     console.error("[DASHBOARD] Render loop crash detected:", renderError);
-                    if (!window._dashboardRetryAttempted) {
-                        window._dashboardRetryAttempted = true;
-                        // RoutineStore.invalidate() doesn't exist, safely refresh instead or just rely on the retry
-                        if (typeof RoutineStore !== 'undefined' && typeof RoutineStore.refresh === 'function') {
-                            RoutineStore.refresh().catch(() => {});
-                        }
-                        setTimeout(loadDashboardTodayRoutine, 500);
-                        return;
-                    }
+                    window._dashboardRoutineHTML = '<div class="text-center text-slate-400 py-4 text-xs font-bold">Error loading dashboard data.</div>';
+                    if (!skipRender) window.renderDashboardTodayRoutine();
                 }
 
 

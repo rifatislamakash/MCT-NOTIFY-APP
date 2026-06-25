@@ -153,17 +153,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
             }
             
             try {
-                  // Wait for authState to mount (checks every 100ms, max 5 seconds)
-                  let retries = 50;
-                  while ((!window.authState || !window.authState.profile) && retries > 0) {
-                      await new Promise(resolve => setTimeout(resolve, 100));
-                      retries--;
-                  }
-                  
                   if (!window.authState || !window.authState.profile) {
-                      console.error("[EXAM ROUTINE] Fatal: Auth state never loaded.");
-                      if (container) container.innerHTML = `<div class="p-8 text-center text-red-500 font-bold">Error: Not Authenticated</div>`;
-                      return;
+                      console.warn("Auth state not ready. Aborting fetch. Will rely on Auth listener to re-trigger.");
+                      return; 
                   }
 
                   let query = _supabase.from('exam_schedules').select('*').order('exam_date', { ascending: true }).order('start_time', { ascending: true });
@@ -339,21 +331,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
             window.showLoader(true, 'Loading routine...');
             console.log("[ROUTINE] Loading weekly routine list...");
             try {
-                // Wait for authState to mount (checks every 100ms, max 5 seconds)
-                // NOTE: Do NOT require batch_id — CR users may not have one
-                let retries = 50;
-                while ((!window.authState || !window.authState.profile) && retries > 0) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    retries--;
-                }
-                
                 if (!window.authState || !window.authState.profile) {
-                    console.error("[ROUTINE] Fatal: Auth state never loaded.");
-                    const errLabel = document.getElementById('wr-batch-label') || document.querySelector('.batch-subtitle');
-                    if (errLabel) errLabel.textContent = "Error: Not Authenticated";
-                    window.showGlobalToast('Error', 'Authentication failed to load.', 'error');
-                    window.showLoader(false);
-                    return; // Now it is safe to abort, we gave it 5 seconds.
+                    console.warn("Auth state not ready. Aborting fetch. Will rely on Auth listener to re-trigger.");
+                    return; 
                 }
 
                 // Wait for dependencies (batches, etc.) to ensure we have batch names
@@ -1802,7 +1782,7 @@ window.switchRoutineView = switchRoutineView;
 
                 window.showGlobalToast('Created', 'Exam schedule added successfully!');
                 window.navigate('screen-weekly-routine');
-                loadWeeklyRoutine();
+                if (window.switchRoutineView) window.switchRoutineView('exams');
             } catch (err) {
                 console.error('[ADD EXAM ERROR]', err);
                 window.showGlobalToast('Error', 'Failed to create exam.', 'error');
@@ -2115,7 +2095,7 @@ window.switchRoutineView = switchRoutineView;
 
                 window.showGlobalToast('Updated', 'Exam schedule updated successfully!');
                 window.navigate('screen-weekly-routine');
-                loadWeeklyRoutine();
+                if (window.switchRoutineView) window.switchRoutineView('exams');
             } catch (err) {
                 console.error('[EDIT EXAM ERROR]', err);
                 window.showGlobalToast('Error', 'Failed to update exam.', 'error');

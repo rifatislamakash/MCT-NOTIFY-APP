@@ -5607,7 +5607,12 @@
 
             setTimeout(() => {
                 const initApp = () => {
+                    if (window.isAppFullyInitialized) {
+                        console.warn("[INIT LOCK] App is already initialized. Halting recursive call.");
+                        return; 
+                    }
                     if (typeof window.checkActiveSession === 'function') {
+                        window.isAppFullyInitialized = true;
                         window.checkActiveSession();
                         startTypewriter();
                     } else {

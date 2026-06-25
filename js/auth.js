@@ -260,8 +260,8 @@ let isRegistering = false;
                 } catch (err) {
                     console.error("[ROUTING ERROR] Caught during user routing:", err);
                     if (typeof window.showLoader !== 'undefined') window.showLoader(false);
-                    window.navigate('screen-student-dashboard');
-                    window.updateDashboardGreetings();
+                    const container = document.getElementById('screen-student-dashboard');
+                    if (container) container.innerHTML = '<p class="text-center text-red-500 mt-10 font-bold">Error loading data.</p>';
                 }
             };
             await processRouting();
