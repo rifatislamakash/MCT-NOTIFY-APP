@@ -292,12 +292,20 @@
                     if (type === 'schedule') tableName = 'schedules';
                     if (type === 'routine') tableName = 'routines';
                     if (type === 'material') tableName = 'materials';
+                    if (type === 'exam' || type === 'exam_schedules') tableName = 'exam_schedules';
 
                     const { data } = await window._supabase.from(tableName).select('*').eq('id', id).single();
                     
                     if (data) {
-                        safeTitle = data.title || data.course_title || data.subject || 'MCT Update';
-                        safeMessage = data.message || data.description || data.room_no || 'Check the app for details.';
+                        if (tableName === 'exam_schedules') {
+                            const formattedDate = new Date(data.exam_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                            const formattedTime = window.formatTimeIfPossible ? window.formatTimeIfPossible(data.start_time) : data.start_time;
+                            safeTitle = `Knock knock...! '${data.course_name}' is knocking at the door.`;
+                            safeMessage = `Upcoming Exam is '${data.course_name}' at '${formattedDate} ${formattedTime}'. Open the app to see the syllabus.`;
+                        } else {
+                            safeTitle = data.title || data.course_title || data.subject || 'MCT Update';
+                            safeMessage = data.message || data.description || data.room_no || 'Check the app for details.';
+                        }
                     } else {
                         safeTitle = 'MCT Update';
                         safeMessage = 'New notification received.';

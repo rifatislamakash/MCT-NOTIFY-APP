@@ -234,7 +234,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     }
                     
                     const todayStr = new Date().toISOString().split('T')[0];
-                    let query = _supabase.from('exam_schedules').select('*').gte('exam_date', todayStr).order('exam_date', { ascending: true }).limit(1);
+                    let query = _supabase.from('exam_schedules').select('*').gte('exam_date', todayStr).order('exam_date', { ascending: true }).order('start_time', { ascending: true });
                     
                     if (window.currentUserRole !== 'admin') {
                          query = query.eq('target_batch', window.authState?.profile?.batch_id || 'none');
@@ -242,8 +242,32 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     
                     const { data: exams, error } = await query;
                     
+                    let nextExam = null;
                     if (!error && exams && exams.length > 0) {
-                        const exam = exams[0]; // Render ONLY the single next exam
+                        const now = new Date();
+                        const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
+
+                        for (let ex of exams) {
+                            if (ex.exam_date > todayStr) {
+                                nextExam = ex;
+                                break;
+                            } else if (ex.exam_date === todayStr) {
+                                if (ex.end_time) {
+                                    const [h, m] = ex.end_time.split(':').map(Number);
+                                    if ((h * 60 + m) > currentTotalMinutes) {
+                                        nextExam = ex;
+                                        break;
+                                    }
+                                } else {
+                                    nextExam = ex;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (nextExam) {
+                        const exam = nextExam;
                         
                         let facultyName = '';
                         try {

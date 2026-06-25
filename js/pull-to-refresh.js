@@ -99,7 +99,9 @@
                     showLoader(true, "Refreshing...");
                 }
                 setTimeout(() => {
-                    window.location.reload(true);
+                    if (typeof window.location.reload === 'function') {
+                        window.location.reload();
+                    }
                 }, 300);
             } else {
                 // Snap back on low pull / miss pull

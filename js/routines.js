@@ -166,7 +166,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                       return;
                   }
 
-                  let query = _supabase.from('exam_schedules').select('*').order('exam_date', { ascending: true });
+                  let query = _supabase.from('exam_schedules').select('*').order('exam_date', { ascending: true }).order('start_time', { ascending: true });
                   if (window.currentUserRole !== 'admin') {
                        console.log('[EXAM ROUTINE] Fetching data for Batch ID:', window.authState.profile.batch_id);
                        query = query.eq('target_batch', window.authState.profile.batch_id);
@@ -197,11 +197,37 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 
                 let html = `<div class="space-y-4">`;
                 const isAdminOrCR = (window.currentUserRole === 'admin' || window.currentUserRole === 'cr');
+                let firstUpcomingFound = false;
+                const now = new Date();
+                const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
+                const todayStr = now.toISOString().split('T')[0];
                 
                 exams.forEach(exam => {
                      const examDateObj = new Date(exam.exam_date + 'T00:00:00');
                      const examDate = examDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                     const isPast = (new Date() > new Date(exam.exam_date + 'T23:59:59'));
+                     
+                     let isPast = false;
+                     if (exam.exam_date < todayStr) {
+                         isPast = true;
+                     } else if (exam.exam_date === todayStr) {
+                         if (exam.end_time) {
+                             const [h, m] = exam.end_time.split(':').map(Number);
+                             if ((h * 60 + m) <= currentTotalMinutes) {
+                                 isPast = true;
+                             }
+                         } else if (exam.start_time) {
+                             const [h, m] = exam.start_time.split(':').map(Number);
+                             if ((h * 60 + m) <= currentTotalMinutes) {
+                                 isPast = true;
+                             }
+                         }
+                     }
+
+                     let isNextUpcoming = false;
+                     if (!isPast && !firstUpcomingFound) {
+                         isNextUpcoming = true;
+                         firstUpcomingFound = true;
+                     }
                      
                      let facultyName = '';
                      let courseCodeText = exam.course_code || '';
@@ -227,7 +253,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                      const codeSub = courseCodeText ? `<span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[11px] font-bold">${window.sanitizeHTML(courseCodeText)}</span>` : '';
                      const subtitleHtml = codeSub || facultySub ? `<div class="flex items-center gap-2 mt-1 flex-wrap">${codeSub}${facultySub}</div>` : '';
                      
-                     html += `<div id="exam-card-${exam.id}" class="bg-gradient-to-br from-indigo-50 to-white rounded-[24px] p-4 shadow-sm border border-indigo-100 relative ${isPast ? 'opacity-60 grayscale' : ''}">
+                     html += `<div id="exam-card-${exam.id}" class="bg-gradient-to-br from-indigo-50 to-white rounded-[24px] p-4 shadow-sm border ${isNextUpcoming ? 'border-orange-500 ring-1 ring-orange-500' : 'border-indigo-100'} relative ${isPast ? 'opacity-60 grayscale' : ''}">
                           ${isAdminOrCR ? `
                           <div class="absolute top-4 right-4 flex items-center gap-2 z-10">
                               <button onclick="event.stopPropagation(); window.openEditExamSchedule('${exam.id}')" class="w-8 h-8 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-full hover:bg-indigo-100 transition active:scale-95" title="Edit Exam">
@@ -1760,8 +1786,8 @@ window.switchRoutineView = switchRoutineView;
                 await window._supabase.functions.invoke('send-reminders', {
                     body: {
                         target_id: newExam.id,
-                        title: `New Exam: ${courseCode} - ${courseName}`,
-                        body: syllabusDesc ? `Syllabus: ${window.stripRichTextForNotification(syllabusDesc)}` : `Exam scheduled on ${examDate} at ${startTime}.`,
+                        title: `Knock knock...! '${courseName}' is knocking at the door.`,
+                        body: `Upcoming Exam is '${courseName}' at '${examDate} ${window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime}'. Open the app to see the syllabus.`,
                         type: 'NEW_EXAM',
                         topic: targetTopic,
                         time: new Date().toISOString()
@@ -2067,8 +2093,8 @@ window.switchRoutineView = switchRoutineView;
                 await window._supabase.functions.invoke('send-reminders', {
                     body: {
                         target_id: examId,
-                        title: `Exam Updated: ${courseCode} - ${courseName}`,
-                        body: syllabusDesc ? `Syllabus: ${stripFn(syllabusDesc)}` : `Exam details updated for ${examDate} at ${startTime}.`,
+                        title: `Knock knock...! '${courseName}' is knocking at the door.`,
+                        body: `Upcoming Exam is '${courseName}' at '${examDate} ${window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime}'. Open the app to see the syllabus.`,
                         type: 'NEW_EXAM',
                         topic: targetTopic,
                         time: new Date().toISOString()
@@ -2092,16 +2118,8 @@ window.switchRoutineView = switchRoutineView;
         window.handleEditExamSubmit = handleEditExamSubmit;
         window.loadWeeklyRoutine = loadWeeklyRoutine;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // If the user starts on this page, load it.
-            setTimeout(() => {
-                if (typeof window.loadWeeklyRoutine === 'function') {
-                    console.log("[ROUTINE TRIGGER] DOM loaded, firing routine fetch...");
-                    window.loadWeeklyRoutine();
-                }
-            }, 500); // Small delay to let Auth mount
-        });
-
+        // Removed DOMContentLoaded trigger to prevent "auth load failed" error on login screens.
+        // loadWeeklyRoutine is already handled by the router when navigating to the routine screen.
 console.log("[ARCHITECTURE]\nroutines loaded");
 
 
