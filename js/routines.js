@@ -19,6 +19,18 @@ import { ProfileStore } from './stores/ProfileStore.js';
         let filteredRoutineData = []; // Store the filtered list
         let selectedRoutineId = null;
         let currentRoutineView = 'weekly'; // 'weekly' | 'daily'
+        let currentRoutineFilter = 'All'; // 'All', 'My Section', or 'A', 'B', etc.
+        let unsubscribeFaculty = null;
+        let unsubscribeProfile = null;
+
+        // Safari-safe Date parser (Strict WebKit compatibility)
+        function getSafariSafeDate(dateInput) {
+            if (!dateInput) return new Date();
+            if (dateInput instanceof Date) return dateInput;
+            const safeString = String(dateInput).replace(/-/g, '/').replace(/T/g, ' '); 
+            const parsedDate = new Date(safeString);
+            return isNaN(parsedDate) ? new Date() : parsedDate;
+        }
 
         // Days order for the timetable columns — all 7 days
         const ROUTINE_DAYS = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
@@ -195,8 +207,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const todayStr = now.toISOString().split('T')[0];
                 
                 exams.forEach(exam => {
-                     const examDateObj = new Date(exam.exam_date + 'T00:00:00');
-                     const examDate = examDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                     let examDateStr = 'Date unset';
+                     if (exam.exam_date) {
+                         const examDateObj = getSafariSafeDate(exam.exam_date + 'T00:00:00');
+                         examDateStr = examDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                     }
                      
                      let isPast = false;
                      if (exam.exam_date < todayStr) {
@@ -267,7 +282,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                   <div class="flex items-center gap-1.5 mt-2.5 text-[11px] font-bold text-slate-500 whitespace-nowrap overflow-hidden">
                                       <span class="flex items-center gap-1 text-indigo-600 shrink-0">
                                           <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
-                                          ${examDate}
+                                          ${examDateStr}
                                       </span>
                                       <span class="text-slate-300 shrink-0">•</span>
                                       <span class="flex items-center gap-1 text-orange-600 shrink-0">
@@ -1693,7 +1708,7 @@ window.switchRoutineView = switchRoutineView;
                 // Parse and save reminders
                 try {
                     const reminderRows = [];
-                    const eventDateTime = new Date(examDate + 'T' + startTime);
+                    const eventDateTime = getSafariSafeDate(examDate + 'T' + startTime);
                     const listContainer = document.getElementById('exam-reminders-list');
                     if (listContainer) {
                         listContainer.querySelectorAll('.reminder-row').forEach(div => {
@@ -1705,7 +1720,7 @@ window.switchRoutineView = switchRoutineView;
                             if (offsetVal === 'custom') {
                                 const customInput = div.querySelector('.reminder-custom-time');
                                 if (customInput && customInput.value) {
-                                    targetTime = new Date(customInput.value);
+                                    targetTime = getSafariSafeDate(customInput.value);
                                 }
                             } else {
                                 const offsetMinutes = parseInt(offsetVal, 10);
@@ -1895,7 +1910,7 @@ window.switchRoutineView = switchRoutineView;
                     if (remError) {
                         console.error("[REMINDERS] Error loading exam reminders:", remError);
                     } else if (reminders && reminders.length > 0) {
-                        const eventDateTime = new Date(exam.exam_date + 'T' + exam.start_time);
+                        const eventDateTime = getSafariSafeDate(exam.exam_date + 'T' + exam.start_time);
                         reminders.forEach(rem => {
                             const row = document.createElement('div');
                             row.className = 'reminder-row bg-slate-50 border border-slate-100 rounded-[12px] p-3 flex flex-wrap gap-2 items-center';
@@ -1904,7 +1919,7 @@ window.switchRoutineView = switchRoutineView;
                             let isCustom = false;
                             let customVal = '';
                             
-                            const remTime = new Date(rem.reminder_time);
+                            const remTime = getSafariSafeDate(rem.reminder_time);
                             if (eventDateTime && !isNaN(eventDateTime.getTime()) && remTime && !isNaN(remTime.getTime())) {
                                 const diffMs = eventDateTime.getTime() - remTime.getTime();
                                 const diffMin = Math.round(diffMs / (60 * 1000));
@@ -2013,7 +2028,7 @@ window.switchRoutineView = switchRoutineView;
 
                 try {
                     const reminderRows = [];
-                    const eventDateTime = new Date(examDate + 'T' + startTime);
+                    const eventDateTime = getSafariSafeDate(examDate + 'T' + startTime);
                     const listContainer = document.getElementById('edit-exam-reminders-list');
                     if (listContainer) {
                         listContainer.querySelectorAll('.reminder-row').forEach(div => {
@@ -2025,7 +2040,7 @@ window.switchRoutineView = switchRoutineView;
                             if (offsetVal === 'custom') {
                                 const customInput = div.querySelector('.reminder-custom-time');
                                 if (customInput && customInput.value) {
-                                    targetTime = new Date(customInput.value);
+                                    targetTime = getSafariSafeDate(customInput.value);
                                 }
                             } else {
                                 const offsetMinutes = parseInt(offsetVal, 10);
@@ -2094,8 +2109,15 @@ window.switchRoutineView = switchRoutineView;
                 }
 
                 window.showGlobalToast('Updated', 'Exam schedule updated successfully!');
-                window.navigate('screen-weekly-routine');
-                if (window.switchRoutineView) window.switchRoutineView('exams');
+                
+                if (typeof window.closeModal === 'function') window.closeModal('modal-edit-exam');
+                
+                if (typeof renderExamRoutineView === 'function') {
+                    console.log("Re-fetching exam data to update UI...");
+                    renderExamRoutineView(); // Force the UI to redraw with the new data
+                } else if (typeof loadWeeklyRoutine === 'function') {
+                    loadWeeklyRoutine();
+                }
             } catch (err) {
                 console.error('[EDIT EXAM ERROR]', err);
                 window.showGlobalToast('Error', 'Failed to update exam.', 'error');

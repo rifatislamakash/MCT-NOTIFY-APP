@@ -1,14 +1,14 @@
 // Phase 11: Bridge Migration Entry Point
 
 
-import { _supabase } from './js/supabase-client.js';
-import { batchService } from './js/services/batchService.js';
-import { crPermissionService } from './js/services/crPermissionService.js';
+import { _supabase } from './js/supabase-client.js?v=rescue1';
+import { batchService } from './js/services/batchService.js?v=rescue1';
+import { crPermissionService } from './js/services/crPermissionService.js?v=rescue1';
 
 window.crPermissionService = crPermissionService;
 window._supabase = _supabase;
 
-import { showGlobalToast, dismissGlobalToast, showLoader, forceHideLoader, deduplicateRequest, fetchCachedOrDeduplicated, cancelActiveRequest, cancelAllActiveRequests, fetchWithRetry, ensureBucketExists, extractIdFromEmail, getGreeting, showNotificationToast } from './js/utils.js';
+import { showGlobalToast, dismissGlobalToast, showLoader, forceHideLoader, deduplicateRequest, fetchCachedOrDeduplicated, cancelActiveRequest, cancelAllActiveRequests, fetchWithRetry, ensureBucketExists, extractIdFromEmail, getGreeting, showNotificationToast } from './js/utils.js?v=rescue1';
 window.showGlobalToast = showGlobalToast;
 window.showNotificationToast = showNotificationToast;
 window.dismissGlobalToast = dismissGlobalToast;
@@ -23,7 +23,7 @@ window.ensureBucketExists = ensureBucketExists;
 window.extractIdFromEmail = extractIdFromEmail;
 window.getGreeting = getGreeting;
 
-import { fetchUserProfile, handleUserRouting, checkActiveSession, handleConfirmOTP, handleLogin, handleRegister, logout, handleForgot, handleRecoveryOtp, handleUpdatePassword } from './js/auth.js';
+import { fetchUserProfile, handleUserRouting, checkActiveSession, handleConfirmOTP, handleLogin, handleRegister, logout, handleForgot, handleRecoveryOtp, handleUpdatePassword } from './js/auth.js?v=rescue1';
 window.fetchUserProfile = fetchUserProfile;
 window.handleUserRouting = handleUserRouting;
 window.checkActiveSession = checkActiveSession;
@@ -34,19 +34,19 @@ window.handleForgot = handleForgot;
 window.handleRecoveryOtp = handleRecoveryOtp;
 window.handleUpdatePassword = handleUpdatePassword;
 
-import { ReactionService, AuthorService } from './js/services/ReactionService.js';
+import { ReactionService, AuthorService } from './js/services/ReactionService.js?v=rescue1';
 window.ReactionService = ReactionService;
 window.AuthorService = AuthorService;
 window.logout = logout;
 
-import { AuthService } from './js/auth.js';
+import { AuthService } from './js/auth.js?v=rescue1';
 window.AuthService = AuthService;
 
-import { populateProfileDetails, savePhoneEdit } from './js/profile.js';
+import { populateProfileDetails, savePhoneEdit } from './js/profile.js?v=rescue1';
 window.populateProfileDetails = populateProfileDetails;
 window.savePhoneEdit = savePhoneEdit;
 
-import { ProfileService } from './js/profile.js';
+import { ProfileService } from './js/profile.js?v=rescue1';
 window.ProfileService = ProfileService;
 window.openProfilePictureModal = ProfileService.openProfilePictureModal;
 window.closeProfilePictureModal = ProfileService.closeProfilePictureModal;
@@ -59,7 +59,7 @@ window.updateGlobalAvatars = ProfileService.updateGlobalAvatars;
 window.openPhoneEditModal = ProfileService.openPhoneEditModal;
 window.closePhoneEditModal = ProfileService.closePhoneEditModal;
 
-import { uploadFacultyImage, deleteFacultyImageFromStorage, loadFacultyList, loadFacultyDetails, updateFaculty, removeFaculty, fetchCourseList, loadCourseDropdown, loadCourseDropdownForDetails, handleAddFaculty } from './js/faculty.js';
+import { uploadFacultyImage, deleteFacultyImageFromStorage, loadFacultyList, loadFacultyDetails, updateFaculty, removeFaculty, fetchCourseList, loadCourseDropdown, loadCourseDropdownForDetails, handleAddFaculty } from './js/faculty.js?v=rescue1';
 window.uploadFacultyImage = uploadFacultyImage;
 window.deleteFacultyImageFromStorage = deleteFacultyImageFromStorage;
 window.loadFacultyList = loadFacultyList;
@@ -71,7 +71,7 @@ window.loadCourseDropdown = loadCourseDropdown;
 window.loadCourseDropdownForDetails = loadCourseDropdownForDetails;
 window.handleAddFaculty = handleAddFaculty;
 
-import { FacultyService } from './js/faculty.js';
+import { FacultyService } from './js/faculty.js?v=rescue1';
 window.FacultyService = FacultyService;
 window.handleFacultyListLogic = FacultyService.handleFacultyListLogic;
 window.handleFacultyImageSelect = FacultyService.handleFacultyImageSelect;
@@ -80,7 +80,7 @@ window.filterFacultyList = FacultyService.filterFacultyList;
 window.renderFacultyList = FacultyService.renderFacultyList;
 window.openFacultyDetails = FacultyService.openFacultyDetails;
 
-import { MaterialsService } from './js/materials.js';
+import { MaterialsService } from './js/materials.js?v=rescue1';
 window.MaterialsService = MaterialsService;
 window.loadMaterials = MaterialsService.loadMaterials;
 window.filterMaterialsUI = MaterialsService.filterMaterialsUI;
@@ -97,7 +97,7 @@ window.handleUpdateMaterial = MaterialsService.handleUpdateMaterial;
 window.deleteMaterialAction = MaterialsService.deleteMaterialAction;
 window.deleteMaterialFromDetails = MaterialsService.deleteMaterialFromDetails;
 
-import { NoticeService } from './js/notices.js';
+import { NoticeService } from './js/notices.js?v=rescue1';
 window.NoticeService = NoticeService;
 window.loadNotices = NoticeService.loadNotices;
 window.openCreateNotice = NoticeService.openCreateNotice;
@@ -116,7 +116,7 @@ window.onNoticeFileSelected = NoticeService.onNoticeFileSelected;
 window.clearNoticeFile = NoticeService.clearNoticeFile;
 
 
-import { ScheduleService } from './js/schedules.js';
+import { ScheduleService } from './js/schedules.js?v=rescue1';
 window.ScheduleService = ScheduleService;
 window.loadScheduleList = ScheduleService.loadScheduleList;
 window.currentSchedulesList = ScheduleService.currentSchedulesList;
@@ -136,7 +136,7 @@ window.clearEditAttachment = ScheduleService.clearEditAttachment;
 window.handleUpdateSchedule = ScheduleService.handleUpdateSchedule;
 window.handleDeleteSchedule = ScheduleService.handleDeleteSchedule;
 
-import { fetchRoutineDependencies, loadWeeklyRoutine, renderDailyRoutineView, openAddRoutine, handleSaveRoutine, openRoutineDetails, handleUpdateRoutine, handleDeleteRoutine } from './js/routines.js?v=2';
+import { fetchRoutineDependencies, loadWeeklyRoutine, renderDailyRoutineView, openAddRoutine, handleSaveRoutine, openRoutineDetails, handleUpdateRoutine, handleDeleteRoutine } from './js/routines.js?v=rescue1';
 window.fetchRoutineDependencies = fetchRoutineDependencies;
 window.loadWeeklyRoutine = loadWeeklyRoutine;
 window.renderDailyRoutineView = renderDailyRoutineView;
@@ -146,7 +146,7 @@ window.openRoutineDetails = openRoutineDetails;
 window.handleUpdateRoutine = handleUpdateRoutine;
 window.handleDeleteRoutine = handleDeleteRoutine;
 
-import { RoutineService } from './js/routines.js?v=2';
+import { RoutineService } from './js/routines.js?v=rescue1';
 window.RoutineService = RoutineService;
 window.switchRoutineView = RoutineService.switchRoutineView;
 window.getSmartDashboardDay = RoutineService.getSmartDashboardDay;
@@ -156,10 +156,10 @@ window.getTodayRoutineDayName = RoutineService.getTodayRoutineDayName;
 window.getTomorrowRoutineDayName = RoutineService.getTomorrowRoutineDayName;
 window.onRoutineCourseChange = RoutineService.onRoutineCourseChange;
 
-import { loadDashboardTodayRoutine } from './js/dashboard.js?v=4';
+import { loadDashboardTodayRoutine } from './js/dashboard.js?v=rescue1';
 window.loadDashboardTodayRoutine = loadDashboardTodayRoutine;
 
-import { DashboardService } from './js/dashboard.js?v=4';
+import { DashboardService } from './js/dashboard.js?v=rescue1';
 window.DashboardService = DashboardService;
 window.updateDashboardGreetings = DashboardService.updateDashboardGreetings;
 window.updateDashboardQuickAccessBadges = DashboardService.updateDashboardQuickAccessBadges;
@@ -168,11 +168,11 @@ window.updateBottomNavHighlights = DashboardService.updateBottomNavHighlights;
 
 window.simulateReload = DashboardService.simulateReload;
 
-import { PollService } from './js/polls.js';
+import { PollService } from './js/polls.js?v=rescue1';
 window.PollService = PollService;
 window.loadPolls = PollService.loadPolls.bind(PollService);
 
-import { ReportService } from './js/reports.js';
+import { ReportService } from './js/reports.js?v=rescue1';
 window.ReportService = ReportService;
 window.loadMyReports = ReportService.loadMyReports.bind(ReportService);
 window.loadAdminReports = ReportService.loadAdminReports.bind(ReportService);
