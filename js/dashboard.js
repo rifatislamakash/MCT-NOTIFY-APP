@@ -180,6 +180,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const localController = new AbortController();
             window.activeLoadControllers['dashboard'] = localController;
 
+            try {
+
                 if (!window.authState || !window.authState.profile || !window.authState.profile.batch_id) {
                     console.warn("Auth state not ready. Aborting fetch. Will rely on Auth listener to re-trigger.");
                     window.setModuleLoading('dashboard', false);
