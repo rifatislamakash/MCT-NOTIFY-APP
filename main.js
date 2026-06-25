@@ -1,5 +1,37 @@
 // Phase 11: Bridge Migration Entry Point
 
+// HARD RESET CACHE ON BOOT
+(async function clearStaleCache() {
+    try {
+        // Increment this version string anytime a major cache wipe is needed
+        const currentAppVersion = 'v1.0.2-hotfix'; 
+        const storedVersion = localStorage.getItem('app_version_lock');
+        
+        if (storedVersion !== currentAppVersion) {
+            console.log("[CACHE CLEAR] New version detected. Wiping stale cache...");
+            
+            // Clear standard storage
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            // Clear Service Worker caches (Critical for PWA/Mobile WebViews)
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                for (const name of cacheNames) {
+                    await caches.delete(name);
+                }
+            }
+            
+            // Set new lock and force hard reload from server
+            localStorage.setItem('app_version_lock', currentAppVersion);
+            window.location.reload(true); 
+        }
+    } catch (e) {
+        console.error("[CACHE CLEAR ERROR]", e);
+    }
+})();
+
+
 import { _supabase } from './js/supabase-client.js';
 import { batchService } from './js/services/batchService.js';
 import { crPermissionService } from './js/services/crPermissionService.js';
@@ -155,10 +187,10 @@ window.getTodayRoutineDayName = RoutineService.getTodayRoutineDayName;
 window.getTomorrowRoutineDayName = RoutineService.getTomorrowRoutineDayName;
 window.onRoutineCourseChange = RoutineService.onRoutineCourseChange;
 
-import { loadDashboardTodayRoutine } from './js/dashboard.js?v=2';
+import { loadDashboardTodayRoutine } from './js/dashboard.js?v=3';
 window.loadDashboardTodayRoutine = loadDashboardTodayRoutine;
 
-import { DashboardService } from './js/dashboard.js?v=2';
+import { DashboardService } from './js/dashboard.js?v=3';
 window.DashboardService = DashboardService;
 window.updateDashboardGreetings = DashboardService.updateDashboardGreetings;
 window.updateDashboardQuickAccessBadges = DashboardService.updateDashboardQuickAccessBadges;
