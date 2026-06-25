@@ -145,7 +145,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
         export async function renderExamRoutineView() {
             const container = document.getElementById('exams-routine-container');
-            if (container) container.innerHTML = ''; // CACHE BUSTER: Instantly clear stale UI
+            if (!container) return; // Exit if not in DOM
+            container.innerHTML = ''; // CACHE BUSTER: Instantly clear stale UI
             
             if (typeof window.showLoader === 'function') {
                 window.showLoader(true, 'Loading exams...');
