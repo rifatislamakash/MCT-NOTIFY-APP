@@ -358,7 +358,7 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
 
                 // Wait for dependencies (batches, etc.) to ensure we have batch names
                 try {
-                    await fetchRoutineDependencies();
+                    await fetchRoutineDependencies(localController.signal);
                 } catch (e) {
                     console.warn("Failed to prefetch routine dependencies", e);
                 }

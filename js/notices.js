@@ -66,7 +66,8 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                                 .from('content_targets')
                                 .select('content_id, target_type, target_id')
                                 .eq('content_type', 'notice')
-                                .in('content_id', chunk);
+                                .in('content_id', chunk)
+                                .abortSignal(localController.signal);
                             
                             if (chunkData) {
                                 ctData = ctData.concat(chunkData);

@@ -153,7 +153,7 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
             window.activeLoadControllers['faculty'] = localController;
 
             try {
-                const data = await FacultyStore.getFaculty();
+                const data = await FacultyStore.getFaculty(localController.signal);
 
                 // Guard against stale render after abort
                 if (localController.signal.aborted) return;

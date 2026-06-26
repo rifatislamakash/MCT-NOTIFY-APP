@@ -18,6 +18,12 @@ window.getSafariSafeDate = function(dateInput) {
 };
 const getSafariSafeDate = window.getSafariSafeDate;
 
+        // ---- TIMERS ----
+        let welcomeNotificationTimer = null;
+        let goHomeTimer = null;
+        let simulateReloadTimer = null;
+        let openExamPanelTimer = null;
+
         // ---- DYNAMIC GREETING ----
 
         function updateDashboardGreetings() {
@@ -32,7 +38,6 @@ const getSafariSafeDate = window.getSafariSafeDate;
             if (window.authState && window.authState.user) {
                 const welcomeStorageKey = `welcome_notified_${window.authState.user.id}`;
                 const hasBeenNotified = localStorage.getItem(welcomeStorageKey);
-
                 // CRITICAL SECURITY CHECK: Verify this is a brand-new registration event, 
                 // and ensure they haven't already received this specific welcome card.
                 const isFirstTimeRegistration = sessionStorage.getItem('isFirstTimeRegistration') === 'true';
@@ -42,7 +47,8 @@ const getSafariSafeDate = window.getSafariSafeDate;
                     if (typeof window.triggerImmediateNotification === 'function') {
                         // 1.5-second safety delay ensures the fresh device token transaction 
                         // is fully committed to the database before the edge function tries to read it.
-                        setTimeout(() => {
+                        if (welcomeNotificationTimer) clearTimeout(welcomeNotificationTimer);
+                        welcomeNotificationTimer = setTimeout(() => {
                             window.triggerImmediateNotification(
                                 'welcome',
                                 window.authState.user.id,
@@ -88,7 +94,7 @@ const getSafariSafeDate = window.getSafariSafeDate;
                         const date = s.schedule_date || s.date;
                         if (date !== todayStr && date !== tomorrowStr) return false;
                         const time = s.schedule_time || '23:59:00';
-                        const sortDate = getSafariSafeDate(date + 'T' + time);
+                        const sortDate = window.getSafariSafeDate ? window.getSafariSafeDate(date + 'T' + time) : new Date(date + 'T' + time);
                         return sortDate >= now;
                     }).length;
                     if (count > 0) {
@@ -107,7 +113,7 @@ const getSafariSafeDate = window.getSafariSafeDate;
                         const date = n.notice_date;
                         if (date !== todayStr && date !== tomorrowStr) return false;
                         const time = n.notice_time || '23:59:00';
-                        const sortDate = getSafariSafeDate(date + 'T' + time);
+                        const sortDate = window.getSafariSafeDate ? window.getSafariSafeDate(date + 'T' + time) : new Date(date + 'T' + time);
                         return sortDate >= now;
                     }).length;
                     if (count > 0) {
@@ -117,8 +123,6 @@ const getSafariSafeDate = window.getSafariSafeDate;
                         noticeBadge.classList.add('hidden');
                     }
                 }
-
-
             } catch (err) {
                 console.warn('[BADGE UPDATE ERROR]', err);
             }
@@ -128,27 +132,27 @@ const getSafariSafeDate = window.getSafariSafeDate;
         function goHome() {
             const currentScreen = document.querySelector('.screen:not(.hidden)')?.id || document.querySelector('.screen.active')?.id;
             const preferredRole = window.currentUserRole === 'cr' ? (sessionStorage.getItem('crPreferredRole') || 'student') : null;
-            const targetScreen = (window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail) || preferredRole === 'cr') ? 'screen-admin-dashboard' : 'screen-student-dashboard';
+            const targetScreen = (window.currentUserRole === 'admin' || (window.isAdminEmail && window.isAdminEmail(window.currentUserEmail)) || preferredRole === 'cr') ? 'screen-admin-dashboard' : 'screen-student-dashboard';
             
             if (currentScreen === targetScreen) {
-                if (typeof showLoader === 'function') showLoader(true, 'Refreshing...');
+                if (typeof window.showLoader === 'function') window.showLoader(true, 'Refreshing...');
                 if (typeof window.loadDashboardTodayRoutine === 'function') window.loadDashboardTodayRoutine();
                 if (typeof window.updateDashboardGreetings === 'function') window.updateDashboardGreetings();
-                setTimeout(() => {
-                    if (typeof showLoader === 'function') showLoader(false);
+                if (window.goHomeTimer) clearTimeout(window.goHomeTimer);
+                window.goHomeTimer = setTimeout(() => {
+                    if (typeof window.showLoader === 'function') window.showLoader(false);
                 }, 500);
                 return;
             }
 
-            simulateReload();
-            window.navigate(targetScreen);
+            if (typeof window.navigate === 'function') window.navigate(targetScreen);
         }
 
         function updateBottomNavHighlights(screenId) {
             const isHome = screenId === 'screen-student-dashboard' || screenId === 'screen-admin-dashboard';
             const isProfile = screenId === 'screen-profile';
             const isGroups = ['screen-groups-list', 'screen-edit-group', 'screen-groups-detailed'].includes(screenId);
-            const isAdmin = ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail));
+            const isAdmin = ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || (window.isAdminEmail && window.isAdminEmail(window.currentUserEmail)));
 
             document.querySelectorAll('.nav-home-btn').forEach(btn => {
                 if (btn && btn.classList) {
@@ -164,16 +168,23 @@ const getSafariSafeDate = window.getSafariSafeDate;
                 }
             });
 
-
+            document.querySelectorAll('.nav-groups-btn').forEach(btn => {
+                if (btn && btn.classList) {
+                    if (!isAdmin) {
+                        btn.classList.add('hidden');
+                        return;
+                    }
+                    btn.classList.remove('hidden');
+                    if (isGroups) { btn.classList.add('text-indigo-400'); btn.classList.remove('text-slate-400'); }
+                    else { btn.classList.remove('text-indigo-400'); btn.classList.add('text-slate-400'); }
+                }
+            });
         }
-
-
-
-
 
         function simulateReload() {
             if (typeof window.showLoader !== 'undefined') window.showLoader(true, "Syncing database data...");
-            setTimeout(() => {
+            if (simulateReloadTimer) clearTimeout(simulateReloadTimer);
+            simulateReloadTimer = setTimeout(() => {
                 if (typeof window.showLoader !== 'undefined') window.showLoader(false);
             }, 50);
         }
@@ -602,7 +613,8 @@ const getSafariSafeDate = window.getSafariSafeDate;
                 console.error("[ROUTER ERROR] Failed to navigate to Exam Panel:", error);
             } finally {
                 // Release the lock after a safe delay
-                setTimeout(() => { isNavigatingToExams = false; }, 800);
+                if (window.openExamPanelTimer) clearTimeout(window.openExamPanelTimer);
+                window.openExamPanelTimer = setTimeout(() => { isNavigatingToExams = false; }, 800);
             }
         };
 
@@ -614,8 +626,6 @@ const getSafariSafeDate = window.getSafariSafeDate;
                 if (examTabBtn) examTabBtn.click();
             }
         };
-
-
 
 export const DashboardService = {
     updateDashboardGreetings: updateDashboardGreetings,

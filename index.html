@@ -7981,6 +7981,8 @@
         window.navigate = function navigate(screenId) {
             if (typeof window.__LIFECYCLE_DEBUG__ === 'function') window.__LIFECYCLE_DEBUG__('[NAVIGATE]', `Navigating to ${screenId}`);
             
+            if (typeof window.clearLastFocusedEditor === 'function') window.clearLastFocusedEditor();
+
             // Clear floating emoji picker menus to prevent ghosting
             document.querySelectorAll('.reaction-container.force-hovered, .reaction-container.hovered').forEach(el => {
                 el.classList.remove('force-hovered', 'hovered');

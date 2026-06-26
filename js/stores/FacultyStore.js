@@ -5,17 +5,21 @@ export const FacultyStore = (function () {
     let facultyCache = null;
     let fetchPromise = null;
 
-    async function fetchFaculty() {
+    async function fetchFaculty(signal) {
         if (facultyCache) return facultyCache;
         if (fetchPromise) return fetchPromise;
 
         fetchPromise = new Promise(async (resolve, reject) => {
             try {
                 const data = await fetchCachedOrDeduplicated('store_faculty', async () => {
-                    const { data: faculty, error } = await _supabase
+                    let query = _supabase
                         .from('faculty')
                         .select('*')
                         .order('faculty_name');
+                    if (signal) {
+                        query = query.abortSignal(signal);
+                    }
+                    const { data: faculty, error } = await query;
                     if (error) {
                         console.error("[FacultyStore] Query error:", error);
                         throw error;
@@ -37,14 +41,14 @@ export const FacultyStore = (function () {
     }
 
     return {
-        initialize: async () => await fetchFaculty(),
-        refresh: async () => {
+        initialize: async (signal) => await fetchFaculty(signal),
+        refresh: async (signal) => {
             facultyCache = null;
-            return await fetchFaculty();
+            return await fetchFaculty(signal);
         },
-        getFaculty: async () => await fetchFaculty(),
-        getFacultyById: async (id) => {
-            const faculty = await fetchFaculty();
+        getFaculty: async (signal) => await fetchFaculty(signal),
+        getFacultyById: async (id, signal) => {
+            const faculty = await fetchFaculty(signal);
             return faculty.find(f => f.id === id) || null;
         }
     };

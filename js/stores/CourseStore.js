@@ -12,10 +12,12 @@ export const CourseStore = (function () {
         fetchPromise = new Promise(async (resolve, reject) => {
             try {
                 const data = await fetchCachedOrDeduplicated('store_courses', async () => {
+                    const sdkController = new AbortController();
                     const sdkPromise = _supabase
                         .from('courses')
                         .select('id, course_name, short_name, course_code, total_credit, batch_id, sections_name, faculty_id, batches ( batch_name )')
-                        .order('course_name');
+                        .order('course_name')
+                        .abortSignal(sdkController.signal);
                         
                     try {
                         if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
@@ -35,6 +37,7 @@ export const CourseStore = (function () {
                         return courses || [];
                     } catch (e) {
                         if (e.message === 'sdk_timeout') {
+                            sdkController.abort();
                             window._supabaseSdkFailing = true;
                             console.log("[CourseStore] Supabase SDK hung, falling back to REST");
                             const url = `${_supabase.supabaseUrl}/rest/v1/courses?select=id,course_name,short_name,course_code,total_credit,batch_id,sections_name,faculty_id,batches(batch_name)&order=course_name.asc`;

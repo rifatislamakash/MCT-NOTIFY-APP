@@ -48,7 +48,8 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                         const isAdminCheck = window.currentUserRole === 'admin' || window.isAdminEmail(emailStr);
                         if (!isAdminCheck) {
                             const coursesPromise = deduplicateRequest('user_courses_boot', async () => {
-                                const sdkPromise = _supabase.from('user_courses').select('*').eq('user_id', window.authState.user.id);
+                                const sdkController = new AbortController();
+                                const sdkPromise = _supabase.from('user_courses').select('*').eq('user_id', window.authState.user.id).abortSignal(sdkController.signal);
                                 const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('sdk_timeout')), 2000));
                                 try {
                                     const { data, error } = await Promise.race([sdkPromise, timeout]);
@@ -56,6 +57,7 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                                     return data;
                                 } catch (e) {
                                     if (e.message === 'sdk_timeout') {
+                                        sdkController.abort();
                                         const url = `${_supabase.supabaseUrl}/rest/v1/user_courses?user_id=eq.${window.authState.user.id}&select=*`;
                                         const res = await fetch(url, {
                                             headers: {
@@ -63,7 +65,8 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                                                 'Authorization': `Bearer ${window.authState?.session?.access_token || _supabase.supabaseKey}`,
                                                 'cache-control': 'no-cache'
                                             },
-                                            cache: 'no-store'
+                                            cache: 'no-store',
+                                            signal: localController.signal
                                         });
                                         const fetchResult = await res.json();
                                         if (fetchResult.error) throw new Error(fetchResult.error.message);
@@ -84,7 +87,8 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                         if (coursesCountEl) coursesCountEl.innerText = courseIds.length;
 
                         if (courseIds.length > 0) {
-                            const coursesInfoPromise = _supabase.from('courses').select('total_credit').in('id', courseIds);
+                            const sdkController = new AbortController();
+                            const coursesInfoPromise = _supabase.from('courses').select('total_credit').in('id', courseIds).abortSignal(sdkController.signal);
                             let cData;
                             try {
                                 if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
@@ -101,6 +105,7 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                                 }
                             } catch (e) {
                                 if (e.message === 'sdk_timeout') {
+                                    sdkController.abort();
                                     window._supabaseSdkFailing = true;
                                     const inList = courseIds.map(id => `"${id}"`).join(',');
                                     const url = `${_supabase.supabaseUrl}/rest/v1/courses?id=in.(${inList})&select=total_credit`;
@@ -110,7 +115,8 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                                             'Authorization': `Bearer ${window.authState?.session?.access_token || _supabase.supabaseKey}`,
                                             'cache-control': 'no-cache'
                                         },
-                                        cache: 'no-store'
+                                        cache: 'no-store',
+                                        signal: localController.signal
                                     });
                                     const fetchResult = await res.json();
                                     if (fetchResult.error) throw new Error(fetchResult.error.message);

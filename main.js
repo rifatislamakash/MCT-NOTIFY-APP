@@ -185,3 +185,22 @@ window.addEventListener('pageshow', (event) => {
         }
     }
 });
+
+// Deterministic Startup Queue
+window.executeStartupQueue = function() {
+    console.log('[STARTUP QUEUE] Executing deferred tasks...');
+    const runQueue = (task) => {
+        if (window.requestIdleCallback) {
+            window.requestIdleCallback(task, { timeout: 2000 });
+        } else {
+            setTimeout(() => queueMicrotask(task), 50);
+        }
+    };
+
+    runQueue(async () => {
+        console.log('[STARTUP QUEUE] Synchronizing DOM profiles...');
+        if (typeof window.populateProfileDetails === 'function') {
+            window.populateProfileDetails();
+        }
+    });
+};
