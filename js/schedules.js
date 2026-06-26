@@ -6,6 +6,8 @@ import { FacultyStore } from './stores/FacultyStore.js?v=rescue2';
 import { RoutineStore } from './stores/RoutineStore.js?v=rescue2';
 import { NotificationStore } from './stores/NotificationStore.js?v=rescue2';
 import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
+import { NotificationQueueService } from './services/NotificationQueueService.js?v=rescue2';
+import { CascadeDeleteService } from './services/CascadeDeleteService.js?v=rescue2';
 
         // ==========================================
         // SCHEDULE SYSTEM — COMPLETE ENGINE
@@ -1161,18 +1163,16 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                     }
 
                     // Auto-queue notification for the notice ONLY after targets are inserted
-                    const noticePayload = {
-                        parent_type: 'notice',
-                        parent_id: noticeData[0].id,
-                        reminder_title: title,
-                        reminder_message: message,
-                        sent: false,
-                        created_by: window.authState.user?.id || null,
-                        reminder_time: new Date(Date.now() + 30000).toISOString()
-                    };
-                    console.log('[QUEUE INSERT PAYLOAD]', noticePayload);
-                    const { error: notifError } = await _supabase.from('notification_reminders').insert([noticePayload]);
-                    if (notifError) console.error("[SCHEDULE] Notice push queue error:", notifError);
+                    const noticeQueueRes = await NotificationQueueService.queueNotification({
+                        parentType: 'notice',
+                        parentId: noticeData[0].id,
+                        isNotifyEnabled: true,
+                        audienceType: audience_type,
+                        createdBy: window.authState.user?.id || null,
+                        title: title,
+                        message: message
+                    });
+                    if (!noticeQueueRes.success) console.error("[SCHEDULE] Notice push queue error:", noticeQueueRes.error);
                 }
 
                 // Task 3: Insert Reminders and Automatic Push Notification for Schedule AFTER targets are securely saved
@@ -1181,16 +1181,16 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                     const reminderRows = [];
                     
                     if (notifyAudience) {
-                        // Automatically queue push notification immediately for schedule
-                        reminderRows.push({
-                            parent_type: 'schedule',
-                            parent_id: newSchedule.id,
-                            reminder_time: new Date(Date.now() + 30000).toISOString(),
-                            sent: false,
-                            reminder_title: title,
-                            reminder_message: message,
-                            created_by: window.authState.user?.id || null
+                        const queueRes = await NotificationQueueService.queueNotification({
+                            parentType: 'schedule',
+                            parentId: newSchedule.id,
+                            isNotifyEnabled: notifyAudience,
+                            audienceType: audience_type,
+                            createdBy: window.authState.user?.id || null,
+                            courseName: selectedCourse ? selectedCourse.title : '',
+                            message: message
                         });
+                        if (!queueRes.success) console.error("[SCHEDULE] Schedule push queue error:", queueRes.error);
                     }
 
                     const reminderDivs = document.querySelectorAll('#schedule-reminders-list .reminder-row');
@@ -1729,50 +1729,18 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
             try {
                 const s = schedulesList.find(x => x.id === selectedScheduleId);
 
-                // Delete attachment from storage if exists
-                if (s && s.attachment_url) {
-                    try {
-                        const urlParts = s.attachment_url.split('/schedule-files/');
-                        if (urlParts.length > 1) {
-                            const storagePath = urlParts[1].split('?')[0];
-                            await _supabase.storage.from('schedule-files').remove([storagePath]);
-                        }
-                    } catch (e) { console.warn('[STORAGE DELETE WARN]', e); }
+                const cascadeRes = await CascadeDeleteService.cascadeDelete({
+                    parentType: 'schedule',
+                    parentId: selectedScheduleId,
+                    databaseTable: 'schedules',
+                    targetContentType: 'schedule',
+                    storageBucket: 'schedule-files',
+                    relationTables: [{ table: 'schedule_courses', foreignKey: 'schedule_id' }]
+                });
+
+                if (!cascadeRes.success) {
+                    throw cascadeRes.error;
                 }
-
-                // Delete content_targets rows first
-                await _supabase.from('content_targets').delete().eq('content_type', 'schedule').eq('content_id', selectedScheduleId);
-
-                // Task 2: Delete reminders from notification_reminders
-                try {
-                    console.log("[SCHEDULE DELETE] Deleting matching reminders...");
-                    const { error: remError } = await _supabase.from('notification_reminders').delete().eq('parent_id', selectedScheduleId);
-                    if (remError) {
-                        console.error("[SCHEDULE DELETE] Error deleting reminders:", remError);
-                    } else {
-                        console.log("[SCHEDULE DELETE] Reminders deleted successfully.");
-                    }
-                } catch (remErr) {
-                    console.error("[SCHEDULE DELETE] Exception during reminders delete:", remErr);
-                }
-
-                // Step 2.1: Delete schedule_courses relations
-                console.log("[SCHEDULE DELETE] Deleting schedule_courses relations...");
-                const { error: scError } = await _supabase.from('schedule_courses').delete().eq('schedule_id', selectedScheduleId);
-                if (scError) {
-                    console.error("[SCHEDULE DELETE] schedule_courses delete error:", scError);
-                    throw scError;
-                }
-
-                // Step 2.2: Delete content_reactions
-                console.log("[SCHEDULE DELETE] Deleting content_reactions relations...");
-                try {
-                    await _supabase.from('content_reactions').delete().eq('content_type', 'schedule').eq('content_id', selectedScheduleId);
-                } catch (e) { console.warn("[SCHEDULE DELETE] Reactions cleanup error:", e); }
-
-                // Delete the schedule row
-                const { error } = await _supabase.from('schedules').delete().eq('id', selectedScheduleId);
-                if (error) throw error;
 
                 window.showGlobalToast('Deleted', 'Schedule deleted successfully.');
                 selectedScheduleId = null;

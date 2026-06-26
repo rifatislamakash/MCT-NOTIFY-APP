@@ -6,6 +6,7 @@ import { crPermissionService } from './services/crPermissionService.js?v=rescue2
 import { RoutineStore } from './stores/RoutineStore.js?v=rescue2';
 import { NotificationStore } from './stores/NotificationStore.js?v=rescue2';
 import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
+import { NotificationQueueService } from './services/NotificationQueueService.js?v=rescue2';
 
         // ==========================================
         // ROUTINE SYSTEM - COMPLETE ENGINE
@@ -1786,16 +1787,17 @@ window.switchRoutineView = switchRoutineView;
                 const shouldNotify = document.getElementById('notify-audience-exam')?.checked !== false;
 
                 if (shouldNotify) {
-                    await window._supabase.functions.invoke('send-reminders', {
-                        body: {
-                            target_id: newExam.id,
-                            title: `Knock knock...! '${courseName}' exam is knocking at the door.`,
-                            body: `'${courseName}' Exam will be held on '${examDate} & ${window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime}'.`,
-                            type: 'NEW_EXAM',
-                            topic: targetTopic,
-                            time: new Date().toISOString()
-                        }
-                    }).catch(err => console.warn('Failed to send push notification', err));
+                    const queueRes = await NotificationQueueService.queueNotification({
+                        parentType: 'exam',
+                        parentId: newExam.id,
+                        isNotifyEnabled: true,
+                        audienceType: 'batch_students',
+                        createdBy: window.authState.user.id,
+                        courseName: courseName,
+                        date: examDate,
+                        time: window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime
+                    });
+                    if (!queueRes.success) console.error("Exam Queue Error:", queueRes.error);
                 } else {
                     console.log("[SILENT MODE] Content saved, but audience notification skipped.");
                 }

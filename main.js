@@ -4,6 +4,8 @@
 import { _supabase } from './js/supabase-client.js?v=rescue2';
 import { batchService } from './js/services/batchService.js?v=rescue2';
 import { crPermissionService } from './js/services/crPermissionService.js?v=rescue2';
+import { NotificationQueueService } from './js/services/NotificationQueueService.js?v=rescue2';
+import { CascadeDeleteService } from './js/services/CascadeDeleteService.js?v=rescue2';
 
 window.crPermissionService = crPermissionService;
 window._supabase = _supabase;

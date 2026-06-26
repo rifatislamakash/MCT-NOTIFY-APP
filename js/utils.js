@@ -419,13 +419,60 @@ window.executeGlobalDelete = async (tableName, itemId, elementContainerId) => {
     if (!confirm("Are you sure you want to delete this item? This cannot be undone.")) return;
     window.showLoader(true, "Deleting item...");
     try {
-        if (tableName === 'notices' || tableName === 'materials' || tableName === 'schedules') {
-            const { error } = await _supabase.rpc('delete_feed_item_cascade', { table_name: tableName, item_id: itemId });
-            if (error) throw error;
-        } else {
-            const { error } = await _supabase.from(tableName).delete().eq('id', itemId);
-            if (error) throw error;
+        let parentType = tableName;
+        let databaseTable = tableName;
+        let targetContentType = null;
+        let storageBucket = null;
+        let relationTables = [];
+
+        if (tableName === 'notices') {
+            parentType = 'notice';
+            targetContentType = 'notice';
+            storageBucket = 'notice-files';
+            relationTables = [{ table: 'notice_courses', foreignKey: 'notice_id' }];
+        } else if (tableName === 'materials') {
+            parentType = 'material';
+            targetContentType = 'material';
+            storageBucket = 'material-files';
+            relationTables = [{ table: 'material_courses', foreignKey: 'material_id' }];
+        } else if (tableName === 'schedules') {
+            parentType = 'schedule';
+            targetContentType = 'schedule';
+            storageBucket = 'schedule-files';
+            relationTables = [{ table: 'schedule_courses', foreignKey: 'schedule_id' }];
+        } else if (tableName === 'groups') {
+            parentType = 'group';
+        } else if (tableName === 'polls' || tableName === 'poll') {
+            parentType = 'poll';
+            databaseTable = 'notices'; // polls are stored in notices table
+            targetContentType = 'notice'; // targets were inserted as 'notice'
+        } else if (tableName === 'exam_schedules' || tableName === 'exam') {
+            parentType = 'exam';
+            databaseTable = 'exam_schedules';
+            targetContentType = 'exam'; // Exams might not have target rows but it's safe to check
         }
+
+        if (window.AppServices && window.AppServices.CascadeDelete) {
+            const cascadeRes = await window.AppServices.CascadeDelete.cascadeDelete({
+                parentType,
+                parentId: itemId,
+                databaseTable,
+                targetContentType,
+                storageBucket,
+                relationTables
+            });
+            if (!cascadeRes.success) throw cascadeRes.error;
+        } else {
+            console.warn("CascadeDeleteService not found, falling back.");
+            if (tableName === 'notices' || tableName === 'materials' || tableName === 'schedules') {
+                const { error } = await _supabase.rpc('delete_feed_item_cascade', { table_name: tableName, item_id: itemId });
+                if (error) throw error;
+            } else {
+                const { error } = await _supabase.from(tableName).delete().eq('id', itemId);
+                if (error) throw error;
+            }
+        }
+
         const uiElement = document.getElementById(elementContainerId);
         if (uiElement) uiElement.remove();
         window.showGlobalToast("Success", "Item deleted successfully.");

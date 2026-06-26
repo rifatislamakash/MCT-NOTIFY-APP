@@ -6,6 +6,8 @@ import { FacultyStore } from './stores/FacultyStore.js?v=rescue2';
 import { RoutineStore } from './stores/RoutineStore.js?v=rescue2';
 import { NotificationStore } from './stores/NotificationStore.js?v=rescue2';
 import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
+import { NotificationQueueService } from './services/NotificationQueueService.js?v=rescue2';
+import { CascadeDeleteService } from './services/CascadeDeleteService.js?v=rescue2';
 
         // ----------------- NOTICES SYSTEM -----------------
         let currentNoticesList = [];
@@ -1137,20 +1139,21 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                     
                     const shouldNotify = document.getElementById('notify-audience-notice')?.checked !== false;
                     
-                    if (shouldNotify) {
-                        // Automatically queue push notification immediately for notice creation
-                        if (!id || publish_now) {
-                            reminderRows.push({
-                                parent_type: 'notice',
-                                parent_id: savedNoticeId,
-                                reminder_time: new Date(Date.now() + 30000).toISOString(),
-                                sent: false,
-                                reminder_title: title,
-                                reminder_message: message,
-                                created_by: window.authState.user.id
-                            });
+                    if (shouldNotify && (!id || publish_now)) {
+                        const queueRes = await NotificationQueueService.queueNotification({
+                            parentType: 'notice',
+                            parentId: savedNoticeId,
+                            isNotifyEnabled: shouldNotify,
+                            audienceType: audience_type,
+                            createdBy: window.authState.user.id,
+                            title: title,
+                            message: message
+                        });
+
+                        if (!queueRes.success) {
+                            window.showGlobalToast("Warning", "Notice saved, but notification queue failed.");
                         }
-                    } else {
+                    } else if (!shouldNotify) {
                         console.log("[SILENT MODE] Content saved, but audience notification skipped.");
                     }
 
@@ -1463,63 +1466,18 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
             console.log("[NOTICE DELETE] Starting deletion for notice ID:", id);
             window.showLoader(true, "Deleting notice...");
             try {
-                // Step 1: Delete attachment file from storage if exists
-                const attachmentUrl = document.getElementById('notice-edit-attachment-url').value;
-                if (attachmentUrl) {
-                    try {
-                        const urlParts = attachmentUrl.split('/notice-files/');
-                        if (urlParts.length > 1) {
-                            const storagePath = urlParts[1].split('?')[0];
-                            console.log("[NOTICE DELETE] Removing storage file:", storagePath);
-                            await _supabase.storage.from('notice-files').remove([storagePath]);
-                        }
-                    } catch (e) { console.warn("[NOTICE DELETE] Storage cleanup error (non-fatal):", e); }
-                }
+                const cascadeRes = await CascadeDeleteService.cascadeDelete({
+                    parentType: 'notice',
+                    parentId: id,
+                    databaseTable: 'notices',
+                    targetContentType: 'notice',
+                    storageBucket: 'notice-files',
+                    relationTables: [{ table: 'notice_courses', foreignKey: 'notice_id' }]
+                });
 
-                // Step 2: Delete content_targets relations FIRST (FK constraint)
-                console.log("[NOTICE DELETE] Deleting content_targets relations...");
-                const { error: relError } = await _supabase.from('content_targets').delete().eq('content_type', 'notice').eq('content_id', id);
-                if (relError) {
-                    console.error("[NOTICE DELETE] content_targets delete error:", relError);
-                    throw relError;
+                if (!cascadeRes.success) {
+                    throw cascadeRes.error;
                 }
-                console.log("[NOTICE DELETE] content_targets relations deleted successfully.");
-
-                // Task 2: Delete reminders from notification_reminders
-                try {
-                    console.log("[NOTICE DELETE] Deleting matching reminders...");
-                    const { error: remError } = await _supabase.from('notification_reminders').delete().eq('parent_id', id);
-                    if (remError) {
-                        console.error("[NOTICE DELETE] Error deleting reminders:", remError);
-                    } else {
-                        console.log("[NOTICE DELETE] Reminders deleted successfully.");
-                    }
-                } catch (remErr) {
-                    console.error("[NOTICE DELETE] Exception during reminders delete:", remErr);
-                }
-
-                // Step 2.1: Delete notice_courses relations
-                console.log("[NOTICE DELETE] Deleting notice_courses relations...");
-                const { error: ncError } = await _supabase.from('notice_courses').delete().eq('notice_id', id);
-                if (ncError) {
-                    console.error("[NOTICE DELETE] notice_courses delete error:", ncError);
-                    throw ncError;
-                }
-
-                // Step 2.2: Delete content_reactions
-                console.log("[NOTICE DELETE] Deleting content_reactions relations...");
-                try {
-                    await _supabase.from('content_reactions').delete().eq('content_type', 'notice').eq('content_id', id);
-                } catch (e) { console.warn("[NOTICE DELETE] Reactions cleanup error:", e); }
-
-                // Step 3: Delete the notice itself
-                console.log("[NOTICE DELETE] Deleting notice row...");
-                const { error: noticeError } = await _supabase.from('notices').delete().eq('id', id);
-                if (noticeError) {
-                    console.error("[NOTICE DELETE] notice delete error:", noticeError);
-                    throw noticeError;
-                }
-                console.log("[NOTICE DELETE] Notice deleted successfully from database.");
 
                 // Step 4: Remove from local state
                 window.currentNoticesList = window.currentNoticesList.filter(n => n.id !== id);

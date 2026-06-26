@@ -1,6 +1,7 @@
 import { _supabase } from './supabase-client.js?v=rescue2';
 import { crPermissionService } from './services/crPermissionService.js?v=rescue2';
 import { showGlobalToast, showLoader, forceHideLoader, cancelActiveRequest } from './utils.js?v=rescue2';
+import { NotificationQueueService } from './services/NotificationQueueService.js?v=rescue2';
 
 export class PollService {
     static currentPolls = [];
@@ -95,7 +96,7 @@ export class PollService {
             let deleteBtnHtml = '';
             if (window.currentUserRole === 'admin' || (window.currentUserRole === 'cr' && poll.created_by === window.authState?.user?.id)) {
                 deleteBtnHtml = `
-                    <button type="button" class="delete-btn p-1 mb-1 text-slate-400 hover:bg-red-50 hover:text-red-500 rounded-md transition-colors flex shrink-0 items-center justify-center" onclick="event.stopPropagation(); window.executeGlobalDelete('polls', '${poll.id}', 'poll-card-${poll.id}')" title="Delete Poll">
+                    <button type="button" class="delete-btn p-1 mb-1 text-slate-400 hover:bg-red-50 hover:text-red-500 rounded-md transition-colors flex shrink-0 items-center justify-center" onclick="event.stopPropagation(); window.executeGlobalDelete('poll', '${poll.id}', 'poll-card-${poll.id}')" title="Delete Poll">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 `;
@@ -402,46 +403,29 @@ export class PollService {
                     target_id: batch
                 }]);
 
-                // Dispatch FCM Push Notification via Edge Function
+                // Queue Notification
                 if (notifyAudience) {
-                    const { data: targetProfiles } = await _supabase
-                        .from('profiles')
-                        .select('fcm_token')
-                        .eq('batch_id', batch)
-                        .not('fcm_token', 'is', null);
-
-                    if (targetProfiles && targetProfiles.length > 0) {
-                        const tokens = targetProfiles.map(p => p.fcm_token).filter(Boolean);
-                        if (tokens.length > 0) {
-                            _supabase.functions.invoke('send-notification', {
-                                body: {
-                                    tokens: tokens,
-                                    data: { 
-                                        title: "New Batch Poll",
-                                        body: `New Batch Poll: ${title}`,
-                                        type: "poll", 
-                                        id: data[0].id,
-                                        target_type: "batch_students",
-                                        target_id: batch
-                                    }
-                                }
-                            }).catch(e => console.error("FCM Edge Invoke Error:", e));
-                        }
-                    }
+                    const queueRes = await NotificationQueueService.queueNotification({
+                        parentType: 'poll',
+                        parentId: data[0].id,
+                        isNotifyEnabled: true,
+                        audienceType: 'batch_students',
+                        createdBy: window.authState.user.id,
+                        title: title
+                    });
+                    if (!queueRes.success) console.error("Poll Queue Error:", queueRes.error);
                 }
             } else if (batch === 'global' && notifyAudience && data && data.length > 0) {
                 // Global push notification
-                _supabase.functions.invoke('send-notification', {
-                    body: {
-                        topic: 'global',
-                        data: {
-                            title: "New Global Poll",
-                            body: `New Poll: ${title}`,
-                            type: "poll",
-                            id: data[0].id
-                        }
-                    }
-                }).catch(e => console.error("Global FCM Error:", e));
+                const queueRes = await NotificationQueueService.queueNotification({
+                    parentType: 'poll',
+                    parentId: data[0].id,
+                    isNotifyEnabled: true,
+                    audienceType: 'all',
+                    createdBy: window.authState.user.id,
+                    title: title
+                });
+                if (!queueRes.success) console.error("Poll Queue Error:", queueRes.error);
             }
 
             showGlobalToast("Success", "Poll created!");

@@ -6,6 +6,7 @@ import { FacultyStore } from './stores/FacultyStore.js?v=rescue2';
 import { RoutineStore } from './stores/RoutineStore.js?v=rescue2';
 import { NotificationStore } from './stores/NotificationStore.js?v=rescue2';
 import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
+import { NotificationQueueService } from './services/NotificationQueueService.js?v=rescue2';
 
         // --- GLOBALS FOR MATERIALS ---
         let currentMaterialsList = [];
@@ -586,8 +587,16 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                             };
                             await _supabase.from('content_targets').insert([targetPayload]);
                             
-                            if (window.triggerImmediateNotification) {
-                                window.triggerImmediateNotification('material', newMaterialId, 'New Material Added', `A new material ${payload.title} was uploaded.`);
+                            const queueRes = await NotificationQueueService.queueNotification({
+                                parentType: 'material',
+                                parentId: newMaterialId,
+                                isNotifyEnabled: true,
+                                audienceType: 'course_students',
+                                createdBy: window.authState.user.id,
+                                title: payload.title
+                            });
+                            if (!queueRes.success) {
+                                console.error("[MATERIAL NOTIFY ERROR]", queueRes.error);
                             }
                         } catch (targetErr) {
                             console.error("[MATERIAL NOTIFY ERROR]", targetErr);
@@ -808,52 +817,17 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                     if (crPermissionService.isCR()) console.log(`[CR DELETE] Material ${material.id}`);
                 }
 
-                // 2. If an attachment_url exists, extract the storage file path and delete it from the bucket
-                if (material && material.attachment_url) {
-                    try {
-                        // Extract the file name from the public URL
-                        // Public URL format: .../storage/v1/object/public/materials/<filename>
-                        const urlParts = material.attachment_url.split('/materials/');
-                        if (urlParts.length > 1) {
-                            const storagePath = urlParts[1].split('?')[0]; // strip query params if any
-                            console.log("Deleting storage file:", storagePath);
-                            const { error: storageError } = await _supabase.storage
-                                .from('materials')
-                                .remove([storagePath]);
-                            if (storageError) {
-                                console.warn("Storage deletion warning (non-fatal):", storageError.message);
-                                // Non-fatal: proceed to delete DB record even if storage delete fails
-                            } else {
-                                console.log("Storage file deleted successfully.");
-                            }
-                        }
-                    } catch (storageErr) {
-                        console.warn("Storage delete error (non-fatal):", storageErr);
-                    }
+                const cascadeRes = await CascadeDeleteService.cascadeDelete({
+                    parentType: 'material',
+                    parentId: selectedMaterialIdForEdit,
+                    databaseTable: 'materials',
+                    targetContentType: 'material',
+                    storageBucket: 'materials'
+                });
+
+                if (!cascadeRes.success) {
+                    throw cascadeRes.error;
                 }
-
-                // Task 2: Delete reminders from notification_reminders
-                try {
-                    console.log("[MATERIAL DELETE] Deleting matching reminders...");
-                    const { error: remError } = await _supabase.from('notification_reminders').delete().eq('parent_id', selectedMaterialIdForEdit);
-                    if (remError) {
-                        console.error("[MATERIAL DELETE] Error deleting reminders:", remError);
-                    } else {
-                        console.log("[MATERIAL DELETE] Reminders deleted successfully.");
-                    }
-                } catch (remErr) {
-                    console.error("[MATERIAL DELETE] Exception during reminders delete:", remErr);
-                }
-
-                // Step 2.1: Delete content_reactions
-                console.log("[MATERIAL DELETE] Deleting content_reactions relations...");
-                try {
-                    await _supabase.from('content_reactions').delete().eq('content_type', 'material').eq('content_id', selectedMaterialIdForEdit);
-                } catch (e) { console.warn("[MATERIAL DELETE] Reactions cleanup error:", e); }
-
-                // 3. Delete the database record
-                const { error } = await _supabase.from('materials').delete().eq('id', selectedMaterialIdForEdit);
-                if (error) throw error;
 
                 window.showGlobalToast("Deleted", "Material and file removed successfully.");
                 window.navigate('screen-materials-center');
@@ -894,38 +868,17 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
             selectedMaterialIdForEdit = materialId;
             if (typeof window.showLoader !== 'undefined') window.showLoader(true, "Deleting material...");
             try {
-                if (material.attachment_url) {
-                    try {
-                        const urlParts = material.attachment_url.split('/materials/');
-                        if (urlParts.length > 1) {
-                            const storagePath = urlParts[1].split('?')[0];
-                            await _supabase.storage.from('materials').remove([storagePath]);
-                        }
-                    } catch (storageErr) {
-                        console.warn("Storage delete error (non-fatal):", storageErr);
-                    }
-                }
-                // Task 2: Delete reminders from notification_reminders
-                try {
-                    console.log("[MATERIAL DELETE DETAILS] Deleting matching reminders...");
-                    const { error: remError } = await _supabase.from('notification_reminders').delete().eq('parent_id', materialId);
-                    if (remError) {
-                        console.error("[MATERIAL DELETE DETAILS] Error deleting reminders:", remError);
-                    } else {
-                        console.log("[MATERIAL DELETE DETAILS] Reminders deleted successfully.");
-                    }
-                } catch (remErr) {
-                    console.error("[MATERIAL DELETE DETAILS] Exception during reminders delete:", remErr);
-                }
+                const cascadeRes = await CascadeDeleteService.cascadeDelete({
+                    parentType: 'material',
+                    parentId: materialId,
+                    databaseTable: 'materials',
+                    targetContentType: 'material',
+                    storageBucket: 'materials'
+                });
 
-                // Step 2.1: Delete content_reactions
-                console.log("[MATERIAL DELETE DETAILS] Deleting content_reactions relations...");
-                try {
-                    await _supabase.from('content_reactions').delete().eq('content_type', 'material').eq('content_id', materialId);
-                } catch (e) { console.warn("[MATERIAL DELETE DETAILS] Reactions cleanup error:", e); }
-
-                const { error } = await _supabase.from('materials').delete().eq('id', materialId);
-                if (error) throw error;
+                if (!cascadeRes.success) {
+                    throw cascadeRes.error;
+                }
                 window.showGlobalToast("Deleted", "Material and file removed successfully.");
                 window.navigate('screen-materials-center');
                 await loadMaterials();

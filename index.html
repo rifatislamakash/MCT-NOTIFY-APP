@@ -9554,8 +9554,15 @@
                         }
                         console.log("[GROUPS DB INSERT SUCCESS] Response:", JSON.stringify(data));
                         const notifyAudience = document.getElementById('notify-audience-group') ? document.getElementById('notify-audience-group').checked : true;
-                        if (data && data.length > 0 && window.triggerImmediateNotification && notifyAudience) {
-                            window.triggerImmediateNotification('group', data[0].id, 'New Group Link', `A new group link ${payload.title} was added.`);
+                        if (data && data.length > 0 && window.AppServices && window.AppServices.NotificationQueue && notifyAudience) {
+                            window.AppServices.NotificationQueue.queueNotification({
+                                parentType: 'group',
+                                parentId: data[0].id,
+                                isNotifyEnabled: true,
+                                audienceType: 'all',
+                                createdBy: window.authState.user.id,
+                                title: payload.title
+                            });
                         }
                         
                         showGlobalToast("Success", "Group link added.");
