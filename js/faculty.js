@@ -1,10 +1,10 @@
-import { _supabase } from './supabase-client.js?v=rescue2';
-import { showGlobalToast, showLoader, forceHideLoader, cancelActiveRequest, fetchWithRetry } from './utils.js?v=rescue2';
-import { CourseStore } from './stores/CourseStore.js?v=rescue2';
-import { FacultyStore } from './stores/FacultyStore.js?v=rescue2';
-import { RoutineStore } from './stores/RoutineStore.js?v=rescue2';
-import { NotificationStore } from './stores/NotificationStore.js?v=rescue2';
-import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
+import { _supabase } from './supabase-client.js?v=rescue3';
+import { showGlobalToast, showLoader, forceHideLoader, cancelActiveRequest, fetchWithRetry } from './utils.js?v=rescue3';
+import { CourseStore } from './stores/CourseStore.js?v=rescue3';
+import { FacultyStore } from './stores/FacultyStore.js?v=rescue3';
+import { RoutineStore } from './stores/RoutineStore.js?v=rescue3';
+import { NotificationStore } from './stores/NotificationStore.js?v=rescue3';
+import { ProfileStore } from './stores/ProfileStore.js?v=rescue3';
 
         // ----------------- FACULTY & DATABASE INTEGRATION FUNCTIONS -----------------
 

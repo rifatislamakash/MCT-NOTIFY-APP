@@ -1,4 +1,4 @@
-import { _supabase } from './supabase-client.js?v=rescue2';
+import { _supabase } from './supabase-client.js?v=rescue3';
         let globalToastTimer = null;
         export function showGlobalToast(title, msg) {
             const toast = document.getElementById('global-toast');
@@ -453,7 +453,7 @@ window.executeGlobalDelete = async (tableName, itemId, elementContainerId) => {
         }
 
         try {
-            const { CascadeDeleteService } = await import('./services/CascadeDeleteService.js?v=rescue2');
+            const { CascadeDeleteService } = await import('./services/CascadeDeleteService.js?v=rescue3');
             const cascadeRes = await CascadeDeleteService.cascadeDelete({
                 parentType,
                 parentId: itemId,

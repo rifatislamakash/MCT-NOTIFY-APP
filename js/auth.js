@@ -1,11 +1,137 @@
-import { _supabase } from './supabase-client.js?v=rescue2';
-import { crPermissionService } from './services/crPermissionService.js?v=rescue2';
-import { showGlobalToast, showLoader, deduplicateRequest } from './utils.js?v=rescue2';
-import { CourseStore } from './stores/CourseStore.js?v=rescue2';
-import { FacultyStore } from './stores/FacultyStore.js?v=rescue2';
-import { RoutineStore } from './stores/RoutineStore.js?v=rescue2';
-import { NotificationStore } from './stores/NotificationStore.js?v=rescue2';
-import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
+import { _supabase } from './supabase-client.js';
+import { crPermissionService } from './services/crPermissionService.js';
+import { showGlobalToast, showLoader, deduplicateRequest } from './utils.js';
+import { CourseStore } from './stores/CourseStore.js';
+import { FacultyStore } from './stores/FacultyStore.js';
+import { RoutineStore } from './stores/RoutineStore.js';
+import { NotificationStore } from './stores/NotificationStore.js';
+import { ProfileStore } from './stores/ProfileStore.js';
+
+let _isRouting = false;
+let isRegistering = false;
+
+        export async function fetchUserProfile(userId) {
+            try {
+                const controller = new AbortController();
+                const profilePromise = _supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', userId)
+                    .abortSignal(controller.signal)
+                    .maybeSingle();
+                
+                let data, error;
+                try {
+                    if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
+                    let timerId;
+                    const timeoutPromise = new Promise((_, reject) => {
+                        timerId = setTimeout(() => {
+                            controller.abort();
+                            reject(new Error('sdk_timeout'));
+                        }, 5000);
+                    });
+                    try {
+                        const result = await Promise.race([profilePromise, timeoutPromise]);
+                        data = result.data;
+                        error = result.error;
+                    } finally {
+                        clearTimeout(timerId);
+                    }
+                } catch (e) {
+                    if (e.message === 'sdk_timeout') {
+                        window._supabaseSdkFailing = true;
+                        const url = `${_supabase.supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=*`;
+                        const res = await fetch(url, {
+                            headers: {
+                                'apikey': _supabase.supabaseKey,
+                                'Authorization': `Bearer ${window.authState?.session?.access_token || _supabase.supabaseKey}`,
+                                'cache-control': 'no-cache'
+                            },
+                            cache: 'no-store'
+                        });
+                        const fetchResult = await res.json();
+                        data = fetchResult && fetchResult.length > 0 ? fetchResult[0] : null;
+                    } else {
+                        throw e;
+                    }
+                }
+                if (error) throw error;
+                return data;
+            } catch (err) {
+                console.error('Exception caught in fetchUserProfile:', err);
+                return null;
+            }
+        }
+
+
+
+        export const handleUserRouting = async (user, profile) => {
+            console.log("[ROUTING INIT] Starting user routing...");
+            
+            if (typeof window.navigate === 'function') {
+                console.log("[ROUTING FUNCTION FOUND] window.navigate is available.");
+                console.log("[WINDOW NAVIGATE BOUND] Confirmed bounding of navigate function.");
+                console.log("[ROUTING READY] Proceeding with routing execution.");
+            } else {
+                console.warn("[ROUTING FUNCTION MISSING] window.navigate is undefined. Routing will likely fail.");
+            }
+
+            if (_isRouting) return;
+            _isRouting = true;
+            try {
+
+            if (!user) {
+                window.currentUserRole = 'student'; // Fallback
+                window.navigate('screen-welcome');
+                return;
+            }
+
+            // PART 1: Email confirmation check
+            if (!user.email_confirmed_at) {
+                console.log('[AUTH] Email not confirmed, redirecting to confirmation screen.');
+                if (typeof window.showLoader !== 'undefined') window.showLoader(false);
+                window.navigate('screen-confirm-email');
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                return;
+            }
+
+            window.currentUserEmail = String(profile?.email || user.email || '').trim().toLowerCase();
+            window.currentUserRole = String(profile?.role || '').trim().toLowerCase(); // Set global role
+
+            // Fetch and set user courses unconditionally on login to populate state
+            try {
+                const isAdminCheck = window.currentUserRole === 'admin' || window.isAdminEmail(user.email);
+                if (isAdminCheck) {
+                    window.currentUserCoursesList = [];
+                } else {
+                    const coursesPromise = deduplicateRequest('user_courses_boot', async () => {
+                        const sdkPromise = _supabase.from('user_courses').select('*').eq('user_id', user.id);
+                        const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('sdk_timeout')), 2000));
+                        try {
+                            const { data, error } = await Promise.race([sdkPromise, timeout]);
+                            if (error) throw error;
+                            return data;
+                        } catch (e) {
+                            if (e.message === 'sdk_timeout') {
+                                const url = `${_supabase.supabaseUrl}/rest/v1/user_courses?user_id=eq.${user.id}&select=*`;
+                                const res = await fetch(url, {
+                                    headers: {
+                                        'apikey': _supabase.supabaseKey,
+                                        'Authorization': `Bearer ${window.authState?.session?.access_token || _supabase.supabaseKey}`,
+                                        'cache-control': 'no-cache'
+                                    },
+                                    cache: 'no-store'
+                                });
+                                const fetchResult = await res.json();
+                                if (fetchResult.error) throw new Error(fetchResult.error.message);
+                                return fetchResult;
+                            }
+                            throw e;
+                        }
+                    });
+                    const userCourses = await coursesPromise;
+                    window.currentUserCoursesList = userCourses || [];
+                    window._userCoursesFetchFailed = false;
                 }
             } catch (e) { 
                 console.warn("[ROUTING] user_courses fetch failed or timed out:", e);
@@ -14,20 +140,11 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
 
             const loadDashboardDataAsync = async () => {
                 try {
-                    const currentPrefRole = sessionStorage.getItem('crPreferredRole') || window.authState?.profile?.role || 'student';
-                    const isActualAdmin = window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail);
-                    const isCR = window.currentUserRole === 'cr';
-
                     const tasks = [];
                     if (typeof window.loadContentSettings === 'function') tasks.push(window.loadContentSettings().catch(console.warn));
-                    
-                    // Lazy load heavy queries for Admins (Admin will fetch when clicking the tab)
-                    if (!isActualAdmin) {
-                        if (typeof window.loadNotices === 'function') tasks.push(window.loadNotices(true).catch(console.warn));
-                        
-                        if (typeof window.loadScheduleList === 'function') tasks.push(window.loadScheduleList(true).catch(console.warn));
-                    }
-
+                    if (typeof window.loadNotices === 'function') tasks.push(window.loadNotices(true).catch(console.warn));
+                    if (typeof window.loadDashboardTodayRoutine === 'function') tasks.push(window.loadDashboardTodayRoutine(true).catch(console.warn));
+                    if (typeof window.loadScheduleList === 'function') tasks.push(window.loadScheduleList(true).catch(console.warn));
                     if (window.PollService && typeof window.PollService.loadPolls === 'function') {
                         tasks.push(window.PollService.loadPolls().then(() => {
                             if (window.currentUserRole === 'student' && typeof window.PollService?.checkAndShowPopup === 'function') {
@@ -35,12 +152,15 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                             }
                         }).catch(console.warn));
                     }
+                    const currentPrefRole = sessionStorage.getItem('crPreferredRole') || window.authState?.profile?.role || 'student';
+                    const isActualAdmin = window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail);
+                    const isCR = window.currentUserRole === 'cr';
 
                     if (isActualAdmin || (isCR && currentPrefRole === 'cr')) {
                         if (typeof window.loadAdminReports === 'function') tasks.push(window.loadAdminReports().catch(console.warn));
                     }
                     
-                    const timeoutPromise = new Promise(resolve => setTimeout(resolve, 30000));
+                    const timeoutPromise = new Promise(resolve => setTimeout(resolve, 10000));
                     await Promise.race([Promise.all(tasks), timeoutPromise]);
                     
                     // Unified Execution Frame for Repainting
@@ -91,6 +211,7 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                         window.authState.profile.role = (isActualAdmin ? 'admin' : 'cr');
                         window.currentUserRole = String(window.authState.profile.role).toLowerCase();
                         window.navigate('screen-admin-dashboard');
+                        window.updateDashboardGreetings();
                         if (window.DashboardService && window.DashboardService.applyCRDashboardRestrictions) {
                             window.DashboardService.applyCRDashboardRestrictions();
                         }
@@ -113,6 +234,7 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                                 window.navigate('screen-notification-permission');
                             } else {
                                 window.navigate('screen-student-dashboard');
+                                window.updateDashboardGreetings();
                                 loadDashboardDataAsync().catch(console.warn);
                                 window.triggerUrgentPopupModal();
                                 setTimeout(window.startReminderEngine, 2000);
@@ -130,8 +252,8 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                 } catch (err) {
                     console.error("[ROUTING ERROR] Caught during user routing:", err);
                     if (typeof window.showLoader !== 'undefined') window.showLoader(false);
-                    const container = document.getElementById('screen-student-dashboard');
-                    if (container) container.innerHTML = '<p class="text-center text-red-500 mt-10 font-bold">Error loading data.</p>';
+                    window.navigate('screen-student-dashboard');
+                    window.updateDashboardGreetings();
                 }
             };
             await processRouting();
@@ -143,8 +265,6 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
 
 
         let _isCheckingSession = false;
-        window.__APP_BOOT_COMPLETED = false;
-        
         export async function checkActiveSession() {
             if (_isCheckingSession) {
                 console.log("[DEBUG] checkActiveSession already running. Skipping.");
@@ -246,15 +366,10 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                     if (typeof window.showLoader !== 'undefined') window.showLoader(false);
                 }
                 _isCheckingSession = false;
-                window.__APP_BOOT_COMPLETED = true;
             }
         }
 // Sync auth changes instantly
         let isRecovering = false;
-        
-        if (typeof window.__authListenerCount !== 'undefined') window.__authListenerCount++;
-        if (typeof window.__LIFECYCLE_DEBUG__ === 'function') window.__LIFECYCLE_DEBUG__('[AUTH INIT]', 'Registering onAuthStateChange listener');
-        
         _supabase.auth.onAuthStateChange(async (event, session) => {
             console.log("[AUTH] Auth State Change Event:", event);
             if (event === 'INITIAL_SESSION') return;
@@ -263,8 +378,8 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                 return;
             }
             // A1 Fix: Debounce token refresh to prevent UI reload stampede
-            if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') && session && window.authState && window.authState.user && window.authState.user.id === session.user.id) {
-                console.log(`[AUTH] Event ${event} detected, updating session only without rerouting.`);
+            if (event === 'SIGNED_IN' && session && window.authState && window.authState.user && window.authState.user.id === session.user.id) {
+                console.log("[AUTH] Token refresh detected, updating session only.");
                 window.authState.session = session;
                 if (typeof window.updateNotificationStatusUI === 'function') window.updateNotificationStatusUI();
                 return;
@@ -281,13 +396,6 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                 return;
             }
             if (event === 'SIGNED_IN' && session) {
-                if (!window.__APP_BOOT_COMPLETED) {
-                    console.log("[AUTH] Ignored routing for SIGNED_IN because boot is not completed. Passive sync only.");
-                    window.authState.session = session;
-                    window.authState.user = session.user;
-                    return;
-                }
-
                 if (isRecovering || window.location.hash.includes('type=recovery')) {
                     if (typeof window.showLoader !== 'undefined') window.showLoader(false);
                     window.navigate('screen-update-password');
@@ -324,9 +432,10 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                     window.updateGlobalAvatars();
                 }
 
-                console.log("[DEBUG] onAuthStateChange: routing user...");
-                await handleUserRouting(window.authState.user, window.authState.profile);
-} else if (event === 'SIGNED_OUT') {
+                console.log("[DEBUG] onAuthStateChange: routing");
+                await handleUserRouting(window.authState.user, window.authState.profile).catch(console.warn);
+                console.log("[DEBUG] onAuthStateChange: routing done");
+            } else if (event === 'SIGNED_OUT') {
         isRecovering = false;
         window.authState.session = null;
         window.authState.user = null;
@@ -334,49 +443,9 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
         window.currentUserEmail = '';
         window.currentUserName = '';
         window.currentUserRole = 'student';
-        sessionStorage.clear();
-        console.log("[AUTH] Logged out successfully");
         window.navigate('screen-login');
     }
 });
-
-        // Handle iOS PWA visibility resume
-        document.addEventListener('visibilitychange', async () => {
-            if (document.visibilityState === 'visible') {
-                console.log("[DASHBOARD RESUME]");
-                if (typeof window.__LIFECYCLE_DEBUG__ === 'function') window.__LIFECYCLE_DEBUG__('[LIFECYCLE]', 'App resumed from background');
-                
-                // 1. Check if application is initializing or routing
-                if (!window.isAppFullyInitialized || _isCheckingSession || _isRouting) {
-                    console.log("[RESUME SKIPPED - INITIALIZING]");
-                    return;
-                }
-
-                const { data } = await _supabase.auth.getSession();
-                if (data && data.session) {
-                    if (!window.authState) window.authState = {};
-                    window.authState.session = data.session;
-                    window.authState.user = data.session.user;
-                    
-                    if (window.isScreenActive && window.isScreenActive('screen-student-dashboard')) {
-                        // 2. Check if dashboard is already loading
-                        if (typeof window.isModuleLoading === 'function' && window.isModuleLoading('dashboard')) {
-                            console.log("[RESUME SKIPPED - DASHBOARD BUSY]");
-                            return;
-                        }
-                        
-                        console.log("[RESUME REFRESH START]");
-                        if (typeof window.loadDashboardTodayRoutine === 'function') {
-                            window.loadDashboardTodayRoutine();
-                        }
-                        if (typeof window.updateDashboardGreetings === 'function') {
-                            window.updateDashboardGreetings();
-                        }
-                        console.log("[RESUME REFRESH COMPLETE]");
-                    }
-                }
-            }
-        });
 
 
 
@@ -766,7 +835,7 @@ export const AuthService = {
     handleRegister,
     logout
 };
-
+console.log("[ARCHITECTURE]\nauth loaded");
 
 
 

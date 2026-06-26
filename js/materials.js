@@ -1,11 +1,11 @@
-import { _supabase } from './supabase-client.js?v=rescue2';
-import { crPermissionService } from './services/crPermissionService.js?v=rescue2';
-import { showGlobalToast, showLoader, forceHideLoader, cancelActiveRequest, fetchWithRetry } from './utils.js?v=rescue2';
-import { CourseStore } from './stores/CourseStore.js?v=rescue2';
-import { FacultyStore } from './stores/FacultyStore.js?v=rescue2';
-import { RoutineStore } from './stores/RoutineStore.js?v=rescue2';
-import { NotificationStore } from './stores/NotificationStore.js?v=rescue2';
-import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
+import { _supabase } from './supabase-client.js?v=rescue3';
+import { crPermissionService } from './services/crPermissionService.js?v=rescue3';
+import { showGlobalToast, showLoader, forceHideLoader, cancelActiveRequest, fetchWithRetry } from './utils.js?v=rescue3';
+import { CourseStore } from './stores/CourseStore.js?v=rescue3';
+import { FacultyStore } from './stores/FacultyStore.js?v=rescue3';
+import { RoutineStore } from './stores/RoutineStore.js?v=rescue3';
+import { NotificationStore } from './stores/NotificationStore.js?v=rescue3';
+import { ProfileStore } from './stores/ProfileStore.js?v=rescue3';
 
         // --- GLOBALS FOR MATERIALS ---
         let currentMaterialsList = [];
@@ -586,7 +586,7 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                             };
                             await _supabase.from('content_targets').insert([targetPayload]);
                             
-                            const { NotificationQueueService } = await import('./services/NotificationQueueService.js?v=rescue2');
+                            const { NotificationQueueService } = await import('./services/NotificationQueueService.js?v=rescue3');
                     const queueRes = await NotificationQueueService.queueNotification({
                                 parentType: 'material',
                                 parentId: newMaterialId,
@@ -817,7 +817,7 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                     if (crPermissionService.isCR()) console.log(`[CR DELETE] Material ${material.id}`);
                 }
 
-                const { CascadeDeleteService } = await import('./services/CascadeDeleteService.js?v=rescue2');
+                const { CascadeDeleteService } = await import('./services/CascadeDeleteService.js?v=rescue3');
                 const cascadeRes = await CascadeDeleteService.cascadeDelete({
                     parentType: 'material',
                     parentId: selectedMaterialIdForEdit,
@@ -869,7 +869,7 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
             selectedMaterialIdForEdit = materialId;
             if (typeof window.showLoader !== 'undefined') window.showLoader(true, "Deleting material...");
             try {
-                const { CascadeDeleteService } = await import('./services/CascadeDeleteService.js?v=rescue2');
+                const { CascadeDeleteService } = await import('./services/CascadeDeleteService.js?v=rescue3');
                 const cascadeRes = await CascadeDeleteService.cascadeDelete({
                     parentType: 'material',
                     parentId: materialId,
