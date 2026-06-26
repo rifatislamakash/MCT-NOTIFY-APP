@@ -44,6 +44,7 @@
         }
 
         async function initFirebase() {
+            if (typeof window.__FORENSIC_TRACER === 'function') window.__FORENSIC_TRACER('INIT_FIREBASE');
             if (_firebaseInitPromise) return _firebaseInitPromise;
 
             _firebaseInitPromise = (async () => {
@@ -287,6 +288,7 @@
 
         let _hasRunSilentInit = false;
         window.silentNotificationInit = async function () {
+            if (typeof window.__FORENSIC_TRACER === 'function') window.__FORENSIC_TRACER('SILENT_NOTIFICATION_INIT');
             if (_hasRunSilentInit) return;
             _hasRunSilentInit = true;
             if (Notification.permission !== 'granted') {

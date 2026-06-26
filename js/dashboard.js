@@ -196,26 +196,17 @@ const getSafariSafeDate = window.getSafariSafeDate;
             window.activeLoadControllers['dashboard'] = localController;
 
             try {
-                if (!window.authState || !window.authState.profile || !window.authState.profile.batch_id) {
-                    console.warn("Auth state not ready. Waiting for auth initialization...");
-                    if (typeof window.waitForAuthReady === 'function') {
-                        const ready = await window.waitForAuthReady();
-                        if (!ready) {
-                            console.error("Auth state timed out. Aborting dashboard fetch.");
-                            window.setModuleLoading('dashboard', false);
-                            return;
-                        }
-                    } else {
-                        window.setModuleLoading('dashboard', false);
-                        return;
-                    }
+                if (!window.authState || !window.authState.profile) {
+                    console.warn("Auth state missing inside dashboard. Assuming unauthenticated.");
+                    window.setModuleLoading('dashboard', false);
+                    return;
                 }
-
+                
                 let isExamModeOn = false;
                 if (window.contentSettings && typeof window.contentSettings.is_exam_mode !== 'undefined') {
                     isExamModeOn = (window.contentSettings.is_exam_mode === true || String(window.contentSettings.is_exam_mode).toLowerCase() === 'true' || window.contentSettings.is_exam_mode === '1' || window.contentSettings.is_exam_mode === 1);
                 } else {
-                    const { data: dbSettings } = await _supabase.from('content_management').select('is_exam_mode').limit(1).single();
+                    const { data: dbSettings } = await _supabase.from('content_management').select('is_exam_mode').limit(1).abortSignal(localController.signal).single();
                     if (dbSettings) {
                         isExamModeOn = (dbSettings.is_exam_mode === true || String(dbSettings.is_exam_mode).toLowerCase() === 'true' || dbSettings.is_exam_mode === '1' || dbSettings.is_exam_mode === 1);
                         window.contentSettings = dbSettings;
@@ -246,7 +237,7 @@ const getSafariSafeDate = window.getSafariSafeDate;
                     }
                     
                     const todayStr = new Date().toISOString().split('T')[0];
-                    let query = _supabase.from('exam_schedules').select('*').gte('exam_date', todayStr).order('exam_date', { ascending: true }).order('start_time', { ascending: true });
+                    let query = _supabase.from('exam_schedules').select('*').gte('exam_date', todayStr).order('exam_date', { ascending: true }).order('start_time', { ascending: true }).abortSignal(localController.signal);
                     
                     if (window.currentUserRole !== 'admin') {
                          query = query.eq('target_batch', window.authState?.profile?.batch_id || 'none');
@@ -376,7 +367,8 @@ const getSafariSafeDate = window.getSafariSafeDate;
                         `)
                     .eq('day_name', targetDay)
                     .order('start_time', { ascending: true })
-                    .limit(10);
+                    .limit(10)
+                    .abortSignal(localController.signal);
                     
                 if (window.currentUserRole !== 'admin') {
                     if (!window.authState.profile.batch_id) {

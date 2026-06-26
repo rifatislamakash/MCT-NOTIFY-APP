@@ -60,34 +60,6 @@ let isRegistering = false;
 
 
 
-        window.waitForAuthReady = async function(timeoutMs = 10000) {
-            const isReady = () => window.authState && window.authState.profile && window.authState.profile.batch_id;
-            if (isReady()) return true;
-
-            // Optional iOS fallback check: manually check session if not ready
-            if (window._supabase && window._supabase.auth) {
-                const { data } = await window._supabase.auth.getSession();
-                if (data && data.session && !window.authState.session) {
-                    window.authState.session = data.session;
-                    window.authState.user = data.session.user;
-                }
-            }
-            if (isReady()) return true;
-
-            return new Promise((resolve) => {
-                const start = Date.now();
-                const interval = setInterval(() => {
-                    if (isReady()) {
-                        clearInterval(interval);
-                        resolve(true);
-                    } else if (Date.now() - start > timeoutMs) {
-                        clearInterval(interval);
-                        resolve(false);
-                    }
-                }, 100);
-            });
-        };
-
         export const handleUserRouting = async (user, profile) => {
             console.log("[ROUTING INIT] Starting user routing...");
             
@@ -292,6 +264,8 @@ let isRegistering = false;
 
 
         let _isCheckingSession = false;
+        window.__APP_BOOT_COMPLETED = false;
+        
         export async function checkActiveSession() {
             if (_isCheckingSession) {
                 console.log("[DEBUG] checkActiveSession already running. Skipping.");
@@ -393,6 +367,7 @@ let isRegistering = false;
                     if (typeof window.showLoader !== 'undefined') window.showLoader(false);
                 }
                 _isCheckingSession = false;
+                window.__APP_BOOT_COMPLETED = true;
             }
         }
 // Sync auth changes instantly
@@ -409,8 +384,8 @@ let isRegistering = false;
                 return;
             }
             // A1 Fix: Debounce token refresh to prevent UI reload stampede
-            if (event === 'SIGNED_IN' && session && window.authState && window.authState.user && window.authState.user.id === session.user.id) {
-                console.log("[AUTH] Token refresh detected, updating session only.");
+            if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') && session && window.authState && window.authState.user && window.authState.user.id === session.user.id) {
+                console.log(`[AUTH] Event ${event} detected, updating session only without rerouting.`);
                 window.authState.session = session;
                 if (typeof window.updateNotificationStatusUI === 'function') window.updateNotificationStatusUI();
                 return;
@@ -427,6 +402,13 @@ let isRegistering = false;
                 return;
             }
             if (event === 'SIGNED_IN' && session) {
+                if (!window.__APP_BOOT_COMPLETED) {
+                    console.log("[AUTH] Ignored routing for SIGNED_IN because boot is not completed. Passive sync only.");
+                    window.authState.session = session;
+                    window.authState.user = session.user;
+                    return;
+                }
+
                 if (isRecovering || window.location.hash.includes('type=recovery')) {
                     if (typeof window.showLoader !== 'undefined') window.showLoader(false);
                     window.navigate('screen-update-password');
@@ -482,15 +464,36 @@ let isRegistering = false;
         // Handle iOS PWA visibility resume
         document.addEventListener('visibilitychange', async () => {
             if (document.visibilityState === 'visible') {
+                console.log("[DASHBOARD RESUME]");
                 if (typeof window.__LIFECYCLE_DEBUG__ === 'function') window.__LIFECYCLE_DEBUG__('[LIFECYCLE]', 'App resumed from background');
+                
+                // 1. Check if application is initializing or routing
+                if (!window.isAppFullyInitialized || _isCheckingSession || _isRouting) {
+                    console.log("[RESUME SKIPPED - INITIALIZING]");
+                    return;
+                }
+
                 const { data } = await _supabase.auth.getSession();
                 if (data && data.session) {
                     if (!window.authState) window.authState = {};
                     window.authState.session = data.session;
                     window.authState.user = data.session.user;
-                    if (window.isScreenActive && window.isScreenActive('screen-student-dashboard') && typeof window.loadDashboardTodayRoutine === 'function') {
-                        window.loadDashboardTodayRoutine();
-                        if (typeof window.updateDashboardGreetings === 'function') window.updateDashboardGreetings();
+                    
+                    if (window.isScreenActive && window.isScreenActive('screen-student-dashboard')) {
+                        // 2. Check if dashboard is already loading
+                        if (typeof window.isModuleLoading === 'function' && window.isModuleLoading('dashboard')) {
+                            console.log("[RESUME SKIPPED - DASHBOARD BUSY]");
+                            return;
+                        }
+                        
+                        console.log("[RESUME REFRESH START]");
+                        if (typeof window.loadDashboardTodayRoutine === 'function') {
+                            window.loadDashboardTodayRoutine();
+                        }
+                        if (typeof window.updateDashboardGreetings === 'function') {
+                            window.updateDashboardGreetings();
+                        }
+                        console.log("[RESUME REFRESH COMPLETE]");
                     }
                 }
             }

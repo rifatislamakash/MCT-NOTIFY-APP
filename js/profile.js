@@ -237,10 +237,8 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                 const role = String(window.authState?.profile?.role || '').toLowerCase();
                 window.checkCRRequestStatus(role);
             }
-
-            if (typeof window.silentNotificationInit === 'function') {
-                window.silentNotificationInit();
-            }
+            
+            // Initialization calls like silentNotificationInit removed to prevent lifecycle loops
         }
 
 
@@ -506,10 +504,7 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                 }
             });
 
-            // Sync main profile screen details
-            if (typeof window.populateProfileDetails === 'function') {
-                populateProfileDetails();
-            }
+            // Sync main profile screen details removed to prevent render loops
 
             // Re-render student lists if they are open
             if (typeof window.isScreenActive === 'function' && window.isScreenActive('screen-admin-students') && typeof window.renderAdminStudents === 'function') {
