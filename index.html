@@ -3,12 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <script>
-        // INSTANT SERVICE WORKER PURGE
+        // LIFECYCLE DIAGNOSTICS & COUNTERS
+        window.__firebaseInitCount = 0;
+        window.__serviceWorkerRegisterCount = 0;
+        window.__authListenerCount = 0;
+        window.__pageInitCount = 0;
+
+        window.__LIFECYCLE_DEBUG__ = function(event, message = '') {
+            if (localStorage.getItem('DEBUG_LIFECYCLE') === 'true') {
+                console.log(`%c${event}`, 'color: #10b981; font-weight: bold;', message);
+            }
+        };
+
+        // INTELLIGENT SERVICE WORKER MANAGEMENT
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(function(registrations) {
                 for(let registration of registrations) {
-                    registration.unregister();
-                    console.log("Stale Service Worker unregistered.");
+                    const scriptURL = registration.active ? registration.active.scriptURL : 
+                                      (registration.installing ? registration.installing.scriptURL : 
+                                      (registration.waiting ? registration.waiting.scriptURL : ''));
+                    
+                    if (!scriptURL.includes('firebase-messaging-sw.js')) {
+                        registration.unregister();
+                        window.__LIFECYCLE_DEBUG__('[SW UNREGISTER]', `Unregistered rogue worker: ${scriptURL}`);
+                    }
                 }
             });
         }
@@ -5610,22 +5628,6 @@
                 }
             });
             if (!navigator.onLine) window.dispatchEvent(new Event('offline'));
-            window.addEventListener('offline', () => {
-                const banner = document.getElementById('global-network-banner');
-                if (banner) {
-                    banner.innerHTML = '<i data-lucide="wifi-off" class="w-4 h-4 mr-2"></i> No Internet Connection';
-                    banner.className = 'fixed top-0 left-0 right-0 h-10 bg-red-500 text-white flex items-center justify-center text-xs font-bold z-[9999] shadow-md transition-all duration-300';
-                }
-            });
-            window.addEventListener('online', () => {
-                const banner = document.getElementById('global-network-banner');
-                if (banner) {
-                    banner.innerHTML = '<i data-lucide="wifi" class="w-4 h-4 mr-2"></i> Connection Restored';
-                    banner.className = 'fixed top-0 left-0 right-0 h-10 bg-emerald-500 text-white flex items-center justify-center text-xs font-bold z-[9999] shadow-md transition-all duration-300';
-                    setTimeout(() => banner.classList.add('hidden'), 3000);
-                }
-            });
-            if (!navigator.onLine) window.dispatchEvent(new Event('offline'));
             reorderBottomNavBars();
             // Clock handler
             setInterval(() => {
@@ -7977,7 +7979,7 @@
         }
 
         window.navigate = function navigate(screenId) {
-            cancelAllActiveRequests(); // A6 Fix: Abort old requests on nav
+            if (typeof window.__LIFECYCLE_DEBUG__ === 'function') window.__LIFECYCLE_DEBUG__('[NAVIGATE]', `Navigating to ${screenId}`);
             
             // Clear floating emoji picker menus to prevent ghosting
             document.querySelectorAll('.reaction-container.force-hovered, .reaction-container.hovered').forEach(el => {
@@ -8050,6 +8052,12 @@
                 });
 
                 if (screenId === 'screen-student-dashboard' || screenId === 'screen-admin-dashboard') {
+                    if (typeof window.__pageInitCount !== 'undefined') window.__pageInitCount++;
+                    if (typeof window.__LIFECYCLE_DEBUG__ === 'function') window.__LIFECYCLE_DEBUG__('[PAGE INIT]', `Initializing ${screenId}`);
+                    
+                    if (typeof window.updateDashboardGreetings === 'function') {
+                        window.updateDashboardGreetings();
+                    }
                     if (typeof window.loadDashboardTodayRoutine === 'function') {
                         window.loadDashboardTodayRoutine();
                     }

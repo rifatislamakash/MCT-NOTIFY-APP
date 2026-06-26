@@ -14,26 +14,65 @@
 
         let app;
         let messaging;
+        
+        let _firebaseInitPromise = null;
+        let _serviceWorkerRegistrationPromise = null;
+
+        async function ensureServiceWorkerRegistered() {
+            if (!('serviceWorker' in navigator)) {
+                console.warn('[FCM SW REGISTERED] Unsupported environment: serviceWorker not in navigator.');
+                return null;
+            }
+            if (_serviceWorkerRegistrationPromise) return _serviceWorkerRegistrationPromise;
+
+            if (typeof window.__LIFECYCLE_DEBUG__ === 'function') window.__LIFECYCLE_DEBUG__('[SW REGISTER]', 'Initiating SW registration');
+            if (typeof window.__serviceWorkerRegisterCount !== 'undefined') window.__serviceWorkerRegisterCount++;
+
+            _serviceWorkerRegistrationPromise = navigator.serviceWorker.register('./firebase-messaging-sw.js?v=10')
+                .then(async (registration) => {
+                    console.log('[FCM SW REGISTERED] Service Worker registration success with scope:', registration.scope);
+                    if (document.getElementById('diag-sw')) document.getElementById('diag-sw').innerText = 'Registered';
+                    await navigator.serviceWorker.ready;
+                    return registration;
+                })
+                .catch((swErr) => {
+                    console.error('[FCM SW REGISTERED] Service Worker registration failure:', swErr);
+                    _serviceWorkerRegistrationPromise = null; // allow retry
+                    return null;
+                });
+            return _serviceWorkerRegistrationPromise;
+        }
 
         async function initFirebase() {
-            try {
-                console.log("[FIREBASE] Starting initialization...");
-                const supported = await isSupported();
-                if (!supported) {
-                    console.warn("[FIREBASE] Environment does not support Firebase Messaging.");
-                    return false;
-                }
+            if (_firebaseInitPromise) return _firebaseInitPromise;
 
-                app = initializeApp(firebaseConfig);
-                console.log("[FIREBASE] App initialized successfully");
-
+            _firebaseInitPromise = (async () => {
                 try {
-                    messaging = getMessaging(app);
-                    console.log("[FIREBASE] Messaging initialized successfully");
-                } catch (e) {
-                    console.log("[FIREBASE] Messaging initialization failed (likely unsupported iOS environment):", e.message);
-                    return false;
-                }
+                    if (typeof window.__LIFECYCLE_DEBUG__ === 'function') window.__LIFECYCLE_DEBUG__('[FIREBASE INIT]', 'Starting initialization');
+                    if (typeof window.__firebaseInitCount !== 'undefined') window.__firebaseInitCount++;
+                    console.log("[FIREBASE] Starting initialization...");
+                    
+                    const supported = await isSupported();
+                    if (!supported) {
+                        console.warn("[FIREBASE] Environment does not support Firebase Messaging.");
+                        return false;
+                    }
+
+                    if (!app) {
+                        app = initializeApp(firebaseConfig);
+                        console.log("[FIREBASE] App initialized successfully");
+                    }
+
+                    if (!messaging) {
+                        try {
+                            messaging = getMessaging(app);
+                            console.log("[FIREBASE] Messaging initialized successfully");
+                            if (typeof window.__LIFECYCLE_DEBUG__ === 'function') window.__LIFECYCLE_DEBUG__('[MESSAGING INIT]', 'Messaging instance created');
+                        } catch (e) {
+                            console.log("[FIREBASE] Messaging initialization failed (likely unsupported iOS environment):", e.message);
+                            return false;
+                        }
+                    }
 
                 onMessage(messaging, async (payload) => {
                     console.log('[FIREBASE FOREGROUND]', payload);
@@ -121,15 +160,18 @@
                             }
                         } catch (e) {
                             console.warn('[FIREBASE FOREGROUND] System notification failed:', e);
+                            window.updateNotificationStatusUI();
                         }
                     }
                 });
-
-                return true;
-            } catch (error) {
-                console.error("[FIREBASE] Initialization error:", error);
-                return false;
-            }
+                    
+                    return true;
+                } catch (err) {
+                    console.error('[FIREBASE] Full initialization failed:', err);
+                    return false;
+                }
+            })();
+            return _firebaseInitPromise;
         }
 
         async function saveDeviceTokenToSupabase(token) {
@@ -198,21 +240,8 @@
                 }
 
                 console.log("[FCM SW REGISTERED] Registering Service Worker started...");
-                if (!('serviceWorker' in navigator)) {
-                    console.warn('[FCM SW REGISTERED] Unsupported environment: serviceWorker not in navigator.');
-                    return;
-                }
-
-                let registration;
-                try {
-                    registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js?v=10');
-                    console.log('[FCM SW REGISTERED] Service Worker registration success with scope:', registration.scope);
-                    if (document.getElementById('diag-sw')) document.getElementById('diag-sw').innerText = 'Registered';
-                    await navigator.serviceWorker.ready;
-                } catch (swErr) {
-                    console.error('[FCM SW REGISTERED] Service Worker registration failure:', swErr);
-                    return;
-                }
+                const registration = await ensureServiceWorkerRegistered();
+                if (!registration) return;
 
                 if (!('Notification' in window)) {
                     window.showGlobalToast("Unsupported", "Notifications are only supported if you add this app to your Home Screen.");
@@ -256,7 +285,10 @@
             }
         };
 
+        let _hasRunSilentInit = false;
         window.silentNotificationInit = async function () {
+            if (_hasRunSilentInit) return;
+            _hasRunSilentInit = true;
             if (Notification.permission !== 'granted') {
                 if (document.getElementById('diag-sw')) document.getElementById('diag-sw').innerText = 'Denied / Blocked';
                 if (document.getElementById('diag-token')) document.getElementById('diag-token').innerText = 'N/A';
@@ -271,12 +303,9 @@
                         return;
                     }
                 }
-                if (!('serviceWorker' in navigator)) {
-                    if (document.getElementById('diag-sw')) document.getElementById('diag-sw').innerText = 'Not Supported';
-                    return;
-                }
-                const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js?v=10');
-                await navigator.serviceWorker.ready;
+                const registration = await ensureServiceWorkerRegistered();
+                if (!registration) return;
+                
                 console.log('[FCM TOKEN GENERATED] Token generation start (Silent)...');
                 const token = await getToken(messaging, {
                     vapidKey: VAPID_KEY,

@@ -212,7 +212,6 @@ let isRegistering = false;
                         window.authState.profile.role = (isActualAdmin ? 'admin' : 'cr');
                         window.currentUserRole = String(window.authState.profile.role).toLowerCase();
                         window.navigate('screen-admin-dashboard');
-                        window.updateDashboardGreetings();
                         if (window.DashboardService && window.DashboardService.applyCRDashboardRestrictions) {
                             window.DashboardService.applyCRDashboardRestrictions();
                         }
@@ -235,7 +234,6 @@ let isRegistering = false;
                                 window.navigate('screen-notification-permission');
                             } else {
                                 window.navigate('screen-student-dashboard');
-                                window.updateDashboardGreetings();
                                 loadDashboardDataAsync().catch(console.warn);
                                 window.triggerUrgentPopupModal();
                                 setTimeout(window.startReminderEngine, 2000);
@@ -371,6 +369,10 @@ let isRegistering = false;
         }
 // Sync auth changes instantly
         let isRecovering = false;
+        
+        if (typeof window.__authListenerCount !== 'undefined') window.__authListenerCount++;
+        if (typeof window.__LIFECYCLE_DEBUG__ === 'function') window.__LIFECYCLE_DEBUG__('[AUTH INIT]', 'Registering onAuthStateChange listener');
+        
         _supabase.auth.onAuthStateChange(async (event, session) => {
             console.log("[AUTH] Auth State Change Event:", event);
             if (event === 'INITIAL_SESSION') return;
@@ -433,7 +435,8 @@ let isRegistering = false;
                     window.updateGlobalAvatars();
                 }
 
-                console.log("[DEBUG] onAuthStateChange: initialized. Routing is handled by checkActiveSession.");
+                console.log("[DEBUG] onAuthStateChange: routing user...");
+                await handleUserRouting(window.authState.user, window.authState.profile);
             } else if (event === 'SIGNED_OUT') {
         isRecovering = false;
         window.authState.session = null;
