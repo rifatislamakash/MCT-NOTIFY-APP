@@ -237,6 +237,10 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                 const role = String(window.authState?.profile?.role || '').toLowerCase();
                 window.checkCRRequestStatus(role);
             }
+
+            if (typeof window.silentNotificationInit === 'function') {
+                window.silentNotificationInit();
+            }
         }
 
 

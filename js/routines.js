@@ -27,6 +27,8 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
         function getSafariSafeDate(dateInput) {
             if (!dateInput) return new Date();
             if (dateInput instanceof Date) return dateInput;
+            const nativeDate = new Date(dateInput);
+            if (!isNaN(nativeDate.getTime())) return nativeDate;
             const safeString = String(dateInput).replace(/-/g, '/').replace(/T/g, ' '); 
             const parsedDate = new Date(safeString);
             return isNaN(parsedDate) ? new Date() : parsedDate;
@@ -131,6 +133,9 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
         // Fetch all routine dependencies in parallel
         export async function fetchRoutineDependencies(parentSignal) {
             try {
+                if (crPermissionService.isCR()) {
+                    await crPermissionService.initializePermissions();
+                }
                 const batches = await fetchCachedOrDeduplicated('batches', async () => {
                     const { data, error } = await _supabase.from('batches').select('*').order('created_at', { ascending: false }).abortSignal(parentSignal);
                     if (error) throw error;

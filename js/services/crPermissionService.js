@@ -110,6 +110,7 @@ export const crPermissionService = {
         const allCourses = await CourseStore.getCourses();
         if (this.isAdmin()) return allCourses;
         if (this.isCR()) {
+            await this.initializePermissions();
             console.log('[CR COURSES] Filtering courses for assigned batches');
             return allCourses.filter(c => this.currentAssignedBatches.some(b => b == c.batch_id));
         }

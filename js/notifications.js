@@ -27,8 +27,13 @@
                 app = initializeApp(firebaseConfig);
                 console.log("[FIREBASE] App initialized successfully");
 
-                messaging = getMessaging(app);
-                console.log("[FIREBASE] Messaging initialized successfully");
+                try {
+                    messaging = getMessaging(app);
+                    console.log("[FIREBASE] Messaging initialized successfully");
+                } catch (e) {
+                    console.log("[FIREBASE] Messaging initialization failed (likely unsupported iOS environment):", e.message);
+                    return false;
+                }
 
                 onMessage(messaging, async (payload) => {
                     console.log('[FIREBASE FOREGROUND]', payload);
@@ -134,9 +139,9 @@
                     deviceId = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : 'dev-' + Math.random().toString(36).substr(2, 9);
                     localStorage.setItem('mct_device_id', deviceId);
                 }
-        
                 if (sessionStorage.getItem('token_registered') === token) {
                     console.log('[FCM TOKEN SAVE] Token already registered in this session. Skipping DB upsert.');
+                    if (document.getElementById('diag-token')) document.getElementById('diag-token').innerText = 'Generated & Linked';
                     return;
                 }
         
@@ -252,13 +257,24 @@
         };
 
         window.silentNotificationInit = async function () {
-            if (Notification.permission !== 'granted') return;
+            if (Notification.permission !== 'granted') {
+                if (document.getElementById('diag-sw')) document.getElementById('diag-sw').innerText = 'Denied / Blocked';
+                if (document.getElementById('diag-token')) document.getElementById('diag-token').innerText = 'N/A';
+                return;
+            }
             try {
                 if (!messaging) {
                     const initialized = await initFirebase();
-                    if (!initialized) return;
+                    if (!initialized) {
+                        if (document.getElementById('diag-sw')) document.getElementById('diag-sw').innerText = 'Unavailable';
+                        if (document.getElementById('diag-token')) document.getElementById('diag-token').innerText = 'Unsupported';
+                        return;
+                    }
                 }
-                if (!('serviceWorker' in navigator)) return;
+                if (!('serviceWorker' in navigator)) {
+                    if (document.getElementById('diag-sw')) document.getElementById('diag-sw').innerText = 'Not Supported';
+                    return;
+                }
                 const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js?v=10');
                 await navigator.serviceWorker.ready;
                 console.log('[FCM TOKEN GENERATED] Token generation start (Silent)...');

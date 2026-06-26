@@ -10,6 +10,8 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
 window.getSafariSafeDate = function(dateInput) {
     if (!dateInput) return new Date();
     if (dateInput instanceof Date) return dateInput;
+    const nativeDate = new Date(dateInput);
+    if (!isNaN(nativeDate.getTime())) return nativeDate;
     const safeString = String(dateInput).replace(/-/g, '/').replace(/T/g, ' '); 
     const parsedDate = new Date(safeString);
     return isNaN(parsedDate) ? new Date() : parsedDate;
