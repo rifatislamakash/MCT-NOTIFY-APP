@@ -148,9 +148,7 @@ let isRegistering = false;
                         
                         if (typeof window.loadDashboardTodayRoutine === 'function') {
                             const currentScreen = window.location.hash ? window.location.hash.substring(1) : 'screen-student-dashboard';
-                            if (currentScreen === 'screen-student-dashboard') {
-                                tasks.push(window.loadDashboardTodayRoutine(false).catch(console.warn));
-                            }
+                            // Race condition fix: navigate() already calls loadDashboardTodayRoutine, so we don't call it again here.
                         }
                         
                         if (typeof window.loadScheduleList === 'function') tasks.push(window.loadScheduleList(true).catch(console.warn));
@@ -440,9 +438,7 @@ let isRegistering = false;
                     window.updateGlobalAvatars();
                 }
 
-                console.log("[DEBUG] onAuthStateChange: routing");
-                await handleUserRouting(window.authState.user, window.authState.profile).catch(console.warn);
-                console.log("[DEBUG] onAuthStateChange: routing done");
+                console.log("[DEBUG] onAuthStateChange: initialized. Routing is handled by checkActiveSession.");
             } else if (event === 'SIGNED_OUT') {
         isRecovering = false;
         window.authState.session = null;

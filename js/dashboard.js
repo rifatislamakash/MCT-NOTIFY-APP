@@ -86,7 +86,7 @@ const getSafariSafeDate = window.getSafariSafeDate;
                         const date = s.schedule_date || s.date;
                         if (date !== todayStr && date !== tomorrowStr) return false;
                         const time = s.schedule_time || '23:59:00';
-                        const sortDate = new Date(date + 'T' + time);
+                        const sortDate = getSafariSafeDate(date + 'T' + time);
                         return sortDate >= now;
                     }).length;
                     if (count > 0) {
@@ -105,7 +105,7 @@ const getSafariSafeDate = window.getSafariSafeDate;
                         const date = n.notice_date;
                         if (date !== todayStr && date !== tomorrowStr) return false;
                         const time = n.notice_time || '23:59:00';
-                        const sortDate = new Date(date + 'T' + time);
+                        const sortDate = getSafariSafeDate(date + 'T' + time);
                         return sortDate >= now;
                     }).length;
                     if (count > 0) {
@@ -118,7 +118,7 @@ const getSafariSafeDate = window.getSafariSafeDate;
 
 
             } catch (err) {
-                console.warn("[BADGE UPDATE ERROR]", err);
+                console.warn('[BADGE UPDATE ERROR]', err);
             }
         }
 
@@ -129,8 +129,12 @@ const getSafariSafeDate = window.getSafariSafeDate;
             const targetScreen = (window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail) || preferredRole === 'cr') ? 'screen-admin-dashboard' : 'screen-student-dashboard';
             
             if (currentScreen === targetScreen) {
-                if (typeof showLoader === 'function') showLoader(true, "Refreshing...");
-                window.location.reload();
+                if (typeof showLoader === 'function') showLoader(true, 'Refreshing...');
+                if (typeof window.loadDashboardTodayRoutine === 'function') window.loadDashboardTodayRoutine();
+                if (typeof window.updateDashboardGreetings === 'function') window.updateDashboardGreetings();
+                setTimeout(() => {
+                    if (typeof showLoader === 'function') showLoader(false);
+                }, 500);
                 return;
             }
 

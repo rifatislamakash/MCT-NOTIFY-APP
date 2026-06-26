@@ -53,15 +53,9 @@ export const CourseStore = (function () {
                     }
                 });
                 
-                let finalCourses = data;
-                const isCRAdmin = window.currentUserRole === 'cr' && window.isScreenActive && window.isScreenActive('screen-admin-dashboard');
-                if (isCRAdmin && window.currentUserCRBatches) {
-                    finalCourses = data.filter(c => window.currentUserCRBatches.includes(c.batch_id));
-                }
-                
-                coursesCache = finalCourses;
-                window.currentCoursesList = finalCourses;
-                resolve(finalCourses);
+                coursesCache = data;
+                window.currentCoursesList = data;
+                resolve(data);
             } catch (err) {
                 console.error("[CourseStore] Failed to load courses:", err);
                 reject(err);

@@ -1784,8 +1784,8 @@ window.switchRoutineView = switchRoutineView;
                     await window._supabase.functions.invoke('send-reminders', {
                         body: {
                             target_id: newExam.id,
-                            title: `Knock knock...! '${courseName}' is knocking at the door.`,
-                            body: `Upcoming Exam is '${courseName}' at '${examDate} & ${window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime}'. Open the app to see the syllabus.`,
+                            title: `Knock knock...! '${courseName}' exam is knocking at the door.`,
+                            body: `'${courseName}' Exam will be held on '${examDate} & ${window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime}'.`,
                             type: 'NEW_EXAM',
                             topic: targetTopic,
                             time: new Date().toISOString()
@@ -2055,8 +2055,8 @@ window.switchRoutineView = switchRoutineView;
                                     parent_id: examId,
                                     reminder_time: targetTime.toISOString(),
                                     sent: false,
-                                    reminder_title: `Knock knock...! '${courseName}' is knocking at the door.`,
-                                    reminder_message: `Upcoming Exam is '${courseName}' at '${examDate} & ${window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime}'. Open the app to see the syllabus.`,
+                                    reminder_title: `Knock knock...! '${courseName}' exam is knocking at the door.`,
+                                    reminder_message: `'${courseName}' Exam will be held on '${examDate} & ${window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime}'.`,
                                     created_by: window.authState.user.id
                                 });
                             }
@@ -2097,8 +2097,8 @@ window.switchRoutineView = switchRoutineView;
                     await window._supabase.functions.invoke('send-reminders', {
                         body: {
                             target_id: examId,
-                            title: `Knock knock...! '${courseName}' is knocking at the door.`,
-                            body: `Upcoming Exam is '${courseName}' at '${examDate} & ${window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime}'. Open the app to see the syllabus.`,
+                            title: `Knock knock...! '${courseName}' exam is knocking at the door.`,
+                            body: `'${courseName}' Exam will be held on '${examDate} & ${window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime}'.`,
                             type: 'NEW_EXAM',
                             topic: targetTopic,
                             time: new Date().toISOString()
@@ -2110,9 +2110,11 @@ window.switchRoutineView = switchRoutineView;
 
                 window.showGlobalToast('Updated', 'Exam schedule updated successfully!');
                 
-                if (typeof window.closeModal === 'function') window.closeModal('modal-edit-exam');
-                
-                if (typeof renderExamRoutineView === 'function') {
+                // Fix: navigate back to routines screen and open exam tab, forcing a reload
+                window.navigate('screen-weekly-routine');
+                if (typeof window.switchRoutineView === 'function') {
+                    window.switchRoutineView('exams');
+                } else if (typeof renderExamRoutineView === 'function') {
                     console.log("Re-fetching exam data to update UI...");
                     renderExamRoutineView(); // Force the UI to redraw with the new data
                 } else if (typeof loadWeeklyRoutine === 'function') {

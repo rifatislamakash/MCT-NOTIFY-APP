@@ -5190,14 +5190,14 @@
                     if (titleEl) titleEl.innerText = notice.title;
                     if (msgEl) msgEl.innerText = notice.message;
                     if (dateEl) {
-                        let dStr = notice.notice_date ? new Date(notice.notice_date).toLocaleDateString(undefined, {month:'short', day:'numeric'}) : '';
+                        let dStr = notice.notice_date ? getSafariSafeDate(notice.notice_date).toLocaleDateString(undefined, {month:'short', day:'numeric'}) : '';
                         if (notice.notice_time) {
                             const [h,m] = notice.notice_time.split(':');
                             const ampm = +h>=12?'PM':'AM';
                             const h12 = +h%12||12;
                             dStr += (dStr?' • ':'') + `${h12}:${m} ${ampm}`;
                         }
-                        if (!dStr) dStr = new Date(notice.created_at).toLocaleDateString(undefined, {month:'short', day:'numeric'});
+                        if (!dStr) dStr = getSafariSafeDate(notice.created_at).toLocaleDateString(undefined, {month:'short', day:'numeric'});
                         dateEl.innerText = dStr;
                     }
 
@@ -5640,14 +5640,14 @@
             }
 
             setTimeout(() => {
-                const initApp = () => {
+                const initApp = async () => {
                     if (window.isAppFullyInitialized) {
                         console.warn("[INIT LOCK] App is already initialized. Halting recursive call.");
                         return; 
                     }
                     if (typeof window.checkActiveSession === 'function') {
                         window.isAppFullyInitialized = true;
-                        window.checkActiveSession();
+                        await window.checkActiveSession();
                         startTypewriter();
                     } else {
                         setTimeout(initApp, 50);

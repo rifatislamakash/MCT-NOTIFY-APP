@@ -99,7 +99,7 @@ export const crPermissionService = {
      */
     canAccessBatch(batchId) {
         if (this.isAdmin()) return true;
-        if (this.isCR()) return this.currentAssignedBatches.includes(batchId);
+        if (this.isCR()) return this.currentAssignedBatches.some(b => b == batchId);
         return false;
     },
 
@@ -111,7 +111,7 @@ export const crPermissionService = {
         if (this.isAdmin()) return allCourses;
         if (this.isCR()) {
             console.log('[CR COURSES] Filtering courses for assigned batches');
-            return allCourses.filter(c => this.currentAssignedBatches.includes(c.batch_id));
+            return allCourses.filter(c => this.currentAssignedBatches.some(b => b == c.batch_id));
         }
         return [];
     },
