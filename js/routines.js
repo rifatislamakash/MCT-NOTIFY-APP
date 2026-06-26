@@ -31,7 +31,7 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
             if (!isNaN(nativeDate.getTime())) return nativeDate;
             const safeString = String(dateInput).replace(/-/g, '/').replace(/T/g, ' '); 
             const parsedDate = new Date(safeString);
-            return isNaN(parsedDate) ? new Date() : parsedDate;
+            return isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
         }
 
         // Days order for the timetable columns — all 7 days
