@@ -4416,9 +4416,9 @@
                                 </div>
                                 
                                 <!-- Notify Audience Setting -->
-                                <div class="bg-white rounded-[18px] p-5 shadow-sm border border-slate-100 flex items-center mb-6">
-                                    <input type="checkbox" id="notify-audience-edit-schedule" checked class="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500">
-                                    <label for="notify-audience-edit-schedule" class="ml-2 text-[13px] font-bold text-indigo-900">Notify Targeted Audience (Silent Edit)</label>
+                                <div class="bg-indigo-50/50 p-4 rounded-[14px] border border-indigo-100 flex items-center mb-6">
+                                    <input type="checkbox" id="notify-audience-edit-schedule" checked class="w-4 h-4 text-indigo-600 rounded border-indigo-300 focus:ring-indigo-500" onchange="document.getElementById('label-notify-audience-edit-schedule').textContent = this.checked ? 'Notify Targeted Audience' : 'Notify Targeted Audience (Silent Edit)'">
+                                    <label for="notify-audience-edit-schedule" id="label-notify-audience-edit-schedule" class="ml-2 text-[13px] font-bold text-indigo-900">Notify Targeted Audience</label>
                                 </div>
                                 <!-- Reminders & Alerts Card -->
                                 <div class="bg-white rounded-[18px] p-5 shadow-sm border border-slate-100">
@@ -5104,9 +5104,9 @@
     <script>
     // CACHE WIPER REMOVED (Caused infinite reload loop)
     </script>
-    <script src="js/constants.js?v=rescue1"></script>
-    <script type="module" src="main.js?v=rescue1"></script>
-    <script type="module" src="js/notifications.js?v=rescue1"></script>
+    <script src="js/constants.js?v=rescue2"></script>
+    <script type="module" src="main.js?v=rescue2"></script>
+    <script type="module" src="js/notifications.js?v=rescue2"></script>
     <!-- MAIN APP ENGINE CODE -->
     <script>
 
@@ -5762,7 +5762,7 @@
 
                 if (window.crPermissionService && window.crPermissionService.isCR()) {
                     const assignedBatches = window.crPermissionService.currentAssignedBatches || [];
-                    data = data.filter(c => assignedBatches.includes(c.batch_id));
+                    data = data.filter(c => assignedBatches.some(b => b == c.batch_id));
                     // hide filter for CR since they only see their batches anyway
                     if (batchFilter) batchFilter.classList.add('hidden');
                 }
@@ -10250,7 +10250,7 @@
     </div>
 
     <!-- Pull to Refresh Global Logic -->
-    <script src="js/pull-to-refresh.js?v=rescue1"></script>
+    <script src="js/pull-to-refresh.js?v=rescue2"></script>
 </body>
 </html>
 

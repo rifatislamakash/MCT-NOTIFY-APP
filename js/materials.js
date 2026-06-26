@@ -1,11 +1,11 @@
-import { _supabase } from './supabase-client.js';
-import { crPermissionService } from './services/crPermissionService.js';
-import { showGlobalToast, showLoader, forceHideLoader, cancelActiveRequest, fetchWithRetry } from './utils.js';
-import { CourseStore } from './stores/CourseStore.js';
-import { FacultyStore } from './stores/FacultyStore.js';
-import { RoutineStore } from './stores/RoutineStore.js';
-import { NotificationStore } from './stores/NotificationStore.js';
-import { ProfileStore } from './stores/ProfileStore.js';
+import { _supabase } from './supabase-client.js?v=rescue2';
+import { crPermissionService } from './services/crPermissionService.js?v=rescue2';
+import { showGlobalToast, showLoader, forceHideLoader, cancelActiveRequest, fetchWithRetry } from './utils.js?v=rescue2';
+import { CourseStore } from './stores/CourseStore.js?v=rescue2';
+import { FacultyStore } from './stores/FacultyStore.js?v=rescue2';
+import { RoutineStore } from './stores/RoutineStore.js?v=rescue2';
+import { NotificationStore } from './stores/NotificationStore.js?v=rescue2';
+import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
 
         // --- GLOBALS FOR MATERIALS ---
         let currentMaterialsList = [];

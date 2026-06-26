@@ -1,4 +1,4 @@
-import { _supabase } from './supabase-client.js';
+import { _supabase } from './supabase-client.js?v=rescue2';
         export function showGlobalToast(title, msg) {
             const toast = document.getElementById('global-toast');
             const titleEl = document.getElementById('global-toast-title');

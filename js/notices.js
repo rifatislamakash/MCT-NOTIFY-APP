@@ -1,11 +1,11 @@
-import { _supabase } from './supabase-client.js';
-import { crPermissionService } from './services/crPermissionService.js';
-import { showGlobalToast, showLoader, forceHideLoader, cancelActiveRequest, fetchWithRetry } from './utils.js';
-import { CourseStore } from './stores/CourseStore.js';
-import { FacultyStore } from './stores/FacultyStore.js';
-import { RoutineStore } from './stores/RoutineStore.js';
-import { NotificationStore } from './stores/NotificationStore.js';
-import { ProfileStore } from './stores/ProfileStore.js';
+import { _supabase } from './supabase-client.js?v=rescue2';
+import { crPermissionService } from './services/crPermissionService.js?v=rescue2';
+import { showGlobalToast, showLoader, forceHideLoader, cancelActiveRequest, fetchWithRetry } from './utils.js?v=rescue2';
+import { CourseStore } from './stores/CourseStore.js?v=rescue2';
+import { FacultyStore } from './stores/FacultyStore.js?v=rescue2';
+import { RoutineStore } from './stores/RoutineStore.js?v=rescue2';
+import { NotificationStore } from './stores/NotificationStore.js?v=rescue2';
+import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
 
         // ----------------- NOTICES SYSTEM -----------------
         let currentNoticesList = [];
@@ -704,7 +704,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (window.currentUserRole === 'cr') {
                 select.innerHTML = `
                     <option value="all_students">All Students</option>
-                    <option value="course_students">Specific Course Students</option>
+                    <option value="course_students">Specific Course(s)</option>
                 `;
             } else {
                 select.innerHTML = `
@@ -712,7 +712,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     <option value="all_crs">All CRs</option>
                     <option value="batch_students">Specific Batch Students</option>
                     <option value="batch_crs">Specific Batch CRs</option>
-                    <option value="course_students">Specific Course Students</option>
+                    <option value="course_students">Specific Course(s)</option>
                     <option value="specific_student">Specific Student</option>
                 `;
             }
@@ -1142,7 +1142,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     const reminderDivs = document.querySelectorAll('#notice-reminders-list .reminder-row');
                     if (reminderDivs.length > 0) {
                         console.log(`[REMINDERS] Found ${reminderDivs.length} reminder rows to insert/update.`);
-                        const eventDateTime = new Date(notice_date + 'T' + notice_time);
+                        const eventDateTime = window.getSafariSafeDate(notice_date + 'T' + notice_time);
                         
                         reminderDivs.forEach(div => {
                             const offsetSelect = div.querySelector('.reminder-offset');
@@ -1369,7 +1369,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 if (reminders && reminders.length > 0 && listContainer) {
                     console.log(`[EDIT NOTICE] Loaded ${reminders.length} existing reminders.`);
                     
-                    const eventDateTime = new Date((notice.notice_date || '') + 'T' + (notice.notice_time || ''));
+                    const eventDateTime = window.getSafariSafeDate((notice.notice_date || '') + 'T' + (notice.notice_time || ''));
                     
                     reminders.forEach(rem => {
                         const rowId = 'reminder-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
@@ -1378,7 +1378,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         let customDateVal = '';
                         
                         if (rem.reminder_time) {
-                            const utcDate = new Date(rem.reminder_time);
+                            const utcDate = window.getSafariSafeDate(rem.reminder_time);
                             const offset = utcDate.getTimezoneOffset() * 60000;
                             customDateVal = new Date(utcDate.getTime() - offset).toISOString().slice(0, 16);
                             

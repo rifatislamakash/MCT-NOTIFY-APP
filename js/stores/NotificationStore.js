@@ -1,5 +1,5 @@
-import { _supabase } from '../supabase-client.js';
-import { fetchCachedOrDeduplicated } from '../utils.js';
+import { _supabase } from '../supabase-client.js?v=rescue2';
+import { fetchCachedOrDeduplicated } from '../utils.js?v=rescue2';
 
 export const NotificationStore = (function () {
     let noticesCache = null;

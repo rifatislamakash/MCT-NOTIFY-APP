@@ -1,6 +1,6 @@
-import { _supabase } from './supabase-client.js';
-import { crPermissionService } from './services/crPermissionService.js';
-import { showGlobalToast, showLoader } from './utils.js';
+import { _supabase } from './supabase-client.js?v=rescue2';
+import { crPermissionService } from './services/crPermissionService.js?v=rescue2';
+import { showGlobalToast, showLoader } from './utils.js?v=rescue2';
 
 export class ReportService {
     static currentReports = [];

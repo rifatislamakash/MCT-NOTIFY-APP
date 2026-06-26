@@ -1,6 +1,6 @@
-import { _supabase } from '../supabase-client.js';
-import { batchService } from './batchService.js';
-import { CourseStore } from '../stores/CourseStore.js';
+import { _supabase } from '../supabase-client.js?v=rescue2';
+import { batchService } from './batchService.js?v=rescue2';
+import { CourseStore } from '../stores/CourseStore.js?v=rescue2';
 
 export const crPermissionService = {
     currentAssignedBatches: [],
