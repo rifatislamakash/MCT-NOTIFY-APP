@@ -60,6 +60,34 @@ let isRegistering = false;
 
 
 
+        window.waitForAuthReady = async function(timeoutMs = 10000) {
+            const isReady = () => window.authState && window.authState.profile && window.authState.profile.batch_id;
+            if (isReady()) return true;
+
+            // Optional iOS fallback check: manually check session if not ready
+            if (window._supabase && window._supabase.auth) {
+                const { data } = await window._supabase.auth.getSession();
+                if (data && data.session && !window.authState.session) {
+                    window.authState.session = data.session;
+                    window.authState.user = data.session.user;
+                }
+            }
+            if (isReady()) return true;
+
+            return new Promise((resolve) => {
+                const start = Date.now();
+                const interval = setInterval(() => {
+                    if (isReady()) {
+                        clearInterval(interval);
+                        resolve(true);
+                    } else if (Date.now() - start > timeoutMs) {
+                        clearInterval(interval);
+                        resolve(false);
+                    }
+                }, 100);
+            });
+        };
+
         export const handleUserRouting = async (user, profile) => {
             console.log("[ROUTING INIT] Starting user routing...");
             
@@ -437,7 +465,7 @@ let isRegistering = false;
 
                 console.log("[DEBUG] onAuthStateChange: routing user...");
                 await handleUserRouting(window.authState.user, window.authState.profile);
-            } else if (event === 'SIGNED_OUT') {
+} else if (event === 'SIGNED_OUT') {
         isRecovering = false;
         window.authState.session = null;
         window.authState.user = null;
@@ -445,9 +473,28 @@ let isRegistering = false;
         window.currentUserEmail = '';
         window.currentUserName = '';
         window.currentUserRole = 'student';
+        sessionStorage.clear();
+        console.log("[AUTH] Logged out successfully");
         window.navigate('screen-login');
     }
 });
+
+        // Handle iOS PWA visibility resume
+        document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState === 'visible') {
+                if (typeof window.__LIFECYCLE_DEBUG__ === 'function') window.__LIFECYCLE_DEBUG__('[LIFECYCLE]', 'App resumed from background');
+                const { data } = await _supabase.auth.getSession();
+                if (data && data.session) {
+                    if (!window.authState) window.authState = {};
+                    window.authState.session = data.session;
+                    window.authState.user = data.session.user;
+                    if (window.isScreenActive && window.isScreenActive('screen-student-dashboard') && typeof window.loadDashboardTodayRoutine === 'function') {
+                        window.loadDashboardTodayRoutine();
+                        if (typeof window.updateDashboardGreetings === 'function') window.updateDashboardGreetings();
+                    }
+                }
+            }
+        });
 
 
 

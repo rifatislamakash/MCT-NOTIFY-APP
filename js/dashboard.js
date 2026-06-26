@@ -197,9 +197,18 @@ const getSafariSafeDate = window.getSafariSafeDate;
 
             try {
                 if (!window.authState || !window.authState.profile || !window.authState.profile.batch_id) {
-                    console.warn("Auth state not ready. Aborting fetch. Will rely on Auth listener to re-trigger.");
-                    window.setModuleLoading('dashboard', false);
-                    return; 
+                    console.warn("Auth state not ready. Waiting for auth initialization...");
+                    if (typeof window.waitForAuthReady === 'function') {
+                        const ready = await window.waitForAuthReady();
+                        if (!ready) {
+                            console.error("Auth state timed out. Aborting dashboard fetch.");
+                            window.setModuleLoading('dashboard', false);
+                            return;
+                        }
+                    } else {
+                        window.setModuleLoading('dashboard', false);
+                        return;
+                    }
                 }
 
                 let isExamModeOn = false;

@@ -171,8 +171,16 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
             
             try {
                   if (!window.authState || !window.authState.profile) {
-                      console.warn("Auth state not ready. Aborting fetch. Will rely on Auth listener to re-trigger.");
-                      return; 
+                      console.warn("Auth state not ready. Waiting for auth initialization...");
+                      if (typeof window.waitForAuthReady === 'function') {
+                          const ready = await window.waitForAuthReady();
+                          if (!ready) {
+                              console.error("Auth state timed out. Aborting routine fetch.");
+                              return;
+                          }
+                      } else {
+                          return;
+                      }
                   }
 
                   let query = _supabase.from('exam_schedules').select('*').order('exam_date', { ascending: true }).order('start_time', { ascending: true });
@@ -352,8 +360,16 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
             console.log("[ROUTINE] Loading weekly routine list...");
             try {
                 if (!window.authState || !window.authState.profile) {
-                    console.warn("Auth state not ready. Aborting fetch. Will rely on Auth listener to re-trigger.");
-                    return; 
+                    console.warn("Auth state not ready. Waiting for auth initialization...");
+                    if (typeof window.waitForAuthReady === 'function') {
+                        const ready = await window.waitForAuthReady();
+                        if (!ready) {
+                            console.error("Auth state timed out. Aborting routine fetch.");
+                            return;
+                        }
+                    } else {
+                        return;
+                    }
                 }
 
                 // Wait for dependencies (batches, etc.) to ensure we have batch names
