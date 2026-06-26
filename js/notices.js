@@ -1093,23 +1093,37 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                     }
                 } else {
                     // all_students or all_crs
-                    let globalTargetId = null;
-                    if (window.currentUserRole === 'cr' && window.currentUserCRBatches && window.currentUserCRBatches.length > 0) {
-                        // If CR creates an 'all_students' notice, it is implicitly targeted to their primary batch
-                        globalTargetId = window.currentUserCRBatches[0];
-                    }
-
-                    const targetInsert = {
-                        content_type: 'notice',
-                        content_id: savedNoticeId,
-                        target_type: audience_type,
-                        target_id: globalTargetId
-                    };
-                    console.log("[CONTENT TARGETS] Inserting global target:", targetInsert);
-                    const { error: targetError } = await _supabase.from('content_targets').insert([targetInsert]);
-                    if (targetError) {
-                        console.error("[TARGET SAVE] content_targets global insert error:", targetError);
-                        throw targetError;
+                    if (window.currentUserRole === 'cr') {
+                        if (window.currentUserCRBatches && window.currentUserCRBatches.length > 0) {
+                            const targetInserts = window.currentUserCRBatches.map(batchId => ({
+                                content_type: 'notice',
+                                content_id: savedNoticeId,
+                                target_type: audience_type,
+                                target_id: batchId
+                            }));
+                            console.log("[CONTENT TARGETS] Inserting CR targets:", targetInserts);
+                            const { error: targetError } = await _supabase.from('content_targets').insert(targetInserts);
+                            if (targetError) {
+                                console.error("[TARGET SAVE] content_targets CR insert error:", targetError);
+                                throw targetError;
+                            }
+                        } else {
+                            throw new Error("No assigned batches found for CR. Cannot post global notice.");
+                        }
+                    } else {
+                        // Global Admin
+                        const targetInsert = {
+                            content_type: 'notice',
+                            content_id: savedNoticeId,
+                            target_type: audience_type,
+                            target_id: null
+                        };
+                        console.log("[CONTENT TARGETS] Inserting global target:", targetInsert);
+                        const { error: targetError } = await _supabase.from('content_targets').insert([targetInsert]);
+                        if (targetError) {
+                            console.error("[TARGET SAVE] content_targets global insert error:", targetError);
+                            throw targetError;
+                        }
                     }
                 }
 

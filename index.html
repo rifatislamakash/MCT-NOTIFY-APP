@@ -4,14 +4,21 @@
     <meta charset="UTF-8">
     <script>
         // LIFECYCLE DIAGNOSTICS & COUNTERS
+        window.__DEBUG_PRODUCTION = false;
         window.__firebaseInitCount = 0;
         window.__serviceWorkerRegisterCount = 0;
         window.__authListenerCount = 0;
         window.__pageInitCount = 0;
 
         window.__LIFECYCLE_DEBUG__ = function(event, message = '') {
-            if (localStorage.getItem('DEBUG_LIFECYCLE') === 'true') {
+            if (window.__DEBUG_PRODUCTION || localStorage.getItem('DEBUG_LIFECYCLE') === 'true') {
                 console.log(`%c${event}`, 'color: #10b981; font-weight: bold;', message);
+            }
+        };
+
+        window.__FORENSIC_TRACER = function(event, data = {}) {
+            if (window.__DEBUG_PRODUCTION) {
+                console.log(`%c[FORENSIC] ${event}`, 'color: #eab308; font-weight: bold;', data);
             }
         };
 

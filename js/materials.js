@@ -100,6 +100,26 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                     else adminActions.classList.add('hidden');
                 }
 
+                const batchFilter = document.getElementById('admin-materials-batch-filter');
+                if (batchFilter) {
+                    if (window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail)) {
+                        batchFilter.classList.remove('hidden');
+                        if (batchFilter.options.length <= 1) {
+                            try {
+                                const { data: batchesData } = await _supabase.from('batches').select('id, batch_name').order('batch_name');
+                                let optionsHTML = '<option value="all" class="text-black">All Batches</option>';
+                                if (batchesData) {
+                                    optionsHTML += batchesData.map(b => `<option value="${b.id}" class="text-black">${window.sanitizeHTML ? window.sanitizeHTML(b.batch_name) : b.batch_name}</option>`).join('');
+                                }
+                                batchFilter.innerHTML = optionsHTML;
+                                batchFilter.value = 'all';
+                            } catch(e) { console.warn("Failed to load batches for materials", e); }
+                        }
+                    } else {
+                        batchFilter.classList.add('hidden');
+                    }
+                }
+
                 if (typeof window.filterMaterialsUI === 'function') window.filterMaterialsUI();
                 if (typeof window.updateDashboardQuickAccessBadges === 'function') window.updateDashboardQuickAccessBadges();
 
@@ -128,6 +148,9 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
             const filterSelect = document.getElementById('materials-filter-type');
             const filterType = filterSelect ? filterSelect.value : 'all';
 
+            const batchFilter = document.getElementById('admin-materials-batch-filter');
+            const batchFilterVal = (batchFilter && !batchFilter.classList.contains('hidden')) ? batchFilter.value : 'all';
+
             let filteredList = window.currentMaterialsList.filter(m => {
                 const titleMatch = m.title && m.title.toLowerCase().includes(searchVal);
                 const descMatch = m.description && m.description.toLowerCase().includes(searchVal);
@@ -135,7 +158,10 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                 const matchesSearch = titleMatch || descMatch || courseMatch;
 
                 const matchesType = filterType === 'all' || m.material_type === filterType;
-                return matchesSearch && matchesType;
+                
+                const matchesBatch = batchFilterVal === 'all' || (m.courses && m.courses.batch_id === batchFilterVal);
+
+                return matchesSearch && matchesType && matchesBatch;
             });
 
             if (typeof window.renderMaterialsList === 'function') window.renderMaterialsList(filteredList);

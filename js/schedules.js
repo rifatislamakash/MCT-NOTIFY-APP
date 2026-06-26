@@ -1103,18 +1103,29 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                         if (scError) console.warn('[CONTENT TARGETS INSERT WARN]', scError);
                     }
                 } else {
-                    let globalTargetId = null;
-                    if (window.currentUserRole === 'cr' && window.currentUserCRBatches && window.currentUserCRBatches.length > 0) {
-                        globalTargetId = window.currentUserCRBatches[0];
+                    if (window.currentUserRole === 'cr') {
+                        if (window.currentUserCRBatches && window.currentUserCRBatches.length > 0) {
+                            const scRows = window.currentUserCRBatches.map(batchId => ({
+                                content_type: 'schedule',
+                                content_id: newSchedule.id,
+                                target_type: audience_type,
+                                target_id: batchId
+                            }));
+                            const { error: scError } = await _supabase.from('content_targets').insert(scRows);
+                            if (scError) console.warn('[CONTENT TARGETS CR INSERT WARN]', scError);
+                        } else {
+                            throw new Error("No assigned batches found for CR. Cannot post global schedule.");
+                        }
+                    } else {
+                        const scRows = [{
+                            content_type: 'schedule',
+                            content_id: newSchedule.id,
+                            target_type: audience_type,
+                            target_id: null
+                        }];
+                        const { error: scError } = await _supabase.from('content_targets').insert(scRows);
+                        if (scError) console.warn('[CONTENT TARGETS GLOBAL INSERT WARN]', scError);
                     }
-                    const scRows = [{
-                        content_type: 'schedule',
-                        content_id: newSchedule.id,
-                        target_type: audience_type,
-                        target_id: globalTargetId
-                    }];
-                    const { error: scError } = await _supabase.from('content_targets').insert(scRows);
-                    if (scError) console.warn('[CONTENT TARGETS INSERT WARN]', scError);
                 }
 
                 // If notice was auto-created, link its targets before queuing its notification
@@ -1130,13 +1141,23 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                         const { error: ncError } = await _supabase.from('content_targets').insert(targetLinks);
                         if (ncError) console.error("[SCHEDULE] Notice targets link error:", ncError);
                     } else {
-                        const targetLinks = [{
-                            content_type: 'notice',
-                            content_id: noticeData[0].id,
-                            target_type: audience_type,
-                            target_id: null
-                        }];
-                        await _supabase.from('content_targets').insert(targetLinks);
+                        if (window.currentUserRole === 'cr' && window.currentUserCRBatches && window.currentUserCRBatches.length > 0) {
+                            const targetLinks = window.currentUserCRBatches.map(batchId => ({
+                                content_type: 'notice',
+                                content_id: noticeData[0].id,
+                                target_type: audience_type,
+                                target_id: batchId
+                            }));
+                            await _supabase.from('content_targets').insert(targetLinks);
+                        } else {
+                            const targetLinks = [{
+                                content_type: 'notice',
+                                content_id: noticeData[0].id,
+                                target_type: audience_type,
+                                target_id: null
+                            }];
+                            await _supabase.from('content_targets').insert(targetLinks);
+                        }
                     }
 
                     // Auto-queue notification for the notice ONLY after targets are inserted
@@ -1636,14 +1657,29 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
                         if (scError) console.warn('[CONTENT TARGETS UPDATE WARN]', scError);
                     }
                 } else {
-                    const scRows = [{
-                        content_type: 'schedule',
-                        content_id: selectedScheduleId,
-                        target_type: audience_type,
-                        target_id: null
-                    }];
-                    const { error: scError } = await _supabase.from('content_targets').insert(scRows);
-                    if (scError) console.warn('[CONTENT TARGETS UPDATE WARN]', scError);
+                    if (window.currentUserRole === 'cr') {
+                        if (window.currentUserCRBatches && window.currentUserCRBatches.length > 0) {
+                            const scRows = window.currentUserCRBatches.map(batchId => ({
+                                content_type: 'schedule',
+                                content_id: selectedScheduleId,
+                                target_type: audience_type,
+                                target_id: batchId
+                            }));
+                            const { error: scError } = await _supabase.from('content_targets').insert(scRows);
+                            if (scError) console.warn('[CONTENT TARGETS CR UPDATE WARN]', scError);
+                        } else {
+                            throw new Error("No assigned batches found for CR. Cannot post global schedule.");
+                        }
+                    } else {
+                        const scRows = [{
+                            content_type: 'schedule',
+                            content_id: selectedScheduleId,
+                            target_type: audience_type,
+                            target_id: null
+                        }];
+                        const { error: scError } = await _supabase.from('content_targets').insert(scRows);
+                        if (scError) console.warn('[CONTENT TARGETS UPDATE WARN]', scError);
+                    }
                 }
 
                 window.showGlobalToast('Updated', 'Schedule updated successfully!');
