@@ -146,11 +146,6 @@ let isRegistering = false;
                     if (!isActualAdmin) {
                         if (typeof window.loadNotices === 'function') tasks.push(window.loadNotices(true).catch(console.warn));
                         
-                        if (typeof window.loadDashboardTodayRoutine === 'function') {
-                            const currentScreen = window.location.hash ? window.location.hash.substring(1) : 'screen-student-dashboard';
-                            // Race condition fix: navigate() already calls loadDashboardTodayRoutine, so we don't call it again here.
-                        }
-                        
                         if (typeof window.loadScheduleList === 'function') tasks.push(window.loadScheduleList(true).catch(console.warn));
                     }
 
