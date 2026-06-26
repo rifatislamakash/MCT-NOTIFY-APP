@@ -6,8 +6,7 @@ import { FacultyStore } from './stores/FacultyStore.js?v=rescue2';
 import { RoutineStore } from './stores/RoutineStore.js?v=rescue2';
 import { NotificationStore } from './stores/NotificationStore.js?v=rescue2';
 import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
-import { NotificationQueueService } from './services/NotificationQueueService.js?v=rescue2';
-import { CascadeDeleteService } from './services/CascadeDeleteService.js?v=rescue2';
+
 
         // ----------------- NOTICES SYSTEM -----------------
         let currentNoticesList = [];
@@ -1140,6 +1139,8 @@ import { CascadeDeleteService } from './services/CascadeDeleteService.js?v=rescu
                     const shouldNotify = document.getElementById('notify-audience-notice')?.checked !== false;
                     
                     if (shouldNotify && (!id || publish_now)) {
+                        console.log("[NOTICE CREATE] Passing to universal Notification Queue Service...");
+                        const { NotificationQueueService } = await import('./services/NotificationQueueService.js?v=rescue2');
                         const queueRes = await NotificationQueueService.queueNotification({
                             parentType: 'notice',
                             parentId: savedNoticeId,
@@ -1466,6 +1467,7 @@ import { CascadeDeleteService } from './services/CascadeDeleteService.js?v=rescu
             console.log("[NOTICE DELETE] Starting deletion for notice ID:", id);
             window.showLoader(true, "Deleting notice...");
             try {
+                const { CascadeDeleteService } = await import('./services/CascadeDeleteService.js?v=rescue2');
                 const cascadeRes = await CascadeDeleteService.cascadeDelete({
                     parentType: 'notice',
                     parentId: id,
@@ -1532,4 +1534,4 @@ export const NoticeService = {
     openEditNotice: typeof openEditNotice !== 'undefined' ? openEditNotice : window.openEditNotice,
     deleteNoticeAction: typeof deleteNoticeAction !== 'undefined' ? deleteNoticeAction : window.deleteNoticeAction
 };
-console.log("[ARCHITECTURE]\nnotices loaded");
+

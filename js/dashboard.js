@@ -652,4 +652,4 @@ export const DashboardService = {
         if (checkUploadBtn) { isCR ? checkUploadBtn.classList.add('hidden') : checkUploadBtn.classList.remove('hidden'); }
     }
 };
-console.log("[ARCHITECTURE]\ndashboard loaded");
+

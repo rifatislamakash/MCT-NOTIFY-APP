@@ -6,7 +6,6 @@ import { crPermissionService } from './services/crPermissionService.js?v=rescue2
 import { RoutineStore } from './stores/RoutineStore.js?v=rescue2';
 import { NotificationStore } from './stores/NotificationStore.js?v=rescue2';
 import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
-import { NotificationQueueService } from './services/NotificationQueueService.js?v=rescue2';
 
         // ==========================================
         // ROUTINE SYSTEM - COMPLETE ENGINE
@@ -1787,7 +1786,8 @@ window.switchRoutineView = switchRoutineView;
                 const shouldNotify = document.getElementById('notify-audience-exam')?.checked !== false;
 
                 if (shouldNotify) {
-                    const queueRes = await NotificationQueueService.queueNotification({
+                        const { NotificationQueueService } = await import('./services/NotificationQueueService.js?v=rescue2');
+                        const queueRes = await NotificationQueueService.queueNotification({
                         parentType: 'exam',
                         parentId: newExam.id,
                         isNotifyEnabled: true,
@@ -1803,6 +1803,10 @@ window.switchRoutineView = switchRoutineView;
                 }
 
                 window.showGlobalToast('Created', 'Exam schedule added successfully!');
+                
+                // Delay slightly to allow Supabase Read Replicas to sync
+                await new Promise(r => setTimeout(r, 300));
+                
                 window.navigate('screen-weekly-routine');
                 if (window.switchRoutineView) window.switchRoutineView('exams');
             } catch (err) {
@@ -2101,21 +2105,26 @@ window.switchRoutineView = switchRoutineView;
                 const shouldNotify = document.getElementById('notify-audience-edit-exam')?.checked !== false;
 
                 if (shouldNotify) {
-                    await window._supabase.functions.invoke('send-reminders', {
-                        body: {
-                            target_id: examId,
-                            title: `Knock knock...! '${courseName}' exam is knocking at the door.`,
-                            body: `'${courseName}' Exam will be held on '${examDate} & ${window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime}'.`,
-                            type: 'NEW_EXAM',
-                            topic: targetTopic,
-                            time: new Date().toISOString()
-                        }
-                    }).catch(err => console.warn('Failed to send push notification', err));
+                    const { NotificationQueueService } = await import('./services/NotificationQueueService.js?v=rescue2');
+                    const queueRes = await NotificationQueueService.queueNotification({
+                        parentType: 'exam',
+                        parentId: examId,
+                        isNotifyEnabled: true,
+                        audienceType: 'batch_students',
+                        createdBy: window.authState.user.id,
+                        courseName: courseName,
+                        date: examDate,
+                        time: window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime
+                    });
+                    if (!queueRes.success) console.error("Exam Queue Error:", queueRes.error);
                 } else {
                     console.log("[SILENT MODE] Content saved, but audience notification skipped.");
                 }
 
                 window.showGlobalToast('Updated', 'Exam schedule updated successfully!');
+                
+                // Delay slightly to allow Supabase Read Replicas to sync
+                await new Promise(r => setTimeout(r, 300));
                 
                 window.navigate('screen-weekly-routine');
                 if (typeof window.switchRoutineView === 'function') {
@@ -2139,7 +2148,7 @@ window.switchRoutineView = switchRoutineView;
 
         // Removed DOMContentLoaded trigger to prevent "auth load failed" error on login screens.
         // loadWeeklyRoutine is already handled by the router when navigating to the routine screen.
-console.log("[ARCHITECTURE]\nroutines loaded");
+
 
 
 

@@ -1,0 +1,937 @@
+@@ -5274,3202 +5274,2916 @@
+                 openNoticeDetails(window._urgentNoticeForPopup.id);
+             }
+         };
+-
+-
+-
+-
+-
+-        // Loader Deadlock prevention global event handlers (Part 7)
+-        window.addEventListener('unhandledrejection', (event) => {
+-            console.warn('[LOADER FAILSAFE] Unhandled promise rejection, force-hiding loader.', event.reason);
+-            if (typeof forceHideLoader === 'function') forceHideLoader();
+-        });
+-        window.addEventListener('error', (event) => {
+-            console.warn('[LOADER FAILSAFE] Global error encountered, force-hiding loader.', event.error);
+-            if (typeof forceHideLoader === 'function') forceHideLoader();
+-        });
+-
+-
+-
+-        // Utility for handling requests with timeout and exponential backoff retries
+-
+-        // Helper to check/create public Supabase Storage bucket
+-
+-        // Centralized Global Auth Context State Management
+-        const authState = {
+-            user: null,
+-            profile: null,
+-            session: null,
+-            loading: true
+-        };
+-        window.authState = authState;
+-
+-        // Standard App State variables
+-        window.currentActiveScreen = 'screen-splash';
+-        window.currentUserEmail = '';
+-        let currentUserName = '';
+-        window.currentUserRole = 'student'; // RBAC Global Variable
+-        let currentViewedFacultyId = null; // Track Details Screen Entity
+-        let selectedFaculty = null; // Track full object for safe deletion
+-        let detailsFacultyImageFile = null;
+-        window.currentFacultiesList = []; // Track loaded faculties list
+-
+-        // --- GLOBALS FOR COURSE MANAGEMENT ---
+-        let currentCoursesList = [];
+-        let currentBatchesList = [];
+-        let currentCourseSections = [];
+-        let selectedCourseIdForEdit = null;
+-        window.currentUserCoursesList = [];
+-        let selectedCourseIdForDetails = null;
+-
+-        // --- GLOBALS FOR ADMIN STUDENTS ---
+-        let adminDirectoryProfiles = [];
+-        let adminDirectoryEnrollments = [];
+-        let adminDirectoryBatches = [];
+-        let adminViewedStudentId = null;
+-
+-        // --- CONTENT MANAGEMENT SYSTEM ---
+-        // Holds the live settings fetched from Supabase content_management table
+-        let contentSettings = {
+-            notices_center: true,
+-            schedule_hub: true,
+-            faculty_directory: true,
+-            material_center: true,
+-            my_courses: true,
+-            upload: false,
+-            support_contact: true,
+-            alerts: true,
+-            polls: true,
+-            maintenance_mode: false
+-        };
+-        let contentSettingsRowId = null; // the row ID in content_management table
+-
+-        // Load content settings from Supabase (called on login/boot)
+-        async function loadContentSettings() {
+-            try {
+-                const { data, error } = await _supabase
+-                    .from('content_management')
+-                    .select('*')
+-                    .limit(1)
+-                    .maybeSingle();
+-                if (error) throw error;
+-                if (data) {
+-                    contentSettingsRowId = data.id;
+-                    contentSettings = {
+-                        notices_center: data.notices_center !== false,
+-                        schedule_hub: data.schedule_hub !== false,
+-                        faculty_directory: data.faculty_directory !== false,
+-                        material_center: data.material_center !== false,
+-                        my_courses: data.my_courses !== false,
+-                        upload: data.upload === true,
+-                        support_contact: data.support_contact !== false,
+-                        alerts: data.alerts !== false,
+-                        polls: data.polls !== false,
+-                        maintenance_mode: data.maintenance_mode === true,
+-                        is_exam_mode: data.is_exam_mode === true
+-                    };
+-                }
+-                applyContentSettingsToUI();
+-            } catch (err) {
+-                console.warn("loadContentSettings error (non-fatal):", err);
+-            }
+-        }
+-        window.loadContentSettings = loadContentSettings;
+-
+-        // Apply settings to: admin toggles, student quick-access, maintenance modal
+-        function applyContentSettingsToUI() {
+-            // Sync admin toggle checkboxes
+-            const keys = ['notices_center', 'schedule_hub', 'faculty_directory', 'material_center', 'my_courses', 'upload', 'support_contact', 'alerts', 'polls', 'maintenance_mode', 'is_exam_mode'];
+-            keys.forEach(key => {
+-                const el = document.getElementById('cm-' + key);
+-                if (el) el.checked = contentSettings[key];
+-            });
+-
+-            // Maintenance mode: show unclosable overlay for non-admins
+-            if (contentSettings.maintenance_mode && currentUserRole !== 'admin') {
+-                showMaintenanceModal();
+-            } else {
+-                hideMaintenanceModal();
+-            }
+-
+-            // Grey out disabled student quick-access buttons
+-            keys.filter(k => k !== 'maintenance_mode').forEach(key => {
+-                applyFeatureGrayState(key, contentSettings[key]);
+-            });
+-        }
+-
+-        function applyFeatureGrayState(key, enabled) {
+-            const els = document.querySelectorAll('#qa-' + key + ', .qa-' + key);
+-            els.forEach(el => {
+-                const iconBox = el.querySelector('div');
+-                const label = el.querySelector('span');
+-                if (enabled) {
+-                    el.classList.remove('hidden', 'opacity-50', 'grayscale', 'pointer-events-none');
+-                    if (iconBox) iconBox.classList.remove('!bg-slate-100', '!text-slate-400');
+-                    if (label) label.classList.remove('!text-slate-400');
+-                } else {
+-                    if (el.classList.contains('hide-on-disable')) {
+-                        el.classList.add('hidden');
+-                    } else {
+-                        el.classList.add('opacity-50', 'grayscale');
+-                        el.classList.remove('pointer-events-none'); // keep clickable so we can show the popup
+-                    }
+-                }
+-            });
+-        }
+-
+-        // Called when any quick-access button is tapped
+-        window.onFeatureClick = function (featureKey, featureName, action) {
+-            if (!contentSettings[featureKey]) {
+-                showFeatureDisabledModal(featureName);
+-                return;
+-            }
+-            if (typeof action === 'function') action();
+-        };
+-
+-        // Admin: save a single setting to Supabase
+-        window.saveContentSetting = async function (key, value) {
+-            // Optimistically update local state
+-            contentSettings[key] = value;
+-            applyContentSettingsToUI();
+-
+-            try {
+-                if (contentSettingsRowId) {
+-                    const { error } = await _supabase
+-                        .from('content_management')
+-                        .update({ [key]: value })
+-                        .eq('id', contentSettingsRowId);
+-                    if (error) throw error;
+-                } else {
+-                    // No row yet — insert one
+-                    const { data, error } = await _supabase
+-                        .from('content_management')
+-                        .insert([{ [key]: value }])
+-                        .select()
+-                        .single();
+-                    if (error) throw error;
+-                    contentSettingsRowId = data.id;
+-                }
+-                if (key === 'is_exam_mode') {
+-                    showGlobalToast("Exam Mode", "Exam Mode is now " + (value ? "ON" : "OFF"), "success");
+-                } else {
+-                    showGlobalToast("Saved", `${key.replace(/_/g, ' ')} updated successfully.`);
+-                }
+-            } catch (err) {
+-                console.error("saveContentSetting error:", err);
+-                // Revert on failure
+-                contentSettings[key] = !value;
+-                applyContentSettingsToUI();
+-                showGlobalToast("Error", "Failed to save setting. Please try again.");
+-            }
+-        };
+-
+-        // Maintenance modal helpers
+-        function showMaintenanceModal() {
+-            const modal = document.getElementById('maintenance-modal');
+-            if (modal) {
+-                modal.classList.remove('pointer-events-none', 'opacity-0');
+-                modal.classList.add('opacity-100');
+-                if (typeof lucide !== 'undefined') lucide.createIcons();
+-            }
+-        }
+-        function hideMaintenanceModal() {
+-            const modal = document.getElementById('maintenance-modal');
+-            if (modal) {
+-                modal.classList.add('pointer-events-none', 'opacity-0');
+-                modal.classList.remove('opacity-100');
+-            }
+-        }
+-
+-        // Feature-disabled modal helpers
+-        function showFeatureDisabledModal(featureName) {
+-            const modal = document.getElementById('feature-disabled-modal');
+-            const msg = document.getElementById('feature-disabled-msg');
+-            if (msg) msg.innerText = `"${featureName}" is currently turned off by the admin.`;
+-            if (modal) {
+-                modal.classList.remove('pointer-events-none', 'opacity-0');
+-                modal.classList.add('opacity-100');
+-                if (typeof lucide !== 'undefined') lucide.createIcons();
+-            }
+-        }
+-        window.closeFeatureDisabledModal = function () {
+-            const modal = document.getElementById('feature-disabled-modal');
+-            if (modal) {
+-                modal.classList.add('pointer-events-none', 'opacity-0');
+-                modal.classList.remove('opacity-100');
+-            }
+-        };
+-
+-        // ----------------- TYPEWRITER EFFECT -----------------
+-        const wordList1 = ["instant", "direct", "live", "quick"];
+-        const wordList2 = ["updates", "schedules", "notices", "alerts"];
+-        let wordIndex = 0;
+-        let charIndex = 0;
+-        let currentTypewriterState = "typing_word_1"; // typing_word_1, pause_before_word_2, typing_word_2, pause_full, deleting_word_2, deleting_word_1
+-        let typewriterInterval;
+-
+-        function startTypewriter() {
+-            try {
+-                if (typeof currentActiveScreen !== 'undefined' && currentActiveScreen !== 'screen-welcome') {
+-                    return; // Stop running in background if user is not on welcome screen
+-                }
+-                const w1 = document.getElementById('typewriter-word-1');
+-                const w2 = document.getElementById('typewriter-word-2');
+-                if (!w1 || !w2) return;
+-
+-                const target1 = wordList1[wordIndex];
+-                const target2 = wordList2[wordIndex];
+-
+-                if (currentTypewriterState === "typing_word_1") {
+-                    w1.classList.add('typewriter-cursor');
+-                    w2.classList.remove('typewriter-cursor');
+-                    w1.innerText = target1.substring(0, charIndex + 1);
+-                    charIndex++;
+-                    if (charIndex === target1.length) {
+-                        currentTypewriterState = "pause_before_word_2";
+-                        typewriterInterval = setTimeout(startTypewriter, 350);
+-                        return;
+-                    }
+-                } else if (currentTypewriterState === "pause_before_word_2") {
+-                    w1.classList.remove('typewriter-cursor');
+-                    w2.classList.add('typewriter-cursor');
+-                    currentTypewriterState = "typing_word_2";
+-                    charIndex = 0;
+-                    typewriterInterval = setTimeout(startTypewriter, 50);
+-                    return;
+-                } else if (currentTypewriterState === "typing_word_2") {
+-                    w2.innerText = target2.substring(0, charIndex + 1);
+-                    charIndex++;
+-                    if (charIndex === target2.length) {
+-                        currentTypewriterState = "pause_full";
+-                        typewriterInterval = setTimeout(startTypewriter, 2500); // Hold full phrase for 2.5s
+-                        return;
+-                    }
+-                } else if (currentTypewriterState === "pause_full") {
+-                    currentTypewriterState = "deleting_word_2";
+-                    charIndex = target2.length;
+-                    typewriterInterval = setTimeout(startTypewriter, 40);
+-                    return;
+-                } else if (currentTypewriterState === "deleting_word_2") {
+-                    w2.innerText = target2.substring(0, charIndex - 1);
+-                    charIndex--;
+-                    if (charIndex === 0) {
+-                        w2.classList.remove('typewriter-cursor');
+-                        w1.classList.add('typewriter-cursor');
+-                        currentTypewriterState = "deleting_word_1";
+-                        charIndex = target1.length;
+-                        typewriterInterval = setTimeout(startTypewriter, 200);
+-                        return;
+-                    }
+-                } else if (currentTypewriterState === "deleting_word_1") {
+-                    w1.innerText = target1.substring(0, charIndex - 1);
+-                    charIndex--;
+-                    if (charIndex === 0) {
+-                        currentTypewriterState = "typing_word_1";
+-                        wordIndex = (wordIndex + 1) % wordList1.length;
+-                        typewriterInterval = setTimeout(startTypewriter, 400); // pause before starting next set
+-                        return;
+-                    }
+-                }
+-
+-                typewriterInterval = setTimeout(startTypewriter, currentTypewriterState.startsWith("deleting") ? 35 : 75);
+-            } catch (err) {
+-                console.error('[ERROR] Typewriter failed:', err);
+-            }
+-        }
+-
+-        // Helper: Extract ID cleanly from email address (returns only the part before @)
+-
+-        // Fetch user profile securely from database using maybeSingle
+-
+-        // Direct Routing Logic based on Supabase session profile checks
+-        let _isRouting = false;
+-
+-        // Persistent Session & Listener manager
+-
+-        function reorderBottomNavBars() {
+-            try {
+-                const allNavs = document.querySelectorAll('div.absolute.bottom-0.h-20');
+-                allNavs.forEach(nav => {
+-                    if (nav.querySelector('.nav-home-btn') || nav.querySelector('.nav-profile-btn')) {
+-                        nav.classList.add('bottom-nav-bar');
+-                    }
+-                });
+-
+-                const navBars = document.querySelectorAll('.bottom-nav-bar');
+-                navBars.forEach(nav => {
+-                    const homeBtn = nav.querySelector('.nav-home-btn');
+-                    const noticesBtn = nav.querySelector('.nav-notices-btn');
+-                    const scheduleBtn = nav.querySelector('.nav-schedule-btn') || nav.querySelector('.nav-schedules-btn');
+-                    const routineBtn = nav.querySelector('.nav-routine-btn');
+-                    const profileBtn = nav.querySelector('.nav-profile-btn');
+-
+-                    if (homeBtn) nav.appendChild(homeBtn);
+-                    if (noticesBtn) nav.appendChild(noticesBtn);
+-                    if (scheduleBtn) nav.appendChild(scheduleBtn);
+-                    if (routineBtn) nav.appendChild(routineBtn);
+-                    if (profileBtn) nav.appendChild(profileBtn);
+-                });
+-            } catch (e) {
+-                console.error("Error reordering bottom nav bars:", e);
+-            }
+-        }
+-        window.reorderBottomNavBars = reorderBottomNavBars;
+-
+-        // App Initializer
+-        window.addEventListener('load', () => {
+-            // Network Listeners
+-            window.addEventListener('offline', () => {
+-                const banner = document.getElementById('global-network-banner');
+-                if (banner) {
+-                    banner.innerHTML = '<i data-lucide="wifi-off" class="w-4 h-4 mr-2"></i> No Internet Connection';
+-                    banner.className = 'fixed top-0 left-0 right-0 h-10 bg-red-500 text-white flex items-center justify-center text-xs font-bold z-[9999] shadow-md transition-all duration-300';
+-                }
+-            });
+-            window.addEventListener('online', () => {
+-                const banner = document.getElementById('global-network-banner');
+-                if (banner) {
+-                    banner.innerHTML = '<i data-lucide="wifi" class="w-4 h-4 mr-2"></i> Connection Restored';
+-                    banner.className = 'fixed top-0 left-0 right-0 h-10 bg-emerald-500 text-white flex items-center justify-center text-xs font-bold z-[9999] shadow-md transition-all duration-300';
+-                    setTimeout(() => banner.classList.add('hidden'), 3000);
+-                }
+-            });
+-            if (!navigator.onLine) window.dispatchEvent(new Event('offline'));
+-            reorderBottomNavBars();
+-            // Clock handler
+-            setInterval(() => {
+-                const now = new Date();
+-                const hh = String(now.getHours()).padStart(2, '0');
+-                const mm = String(now.getMinutes()).padStart(2, '0');
+-                const clockEl = document.getElementById('phone-time');
+-                if (clockEl) clockEl.innerText = `${hh}:${mm}`;
+-            }, 1000);
+-
+-            // Splash countdown & App Initialization
+-            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+-            
+-            if (isStandalone) {
+-                const splash = document.getElementById('screen-splash');
+-                if (splash) splash.style.display = 'none';
+-            }
+-
+-            setTimeout(() => {
+-                const initApp = async () => {
+-                    if (window.isAppFullyInitialized) {
+-                        console.warn("[INIT LOCK] App is already initialized. Halting recursive call.");
+-                        return; 
+-                    }
+-                    if (typeof window.checkActiveSession === 'function') {
+-                        window.isAppFullyInitialized = true;
+-                        await window.checkActiveSession();
+-                        startTypewriter();
+-                    } else {
+-                        setTimeout(initApp, 50);
+-                    }
+-                };
+-                initApp();
+-
+-                // PART 8: Login email auto-complete @diu.edu.bd
+-                const loginEmailEl = document.getElementById('login-email');
+-                if (loginEmailEl) {
+-                    loginEmailEl.addEventListener('blur', () => {
+-                        const val = loginEmailEl.value.trim();
+-                        if (val && !val.includes('@') && val.match(/^\d{3}-\d{2}-\d{3,4}$/)) {
+-                            loginEmailEl.value = val + '@diu.edu.bd';
+-                        }
+-                    });
+-                    loginEmailEl.addEventListener('input', () => {
+-                        const val = loginEmailEl.value.trim();
+-                        // If user types ID then space, auto-complete
+-                        if (val.endsWith(' ') && !val.includes('@')) {
+-                            const trimmed = val.trim();
+-                            if (trimmed.match(/^\d{3}-\d{2}-\d{3,4}$/)) {
+-                                loginEmailEl.value = trimmed + '@diu.edu.bd';
+-                            }
+-                        }
+-                    });
+-                }
+-
+-                // Add preview live sync listeners for Course form
+-                ['create', 'update'].forEach(mode => {
+-                    ['batch', 'name', 'code', 'short', 'faculty', 'credit', 'sections'].forEach(field => {
+-                        const el = document.getElementById(`${mode}-course-${field}`);
+-                        if (el) {
+-                            el.addEventListener('input', () => updateCoursePreview(mode));
+-                            el.addEventListener('change', () => updateCoursePreview(mode));
+-                        }
+-                    });
+-                });
+-            }, isStandalone ? 0 : 2000);
+-        });
+-
+-        // ----------------- COURSE MANAGEMENT LOGIC (NEW) -----------------
+-
+-        // Fetch Dependencies for Courses (Batches & Faculty)
+-        async function fetchCourseDependencies(parentSignal = null) {
+-            try {
+-                // Fetch batches and faculty cached/deduplicated to avoid redundant calls and Promise.all overload
+-                const batches = await fetchCachedOrDeduplicated('batches', async () => {
+-                    const { data, error } = await _supabase.from('batches').select('*').abortSignal(parentSignal);
+-                    if (error) throw error;
+-                    return data || [];
+-                });
+-                
+-                const faculty = await fetchCachedOrDeduplicated('faculty', async () => {
+-                    const { data, error } = await _supabase.from('faculty').select('*').order('faculty_order', { ascending: true, nullsFirst: false }).abortSignal(parentSignal);
+-                    if (error) throw error;
+-                    return data || [];
+-                });
+-                
+-                currentBatchesList = batches;
+-                window.currentFacultiesList = faculty;
+-            } catch (err) {
+-                console.error("[DEPS ERROR] Failed to fetch batches/faculty", err);
+-            }
+-        }
+-
+-        // Load Admin Courses Screen
+-        async function loadAdminCourses() {
+-            if (isModuleLoading('adminCourses')) {
+-                console.log("[ADMIN COURSES] Load already in progress, ignoring duplicate call.");
+-                return;
+-            }
+-            setModuleLoading('adminCourses', true);
+-            cancelActiveRequest('adminCourses');
+-            const localController = new AbortController();
+-            activeLoadControllers['adminCourses'] = localController;
+-
+-            showLoader(true, "Loading courses...");
+-            try {
+-                await fetchCourseDependencies(localController.signal);
+-                let data = await fetchCachedOrDeduplicated('courses', async () => {
+-                    return await fetchWithRetry(async (signal) => {
+-                        const { data, error } = await _supabase
+-                            .from('courses')
+-                            .select('*')
+-                            .order('created_at', { ascending: false })
+-                            .abortSignal(signal);
+-                        if (error) throw error;
+-                        return data || [];
+-                    }, 2, 1000, 8000, localController.signal);
+-                });
+-
+-                if (localController.signal.aborted) {
+-                    console.log("[ADMIN COURSES] Load aborted, ignoring state updates.");
+-                    return;
+-                }
+-
+-                // Populate Batch Filter
+-                const batchFilter = document.getElementById('admin-courses-batch-filter');
+-                if (batchFilter) {
+-                    batchFilter.classList.remove('hidden');
+-                    let optionsHTML = '<option value="all" class="text-black">All Batches</option>';
+-                    if (currentBatchesList && currentBatchesList.length > 0) {
+-                        const sortedBatches = [...currentBatchesList].sort((a, b) => a.batch_name.localeCompare(b.batch_name));
+-                        optionsHTML += sortedBatches.map(b => `<option value="${b.id}" class="text-black">${b.batch_name}</option>`).join('');
+-                    }
+-                    // preserve selected value
+-                    const currentVal = batchFilter.value || 'all';
+-                    batchFilter.innerHTML = optionsHTML;
+-                    batchFilter.value = currentVal;
+-                }
+-
+-                if (window.crPermissionService && window.crPermissionService.isCR()) {
+-                    const assignedBatches = window.crPermissionService.currentAssignedBatches || [];
+-                    data = data.filter(c => assignedBatches.some(b => b == c.batch_id));
+-                    // hide filter for CR since they only see their batches anyway
+-                    if (batchFilter) batchFilter.classList.add('hidden');
+-                }
+-
+-                allCoursesList = data;
+-                
+-                // Apply the batch filter
+-                const selectedBatch = batchFilter ? batchFilter.value : 'all';
+-                currentCoursesList = selectedBatch === 'all' ? allCoursesList : allCoursesList.filter(c => c.batch_id === selectedBatch);
+-                
+-                renderAdminCoursesList();
+-            } catch (err) {
+-                if (err.name === 'AbortError') {
+-                    console.log("[ADMIN COURSES] Abort detected, resetting to welcome screen.");
+-                    if (typeof forceHideLoader === 'function') forceHideLoader();
+-                    if (isScreenActive('screen-admin-courses') && typeof navigate === 'function') {
+-                        /* navigate('screen-welcome'); (removed AbortError redirect) */
+-                    }
+-                    return;
+-                }
+-                console.error(err);
+-                showGlobalToast("Error", "Could not load courses.");
+-            } finally {
+-                setModuleLoading('adminCourses', false);
+-                if (activeLoadControllers['adminCourses'] === localController) {
+-                    activeLoadControllers['adminCourses'] = null;
+-                }
+-                showLoader(false);
+-            }
+-        }
+-
+-        // Apply Batch Filter
+-        window.filterAdminCoursesByBatch = function() {
+-            const batchFilter = document.getElementById('admin-courses-batch-filter');
+-            const selectedBatch = batchFilter ? batchFilter.value : 'all';
+-            
+-            if (selectedBatch === 'all') {
+-                currentCoursesList = allCoursesList;
+-            } else {
+-                currentCoursesList = allCoursesList.filter(c => c.batch_id === selectedBatch);
+-            }
+-            renderAdminCoursesList();
+-        };
+-
+-        // Render Courses List
+-        function renderAdminCoursesList() {
+-            const container = document.getElementById('admin-courses-list');
+-            if (!container) return;
+-
+-            if (currentCoursesList.length === 0) {
+-                container.innerHTML = `
+-                        <div class="flex flex-col items-center justify-center py-12 text-center text-slate-400 bg-white rounded-[16px] border border-slate-100 p-6">
+-                            <i data-lucide="book-open" class="w-10 h-10 mb-2.5 text-slate-300"></i>
+-                            <p class="text-sm font-bold text-slate-500">No courses created yet</p>
+-                        </div>`;
+-                if (typeof lucide !== 'undefined') lucide.createIcons();
+-                return;
+-            }
+-
+-            container.innerHTML = currentCoursesList.map(c => {
+-                const batchName = currentBatchesList.find(s => s.id == c.batch_id)?.batch_name || 'Unknown';
+-                const facName = window.currentFacultiesList.find(f => f.id == c.faculty_id)?.faculty_name || 'Unassigned';
+-
+-                // Properly parse sections_name safely to display in list UI
+-                let sectionsStr = "N/A";
+-                if (c.sections_name) {
+-                    if (Array.isArray(c.sections_name)) {
+-                        sectionsStr = c.sections_name.join(', ');
+-                    } else if (typeof c.sections_name === 'string') {
+-                        try { sectionsStr = JSON.parse(c.sections_name).join(', '); } catch (e) { sectionsStr = c.sections_name; }
+-                    }
+-                }
+-
+-                return `
+-                        <div onclick="openUpdateCourse('${c.id}')" class="bg-white p-4 rounded-[16px] border border-slate-100 shadow-sm cursor-pointer hover:border-[#4226E9]/30 hover:shadow-md transition-all active:scale-[0.98]">
+-                            <div class="flex justify-between items-start mb-2">
+-                                <div>
+-                                    <h4 class="font-bold text-[15px] text-slate-900 leading-tight">${window.sanitizeHTML(c.course_name)}</h4>
+-                                    <p class="text-[12px] text-slate-500 font-semibold mt-0.5">${window.sanitizeHTML(c.course_code)}</p>
+-                                </div>
+-                                <span class="bg-indigo-50 text-[#4226E9] text-[10px] font-bold px-2.5 py-1 rounded-md uppercase">${batchName}</span>
+-                            </div>
+-                            <div class="flex flex-wrap items-center justify-between text-[11px] text-slate-500 mt-3 pt-3 border-t border-slate-50 gap-y-2">
+-                                <span class="flex items-center gap-1.5 font-medium"><i data-lucide="user" class="w-3.5 h-3.5 text-[#4226E9]"></i> ${facName}</span>
+-                                <div class="flex gap-2">
+-                                    <span class="font-bold bg-slate-100 px-2 py-0.5 rounded-full text-slate-600">Sec: ${sectionsStr}</span>
+-                                    <span class="font-bold bg-slate-100 px-2 py-0.5 rounded-full text-slate-600">${c.total_credit} Cr</span>
+-                                </div>
+-                            </div>
+-                        </div>
+-                    `;
+-            }).join('');
+-
+-            if (typeof lucide !== 'undefined') lucide.createIcons();
+-        }
+-
+-        // Initialize Dropdowns for Create Page
+-        async function loadCreateCourseDropdowns() {
+-            showLoader(true, "Loading setup...");
+-            try {
+-                await fetchCourseDependencies();
+-
+-                const semSelect = document.getElementById('create-course-batch');
+-                if (semSelect) {
+-                    let displayBatches = currentBatchesList;
+-                    if (window.crPermissionService && window.crPermissionService.isCR()) {
+-                        displayBatches = currentBatchesList.filter(b => window.crPermissionService.canAccessBatch(b.id));
+-                    }
+-                    semSelect.innerHTML = '<option value="" disabled selected hidden>Select options</option>' +
+-                        displayBatches.map(item => `<option value="${item.id}">${window.sanitizeHTML(item.batch_name)}</option>`).join('');
+-                }
+-
+-                const facSelect = document.getElementById('create-course-faculty');
+-                if (facSelect) {
+-                    facSelect.innerHTML = '<option value="" disabled selected hidden>Select options</option>' +
+-                        window.currentFacultiesList.map(item => `<option value="${item.id}">${window.sanitizeHTML(item.faculty_name)}</option>`).join('');
+-                }
+-
+-                currentCourseSections = [];
+-                const tagsCont = document.getElementById('create-course-sections-tags');
+-                if (tagsCont) tagsCont.innerHTML = '';
+-
+-                const createForm = document.getElementById('form-create-course');
+-                if (createForm) createForm.reset();
+-
+-                updateCoursePreview('create');
+-            } catch (err) {
+-                console.error("Setup load failed:", err);
+-            } finally {
+-                showLoader(false);
+-            }
+-        }
+-
+-        // Dynamic Live Preview (Pixel Perfect logic)
+-        window.updateCoursePreview = function (mode) {
+-            const getVal = id => document.getElementById(id) ? document.getElementById(id).value : '';
+-            const setTxt = (id, txt) => { if (document.getElementById(id)) document.getElementById(id).innerText = txt || ''; };
+-
+-            const batchId = getVal(`${mode}-course-batch`);
+-            const batchTxt = currentBatchesList.find(s => s.id == batchId)?.batch_name || '';
+-            const facId = getVal(`${mode}-course-faculty`);
+-            const facTxt = window.currentFacultiesList.find(f => f.id == facId)?.faculty_name || '';
+-
+-            setTxt(`${mode}-preview-batch`, batchTxt);
+-            setTxt(`${mode}-preview-name`, getVal(`${mode}-course-name`));
+-            setTxt(`${mode}-preview-code`, getVal(`${mode}-course-code`));
+-            setTxt(`${mode}-preview-faculty`, facTxt);
+-            setTxt(`${mode}-preview-credit`, getVal(`${mode}-course-credit`));
+-            setTxt(`${mode}-preview-sections`, getVal(`${mode}-course-sections`));
+-            setTxt(`${mode}-preview-section-names`, currentCourseSections.join(', '));
+-        }
+-
+-        // Add Section logic (Native Array logic)
+-        window.addCourseSectionUI = function (mode) {
+-            const inputId = `${mode}-course-section-input`;
+-            const tagsId = `${mode}-course-sections-tags`;
+-            const input = document.getElementById(inputId);
+-            if (!input) return;
+-
+-            const val = String(input.value || '').trim();
+-            if (val && !currentCourseSections.includes(val)) {
+-                currentCourseSections.push(val);
+-                input.value = '';
+-                renderCourseSectionsTags(tagsId, mode);
+-                updateCoursePreview(mode);
+-            }
+-        };
+-
+-        // Remove Section logic
+-        window.removeCourseSectionUI = function (sec, tagsId, mode) {
+-            currentCourseSections = currentCourseSections.filter(s => s !== sec);
+-            renderCourseSectionsTags(tagsId, mode);
+-            updateCoursePreview(mode);
+-        };
+-
+-        // Render Section Tags below input
+-        function renderCourseSectionsTags(containerId, mode) {
+-            const container = document.getElementById(containerId);
+-            if (!container) return;
+-            container.innerHTML = currentCourseSections.map(sec => `
+-                    <span class="bg-indigo-50 text-[#4226E9] px-2.5 py-1 rounded-md text-[12px] font-medium flex items-center gap-1.5 border border-indigo-100">
+-                        ${sec} <button type="button" onclick="removeCourseSectionUI('${sec}', '${containerId}', '${mode}')" class="text-indigo-400 hover:text-indigo-700 transform hover:scale-110 ml-1">&times;</button>
+-                    </span>
+-                `).join('');
+-        }
+-
+-        // Submit newly created course securely mapped to JSONB Array
+-        async function handleCreateCourse(e) {
+-            e.preventDefault();
+-            const isAdmin = window.crPermissionService && window.crPermissionService.isAdmin();
+-            const isCR = window.crPermissionService && window.crPermissionService.isCR();
+-            
+-            if (!isAdmin && !isCR) {
+-                showGlobalToast("Access Denied", "You don't have permission to add courses.");
+-                return;
+-            }
+-
+-            const batchId = document.getElementById('create-course-batch').value;
+-            if (window.crPermissionService && !window.crPermissionService.canAccessBatch(batchId)) {
+-                console.log(`[CR PERMISSION DENIED] Attempted to create course for unassigned batch ${batchId}`);
+-                showGlobalToast("Access Denied", "You can only manage courses for your assigned batches.");
+-                return;
+-            }
+-            if (isCR) console.log(`[CR ACCESS CHECK] Validating access for batch ${batchId} - PASSED`);
+-
+-            if (isCR) {
+-                const coursesInBatch = currentCoursesList.filter(c => c.batch_id === batchId);
+-                if (coursesInBatch.length >= 7) {
+-                    showGlobalToast("Limit Reached", "Maximum of 7 courses allowed per batch.");
+-                    return;
+-                }
+-            }
+-
+-            if (isCR) console.log(`[CR CREATE] Course for batch ${batchId}`);
+-
+-            showLoader(true, "Creating course...");
+-            try {
+-                const payload = {
+-                    batch_id: document.getElementById('create-course-batch').value,
+-                    course_name: document.getElementById('create-course-name').value.trim(),
+-                    course_code: document.getElementById('create-course-code').value.trim(),
+-                    short_name: document.getElementById('create-course-short').value.trim(),
+-                    faculty_id: document.getElementById('create-course-faculty').value,
+-                    total_credit: parseInt(document.getElementById('create-course-credit').value),
+-                    total_sections: parseInt(document.getElementById('create-course-sections').value),
+-                    sections_name: currentCourseSections // Pushed directly into Supabase JSONB Maps
+-                };
+-
+-                const { error } = await _supabase.from('courses').insert([payload]);
+-                if (error) throw error;
+-
+-                showGlobalToast("Success", "Course created successfully.");
+-                document.getElementById('form-create-course').reset();
+-                currentCourseSections = [];
+-                renderCourseSectionsTags('create-course-sections-tags', 'create');
+-                navigate('screen-admin-courses');
+-
+-                await loadAdminCourses();
+-            } catch (err) {
+-                console.error(err);
+-                showGlobalToast("Error", "Failed to create course.");
+-            } finally {
+-                showLoader(false);
+-            }
+-        }
+-
+-        // Load targeted ID into Update Courses Interface
+-        async function openUpdateCourse(id) {
+-            showLoader(true, "Opening record...");
+-            try {
+-                const course = currentCoursesList.find(c => c.id === id);
+-                if (!course) throw new Error("Missing Local Course Details");
+-
+-                selectedCourseIdForEdit = id;
+-                await fetchCourseDependencies();
+-
+-                const semSelect = document.getElementById('update-course-batch');
+-                if (semSelect) {
+-                    let displayBatches = currentBatchesList;
+-                    if (window.crPermissionService && window.crPermissionService.isCR()) {
+-                        displayBatches = currentBatchesList.filter(b => window.crPermissionService.canAccessBatch(b.id));
+-                    }
+-                    semSelect.innerHTML = displayBatches.map(item => `<option value="${item.id}">${window.sanitizeHTML(item.batch_name)}</option>`).join('');
+-                }
+-
+-                const facSelect = document.getElementById('update-course-faculty');
+-                if (facSelect) {
+-                    facSelect.innerHTML = window.currentFacultiesList.map(item => `<option value="${item.id}">${window.sanitizeHTML(item.faculty_name)}</option>`).join('');
+-                }
+-
+-                document.getElementById('update-course-batch').value = course.batch_id || '';
+-                document.getElementById('update-course-name').value = course.course_name || '';
+-                document.getElementById('update-course-code').value = course.course_code || '';
+-                document.getElementById('update-course-short').value = course.short_name || '';
+-                document.getElementById('update-course-faculty').value = course.faculty_id || '';
+-                document.getElementById('update-course-credit').value = course.total_credit || '3';
+-                document.getElementById('update-course-sections').value = course.total_sections || '1';
+-
+-                // Robust JSONB parsing to prevent empty sections bug during edits
+-                currentCourseSections = [];
+-                if (course.sections_name) {
+-                    if (Array.isArray(course.sections_name)) {
+-                        currentCourseSections = [...course.sections_name];
+-                    } else if (typeof course.sections_name === 'string') {
+-                        try {
+-                            const parsed = JSON.parse(course.sections_name);
+-                            if (Array.isArray(parsed)) currentCourseSections = [...parsed];
+-                            else currentCourseSections.push(course.sections_name);
+-                        } catch (e) {
+-                            currentCourseSections.push(course.sections_name);
+-                        }
+-                    }
+-                }
+-
+-                renderCourseSectionsTags('update-course-sections-tags', 'update');
+-                updateCoursePreview('update');
+-                navigate('screen-update-course');
+-            } catch (err) {
+-                console.error("Open Course Error:", err);
+-                showGlobalToast("Error", "Could not fetch details.");
+-            } finally {
+-                showLoader(false);
+-            }
+-        }
+-
+-        // Handle Form Submission logic for Update
+-        async function handleUpdateCourse(e) {
+-            e.preventDefault();
+-            const isAdmin = window.crPermissionService && window.crPermissionService.isAdmin();
+-            const isCR = window.crPermissionService && window.crPermissionService.isCR();
+-            if (!isAdmin && !isCR) return;
+-
+-            const originalCourse = currentCoursesList.find(c => c.id === selectedCourseIdForEdit);
+-            if (!originalCourse) return;
+-            
+-            if (window.crPermissionService && !window.crPermissionService.canAccessBatch(originalCourse.batch_id)) {
+-                console.log(`[CR PERMISSION DENIED] Attempted to update course for unassigned batch ${originalCourse.batch_id}`);
+-                showGlobalToast("Access Denied", "You can only update courses for your assigned batches.");
+-                return;
+-            }
+-            
+-            const newBatchId = document.getElementById('update-course-batch').value;
+-            if (window.crPermissionService && !window.crPermissionService.canAccessBatch(newBatchId)) {
+-                console.log(`[CR PERMISSION DENIED] Attempted to move course to unassigned batch ${newBatchId}`);
+-                showGlobalToast("Access Denied", "You can only assign courses to your own batches.");
+-                return;
+-            }
+-
+-            if (isCR) console.log(`[CR ACCESS CHECK] Validating access for batch ${originalCourse.batch_id} -> ${newBatchId} - PASSED`);
+-            if (isCR) console.log(`[CR UPDATE] Course ${selectedCourseIdForEdit}`);
+-
+-            showLoader(true, "Updating course...");
+-            try {
+-                const payload = {
+-                    batch_id: document.getElementById('update-course-batch').value,
+-                    course_name: document.getElementById('update-course-name').value.trim(),
+-                    course_code: document.getElementById('update-course-code').value.trim(),
+-                    short_name: document.getElementById('update-course-short').value.trim(),
+-                    faculty_id: document.getElementById('update-course-faculty').value,
+-                    total_credit: parseInt(document.getElementById('update-course-credit').value),
+-                    total_sections: parseInt(document.getElementById('update-course-sections').value),
+-                    sections_name: currentCourseSections
+-                };
+-
+-                const { error } = await _supabase.from('courses').update(payload).eq('id', selectedCourseIdForEdit);
+-                if (error) throw error;
+-
+-                showGlobalToast("Success", "Course updated successfully.");
+-                navigate('screen-admin-courses');
+-
+-                await loadAdminCourses();
+-            } catch (err) {
+-                console.error(err);
+-                showGlobalToast("Error", "Failed to update course.");
+-            } finally {
+-                showLoader(false);
+-            }
+-        }
+-
+-        // Course purges securely
+-        async function deleteCourseAction() {
+-            const isAdmin = window.crPermissionService && window.crPermissionService.isAdmin();
+-            const isCR = window.crPermissionService && window.crPermissionService.isCR();
+-            if (!isAdmin && !isCR) return;
+-
+-            const originalCourse = currentCoursesList.find(c => c.id === selectedCourseIdForEdit);
+-            if (!originalCourse) return;
+-            
+-            if (window.crPermissionService && !window.crPermissionService.canAccessBatch(originalCourse.batch_id)) {
+-                console.log(`[CR PERMISSION DENIED] Attempted to delete course for unassigned batch ${originalCourse.batch_id}`);
+-                showGlobalToast("Access Denied", "You can only delete courses for your assigned batches.");
+-                return;
+-            }
+-
+-            if (isCR) console.log(`[CR ACCESS CHECK] Validating access for batch ${originalCourse.batch_id} - PASSED`);
+-            if (isCR) console.log(`[CR DELETE] Course ${selectedCourseIdForEdit}`);
+-
+-            if (!confirm("Are you sure you want to completely remove this course?")) return;
+-            showLoader(true, "Deleting course...");
+-            try {
+-                // Safeguard cleanup on dependencies before course purge
+-                await _supabase.from('user_courses').delete().eq('course_id', selectedCourseIdForEdit);
+-                const { error } = await _supabase.from('courses').delete().eq('id', selectedCourseIdForEdit);
+-                if (error) throw error;
+-
+-                showGlobalToast("Success", "Course deleted successfully.");
+-                navigate('screen-admin-courses');
+-
+-                await loadAdminCourses();
+-            } catch (err) {
+-                console.error(err);
+-                showGlobalToast("Error", "Failed to delete course.");
+-            } finally {
+-                showLoader(false);
+-            }
+-        }
+-
+-        // ----------------- STUDENT ENROLLMENT & COURSES LOGIC -----------------
+-
+-        // Onboarding Selection
+-        window.onboardingPrimaryBatch = null;
+-        window.onboardingSecondaryBatches = [];
+-        window.onboardBatchesList = [];
+-
+-        async function loadCourseSelection() {
+-            showLoader(true, "Loading available batches & courses...");
+-            try {
+-                const [batchRes, courRes] = await Promise.all([
+-                    _supabase.from('batches').select('*').eq('active', true).order('batch_name', { ascending: true }),
+-                    _supabase.from('courses').select('*')
+-                ]);
+-                
+-                window.onboardBatchesList = batchRes.data || [];
+-                currentCoursesList = courRes.data || [];
+-
+-                // Render Primary Dropdown
+-                const primSelect = document.getElementById('onboard-primary-batch');
+-                if (primSelect) {
+-                    primSelect.innerHTML = '<option value="" disabled selected hidden>Select primary batch</option>' +
+-                        window.onboardBatchesList.map(item => `<option value="${item.id}">${window.sanitizeHTML(item.batch_name)}</option>`).join('');
+-                }
+-
+-                // Render Secondary Pills
+-                const secList = document.getElementById('onboard-secondary-list');
+-                if (secList) {
+-                    secList.innerHTML = window.onboardBatchesList.map(item => `
+-                        <label class="inline-flex items-center gap-2 cursor-pointer bg-white border border-slate-20
+<truncated 293497 bytes>
+
+NOTE: The output was truncated because it was too long. Use a more targeted query or a smaller range to get the information you need.

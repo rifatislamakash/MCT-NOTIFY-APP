@@ -6,8 +6,6 @@ import { FacultyStore } from './stores/FacultyStore.js?v=rescue2';
 import { RoutineStore } from './stores/RoutineStore.js?v=rescue2';
 import { NotificationStore } from './stores/NotificationStore.js?v=rescue2';
 import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
-import { NotificationQueueService } from './services/NotificationQueueService.js?v=rescue2';
-import { CascadeDeleteService } from './services/CascadeDeleteService.js?v=rescue2';
 
         // ==========================================
         // SCHEDULE SYSTEM — COMPLETE ENGINE
@@ -1163,6 +1161,7 @@ import { CascadeDeleteService } from './services/CascadeDeleteService.js?v=rescu
                     }
 
                     // Auto-queue notification for the notice ONLY after targets are inserted
+                    const { NotificationQueueService } = await import('./services/NotificationQueueService.js?v=rescue2');
                     const noticeQueueRes = await NotificationQueueService.queueNotification({
                         parentType: 'notice',
                         parentId: noticeData[0].id,
@@ -1181,7 +1180,8 @@ import { CascadeDeleteService } from './services/CascadeDeleteService.js?v=rescu
                     const reminderRows = [];
                     
                     if (notifyAudience) {
-                        const queueRes = await NotificationQueueService.queueNotification({
+                        const { NotificationQueueService } = await import('./services/NotificationQueueService.js?v=rescue2');
+                    const queueRes = await NotificationQueueService.queueNotification({
                             parentType: 'schedule',
                             parentId: newSchedule.id,
                             isNotifyEnabled: notifyAudience,
@@ -1729,6 +1729,7 @@ import { CascadeDeleteService } from './services/CascadeDeleteService.js?v=rescu
             try {
                 const s = schedulesList.find(x => x.id === selectedScheduleId);
 
+                const { CascadeDeleteService } = await import('./services/CascadeDeleteService.js?v=rescue2');
                 const cascadeRes = await CascadeDeleteService.cascadeDelete({
                     parentType: 'schedule',
                     parentId: selectedScheduleId,
@@ -1793,4 +1794,4 @@ export const ScheduleService = {
     handleUpdateSchedule: typeof handleUpdateSchedule !== 'undefined' ? handleUpdateSchedule : window.handleUpdateSchedule,
     handleDeleteSchedule: typeof handleDeleteSchedule !== 'undefined' ? handleDeleteSchedule : window.handleDeleteSchedule
 };
-console.log("[ARCHITECTURE]\nschedules loaded");
+

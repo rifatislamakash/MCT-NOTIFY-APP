@@ -402,8 +402,12 @@
                         });
                     }
 
-                    if (sessionStorage.getItem('token_registered') || (typeof window !== 'undefined' && window.deviceToken)) {
-                        if (document.getElementById('diag-token')) document.getElementById('diag-token').innerText = 'Generated & Linked';
+                    if (messaging && typeof getToken === 'function') {
+                        getToken(messaging, { vapidKey: VAPID_KEY }).then(t => {
+                            if (t && document.getElementById('diag-token')) document.getElementById('diag-token').innerText = 'Generated & Linked';
+                        }).catch(e => {
+                            if (document.getElementById('diag-token')) document.getElementById('diag-token').innerText = 'Missing/Error';
+                        });
                     }
                 }
             } catch(e) { console.warn("Diag interval error", e); }

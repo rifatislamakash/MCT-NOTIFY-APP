@@ -6,127 +6,6 @@ import { FacultyStore } from './stores/FacultyStore.js?v=rescue2';
 import { RoutineStore } from './stores/RoutineStore.js?v=rescue2';
 import { NotificationStore } from './stores/NotificationStore.js?v=rescue2';
 import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
-
-let _isRouting = false;
-let isRegistering = false;
-
-        export async function fetchUserProfile(userId) {
-            try {
-                const profilePromise = _supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', userId)
-                    .maybeSingle();
-                
-                let data, error;
-                try {
-                    if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
-                    let timerId;
-                    const timeoutPromise = new Promise((_, reject) => {
-                        timerId = setTimeout(() => reject(new Error('sdk_timeout')), 400);
-                    });
-                    try {
-                        const result = await Promise.race([profilePromise, timeoutPromise]);
-                        data = result.data;
-                        error = result.error;
-                    } finally {
-                        clearTimeout(timerId);
-                    }
-                } catch (e) {
-                    if (e.message === 'sdk_timeout') {
-                        window._supabaseSdkFailing = true;
-                        const url = `${_supabase.supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=*`;
-                        const res = await fetch(url, {
-                            headers: {
-                                'apikey': _supabase.supabaseKey,
-                                'Authorization': `Bearer ${window.authState?.session?.access_token || _supabase.supabaseKey}`,
-                                'cache-control': 'no-cache'
-                            },
-                            cache: 'no-store'
-                        });
-                        const fetchResult = await res.json();
-                        data = fetchResult && fetchResult.length > 0 ? fetchResult[0] : null;
-                    } else {
-                        throw e;
-                    }
-                }
-                if (error) throw error;
-                return data;
-            } catch (err) {
-                console.error('Exception caught in fetchUserProfile:', err);
-                return null;
-            }
-        }
-
-
-
-        export const handleUserRouting = async (user, profile) => {
-            console.log("[ROUTING INIT] Starting user routing...");
-            
-            if (typeof window.navigate === 'function') {
-                console.log("[ROUTING FUNCTION FOUND] window.navigate is available.");
-                console.log("[WINDOW NAVIGATE BOUND] Confirmed bounding of navigate function.");
-                console.log("[ROUTING READY] Proceeding with routing execution.");
-            } else {
-                console.warn("[ROUTING FUNCTION MISSING] window.navigate is undefined. Routing will likely fail.");
-            }
-
-            if (_isRouting) return;
-            _isRouting = true;
-            try {
-
-            if (!user) {
-                window.currentUserRole = 'student'; // Fallback
-                window.navigate('screen-welcome');
-                return;
-            }
-
-            // PART 1: Email confirmation check
-            if (!user.email_confirmed_at) {
-                console.log('[AUTH] Email not confirmed, redirecting to confirmation screen.');
-                if (typeof window.showLoader !== 'undefined') window.showLoader(false);
-                window.navigate('screen-confirm-email');
-                if (typeof lucide !== 'undefined') lucide.createIcons();
-                return;
-            }
-
-            window.currentUserEmail = String(profile?.email || user.email || '').trim().toLowerCase();
-            window.currentUserRole = String(profile?.role || '').trim().toLowerCase(); // Set global role
-
-            // Fetch and set user courses unconditionally on login to populate state
-            try {
-                const isAdminCheck = window.currentUserRole === 'admin' || window.isAdminEmail(user.email);
-                if (isAdminCheck) {
-                    window.currentUserCoursesList = [];
-                } else {
-                    const coursesPromise = deduplicateRequest('user_courses_boot', async () => {
-                        const sdkPromise = _supabase.from('user_courses').select('*').eq('user_id', user.id);
-                        const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('sdk_timeout')), 2000));
-                        try {
-                            const { data, error } = await Promise.race([sdkPromise, timeout]);
-                            if (error) throw error;
-                            return data;
-                        } catch (e) {
-                            if (e.message === 'sdk_timeout') {
-                                const url = `${_supabase.supabaseUrl}/rest/v1/user_courses?user_id=eq.${user.id}&select=*`;
-                                const res = await fetch(url, {
-                                    headers: {
-                                        'apikey': _supabase.supabaseKey,
-                                        'Authorization': `Bearer ${window.authState?.session?.access_token || _supabase.supabaseKey}`,
-                                        'cache-control': 'no-cache'
-                                    },
-                                    cache: 'no-store'
-                                });
-                                const fetchResult = await res.json();
-                                if (fetchResult.error) throw new Error(fetchResult.error.message);
-                                return fetchResult;
-                            }
-                            throw e;
-                        }
-                    });
-                    const userCourses = await coursesPromise;
-                    window.currentUserCoursesList = userCourses || [];
-                    window._userCoursesFetchFailed = false;
                 }
             } catch (e) { 
                 console.warn("[ROUTING] user_courses fetch failed or timed out:", e);
@@ -887,7 +766,7 @@ export const AuthService = {
     handleRegister,
     logout
 };
-console.log("[ARCHITECTURE]\nauth loaded");
+
 
 
 

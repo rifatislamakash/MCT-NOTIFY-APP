@@ -56,21 +56,7 @@ export const NotificationQueueService = {
 
             console.log(`[QUEUE VERIFIED] Checkbox enabled and Parent ID exists.`);
 
-            // Strict Idempotency Check
-            const { data: existing, error: checkErr } = await _supabase
-                .from('notification_reminders')
-                .select('id')
-                .eq('parent_type', parentType)
-                .eq('parent_id', parentId)
-                .eq('sent', false)
-                .limit(1);
-            
-            if (checkErr) throw checkErr;
-            if (existing && existing.length > 0) {
-                const duration = (performance.now() - startTime).toFixed(2);
-                console.log(`[QUEUE EXISTS] Reminder already pending for ${parentType} ${parentId}. Duration: ${duration}ms`);
-                return { success: true, skipped: true, reason: 'AlreadyQueued' };
-            }
+            // Strict Idempotency Check removed to allow push notifications even if custom reminders exist
 
             // Route to appropriate formatter
             let formatted;
@@ -129,5 +115,3 @@ export const NotificationQueueService = {
     }
 };
 
-window.AppServices = window.AppServices || {};
-window.AppServices.NotificationQueue = NotificationQueueService;

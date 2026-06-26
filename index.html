@@ -43,6 +43,7 @@
             // If a fatal error occurs and the body is empty or hidden
             setTimeout(() => {
                 const root = document.getElementById('root') || document.body;
+                if (!root) return; // Prevent infinite loop if body is null during head parsing
                 if (root.innerHTML.trim() === '' || root.innerHTML.includes('white-screen')) {
                     document.body.innerHTML = `
                         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background-color:#f8fafc; font-family:sans-serif; padding: 20px; text-align:center;">
@@ -5279,18 +5280,6 @@
 
 
 
-        // Loader Deadlock prevention global event handlers (Part 7)
-        window.addEventListener('unhandledrejection', (event) => {
-            console.warn('[LOADER FAILSAFE] Unhandled promise rejection, force-hiding loader.', event.reason);
-            if (typeof forceHideLoader === 'function') forceHideLoader();
-        });
-        window.addEventListener('error', (event) => {
-            console.warn('[LOADER FAILSAFE] Global error encountered, force-hiding loader.', event.error);
-            if (typeof forceHideLoader === 'function') forceHideLoader();
-        });
-
-
-
         // Utility for handling requests with timeout and exponential backoff retries
 
         // Helper to check/create public Supabase Storage bucket
@@ -8464,12 +8453,14 @@
             clearInterval(resendCooldownInterval);
             resendCooldownInterval = setInterval(() => {
                 timeLeft--;
-                text.innerText = `in ${timeLeft}s`;
+                if (text) text.innerText = `in ${timeLeft}s`;
                 if (timeLeft <= 0) {
                     clearInterval(resendCooldownInterval);
-                    btn.disabled = false;
-                    text.classList.add('hidden');
-                    text.innerText = "in 60s";
+                    if (btn) btn.disabled = false;
+                    if (text) {
+                        text.classList.add('hidden');
+                        text.innerText = "in 60s";
+                    }
                 }
             }, 1000);
         }

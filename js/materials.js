@@ -6,7 +6,6 @@ import { FacultyStore } from './stores/FacultyStore.js?v=rescue2';
 import { RoutineStore } from './stores/RoutineStore.js?v=rescue2';
 import { NotificationStore } from './stores/NotificationStore.js?v=rescue2';
 import { ProfileStore } from './stores/ProfileStore.js?v=rescue2';
-import { NotificationQueueService } from './services/NotificationQueueService.js?v=rescue2';
 
         // --- GLOBALS FOR MATERIALS ---
         let currentMaterialsList = [];
@@ -587,7 +586,8 @@ import { NotificationQueueService } from './services/NotificationQueueService.js
                             };
                             await _supabase.from('content_targets').insert([targetPayload]);
                             
-                            const queueRes = await NotificationQueueService.queueNotification({
+                            const { NotificationQueueService } = await import('./services/NotificationQueueService.js?v=rescue2');
+                    const queueRes = await NotificationQueueService.queueNotification({
                                 parentType: 'material',
                                 parentId: newMaterialId,
                                 isNotifyEnabled: true,
@@ -817,6 +817,7 @@ import { NotificationQueueService } from './services/NotificationQueueService.js
                     if (crPermissionService.isCR()) console.log(`[CR DELETE] Material ${material.id}`);
                 }
 
+                const { CascadeDeleteService } = await import('./services/CascadeDeleteService.js?v=rescue2');
                 const cascadeRes = await CascadeDeleteService.cascadeDelete({
                     parentType: 'material',
                     parentId: selectedMaterialIdForEdit,
@@ -868,6 +869,7 @@ import { NotificationQueueService } from './services/NotificationQueueService.js
             selectedMaterialIdForEdit = materialId;
             if (typeof window.showLoader !== 'undefined') window.showLoader(true, "Deleting material...");
             try {
+                const { CascadeDeleteService } = await import('./services/CascadeDeleteService.js?v=rescue2');
                 const cascadeRes = await CascadeDeleteService.cascadeDelete({
                     parentType: 'material',
                     parentId: materialId,
@@ -908,4 +910,4 @@ export const MaterialsService = {
     deleteMaterialAction: typeof deleteMaterialAction !== 'undefined' ? deleteMaterialAction : window.deleteMaterialAction,
     deleteMaterialFromDetails: typeof deleteMaterialFromDetails !== 'undefined' ? deleteMaterialFromDetails : window.deleteMaterialFromDetails
 };
-console.log("[ARCHITECTURE]\nmaterials loaded");
+

@@ -234,7 +234,7 @@ import { _supabase } from './supabase-client.js?v=rescue2';
             return 'Good Night';
         }
 
-console.log("[ARCHITECTURE]\nutils loaded");
+
 
 let lastFocusedEditor = null;
 document.addEventListener('focusin', (e) => {
@@ -452,8 +452,9 @@ window.executeGlobalDelete = async (tableName, itemId, elementContainerId) => {
             targetContentType = 'exam'; // Exams might not have target rows but it's safe to check
         }
 
-        if (window.AppServices && window.AppServices.CascadeDelete) {
-            const cascadeRes = await window.AppServices.CascadeDelete.cascadeDelete({
+        try {
+            const { CascadeDeleteService } = await import('./services/CascadeDeleteService.js?v=rescue2');
+            const cascadeRes = await CascadeDeleteService.cascadeDelete({
                 parentType,
                 parentId: itemId,
                 databaseTable,
@@ -462,7 +463,7 @@ window.executeGlobalDelete = async (tableName, itemId, elementContainerId) => {
                 relationTables
             });
             if (!cascadeRes.success) throw cascadeRes.error;
-        } else {
+        } catch (fallbackErr) {
             console.warn("CascadeDeleteService not found, falling back.");
             if (tableName === 'notices' || tableName === 'materials' || tableName === 'schedules') {
                 const { error } = await _supabase.rpc('delete_feed_item_cascade', { table_name: tableName, item_id: itemId });

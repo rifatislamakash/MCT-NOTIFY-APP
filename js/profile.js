@@ -1153,5 +1153,5 @@ export const ProfileService = {
     closePhoneEditModal: typeof closePhoneEditModal !== 'undefined' ? closePhoneEditModal : window.closePhoneEditModal,
     savePhoneEdit: typeof savePhoneEdit !== 'undefined' ? savePhoneEdit : window.savePhoneEdit
 };
-console.log("[ARCHITECTURE]\nprofile loaded");
+
 

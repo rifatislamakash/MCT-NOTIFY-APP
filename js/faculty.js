@@ -708,4 +708,4 @@ export const FacultyService = {
     removeFaculty: typeof removeFaculty !== 'undefined' ? removeFaculty : window.removeFaculty,
     handleAddFaculty: typeof handleAddFaculty !== 'undefined' ? handleAddFaculty : window.handleAddFaculty
 };
-console.log("[ARCHITECTURE]\nfaculty loaded");
+

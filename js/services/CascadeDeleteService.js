@@ -183,5 +183,3 @@ export const CascadeDeleteService = {
     }
 };
 
-window.AppServices = window.AppServices || {};
-window.AppServices.CascadeDelete = CascadeDeleteService;
