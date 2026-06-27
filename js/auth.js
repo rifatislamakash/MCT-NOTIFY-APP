@@ -164,6 +164,7 @@ let isRegistering = false;
                     await Promise.race([Promise.all(tasks), timeoutPromise]);
                     
                     // Unified Execution Frame for Repainting
+                    if (typeof window.updateDashboardGreetings === 'function') window.updateDashboardGreetings();
                     if (typeof window.renderNoticesList === 'function') window.renderNoticesList();
                     if (typeof window.injectDashboardNotices === 'function') window.injectDashboardNotices();
                     if (typeof window.renderDashboardTodayRoutine === 'function') window.renderDashboardTodayRoutine();
@@ -211,7 +212,7 @@ let isRegistering = false;
                         window.authState.profile.role = (isActualAdmin ? 'admin' : 'cr');
                         window.currentUserRole = String(window.authState.profile.role).toLowerCase();
                         window.navigate('screen-admin-dashboard');
-                        window.updateDashboardGreetings();
+                        // window.updateDashboardGreetings(); removed for single owner
                         if (window.DashboardService && window.DashboardService.applyCRDashboardRestrictions) {
                             window.DashboardService.applyCRDashboardRestrictions();
                         }
@@ -234,7 +235,7 @@ let isRegistering = false;
                                 window.navigate('screen-notification-permission');
                             } else {
                                 window.navigate('screen-student-dashboard');
-                                window.updateDashboardGreetings();
+                                // window.updateDashboardGreetings(); removed for single owner
                                 loadDashboardDataAsync().catch(console.warn);
                                 window.triggerUrgentPopupModal();
                                 setTimeout(window.startReminderEngine, 2000);
@@ -253,7 +254,7 @@ let isRegistering = false;
                     console.error("[ROUTING ERROR] Caught during user routing:", err);
                     if (typeof window.showLoader !== 'undefined') window.showLoader(false);
                     window.navigate('screen-student-dashboard');
-                    window.updateDashboardGreetings();
+                    // window.updateDashboardGreetings(); removed for single owner
                 }
             };
             await processRouting();
@@ -377,12 +378,20 @@ let isRegistering = false;
                 console.log("[AUTH] Ignored onAuthStateChange because checkActiveSession is running.");
                 return;
             }
-            // A1 Fix: Debounce token refresh to prevent UI reload stampede
-            if (event === 'SIGNED_IN' && session && window.authState && window.authState.user && window.authState.user.id === session.user.id) {
-                console.log("[AUTH] Token refresh detected, updating session only.");
-                window.authState.session = session;
-                if (typeof window.updateNotificationStatusUI === 'function') window.updateNotificationStatusUI();
-                return;
+            if (typeof window.__AUTH_COUNT !== 'undefined') window.__AUTH_COUNT++;
+            
+            // Phase 1: Robust Identity Check (Passive State)
+            if (session && window.authState?.user?.id) {
+                const oldUserId = window.authState.user.id;
+                const newUserId = session.user?.id;
+                const oldRole = window.authState.profile?.role;
+                
+                if (oldUserId === newUserId && oldRole) {
+                    console.log(`[AUTH PASSIVE] UserID Old: ${oldUserId}, New: ${newUserId}, Reason: Same Identity (Refresh/Sync)`);
+                    window.authState.session = session;
+                    if (typeof window.updateNotificationStatusUI === 'function') window.updateNotificationStatusUI();
+                    return; // DO NOT ROUTE, DO NOT FETCH PROFILE, DO NOT RELOAD DASHBOARD
+                }
             }
             if (!window.authState) window.authState = { session: null, user: null, profile: null };
 

@@ -5135,9 +5135,9 @@
     <script>
     // CACHE WIPER REMOVED (Caused infinite reload loop)
     </script>
-    <script src="js/constants.js?v=rescue3"></script>
-    <script type="module" src="main.js?v=rescue3"></script>
-    <script type="module" src="js/notifications.js?v=rescue3"></script>
+    <script src="js/constants.js"></script>
+    <script type="module" src="main.js"></script>
+    <script type="module" src="js/notifications.js"></script>
     <!-- MAIN APP ENGINE CODE -->
     <script>
 
@@ -5649,9 +5649,25 @@
                         return; 
                     }
                     if (typeof window.checkActiveSession === 'function') {
+                        if (typeof window.__BOOT_COUNT !== 'undefined') window.__BOOT_COUNT++;
                         window.isAppFullyInitialized = true;
                         await window.checkActiveSession();
                         startTypewriter();
+                        
+                        console.log("==========");
+                        console.log("BOOT REPORT");
+                        console.log("==========");
+                        console.log(`Boots: ${window.__BOOT_COUNT || 0}`);
+                        console.log(`Auth Events: ${window.__AUTH_COUNT || 0}`);
+                        console.log(`Routes: ${window.__ROUTE_COUNT || 0}`);
+                        console.log(`Dashboard Fetches: ${window.__DASHBOARD_FETCH_COUNT || 0}`);
+                        console.log(`Dashboard Renders: ${window.__DASHBOARD_RENDER_COUNT || 0}`);
+                        console.log(`Firebase Init: ${window.__FIREBASE_COUNT || 0}`);
+                        console.log("==========");
+
+                        if ((window.__ROUTE_COUNT || 0) >= 7 || (window.__DASHBOARD_FETCH_COUNT || 0) >= 5) {
+                            console.error("[CRITICAL WARNING] High route or fetch count detected during boot, recursion is likely occurring!");
+                        }
                     } else {
                         setTimeout(initApp, 50);
                     }
@@ -7934,6 +7950,201 @@
                 showLoader(false);
             }
         }
+modal.classList.remove('opacity-0', 'translate-y-full');
+                }, 10);
+            }
+        }
+
+        function closeCRModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('opacity-0', 'translate-y-full');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                }, 300);
+            }
+        }
+
+        function openAssignCRModal(studentId) {
+            crTargetStudentId = studentId;
+            console.log(`[CR DROPDOWN] Opening Assign CR modal for student: ${studentId}`);
+            const selectEl = document.getElementById('assign-cr-batch-select');
+            selectEl.innerHTML = adminDirectoryBatches.map(b => `<option value="${b.id}">${window.sanitizeHTML(b.batch_name)}</option>`).join('');
+            
+            // Auto-detect primary batch from enrolled courses (user_courses -> courses -> batch_id)
+            const st = (window.adminDirectoryProfiles || adminDirectoryProfiles || []).find(s => s.id === studentId);
+            console.log(`[CR DROPDOWN] Student found:`, st ? st.full_name : 'NOT FOUND', 'batch_id:', st?.batch_id, 'mapped_courses:', st?.mapped_courses?.length || 0);
+            
+            let detectedBatchId = null;
+            
+            // Method 1: Determine from enrolled courses (most accurate)
+            if (st && st.mapped_courses && st.mapped_courses.length > 0) {
+                const batchCounts = {};
+                let maxBatchId = null;
+                let maxCount = 0;
+                
+                st.mapped_courses.forEach(c => {
+                    if (!c || !c.batch_id) return;
+                    const bid = String(c.batch_id);
+                    batchCounts[bid] = (batchCounts[bid] || 0) + 1;
+                    if (batchCounts[bid] > maxCount) {
+                        maxCount = batchCounts[bid];
+                        maxBatchId = bid;
+                    }
+                });
+                
+                console.log(`[CR DROPDOWN] Batch counts from courses:`, batchCounts, 'Winner:', maxBatchId);
+                detectedBatchId = maxBatchId;
+            }
+            
+            // Method 2: Fallback to profile's batch_id
+            if (!detectedBatchId && st && st.batch_id) {
+                detectedBatchId = String(st.batch_id);
+                console.log(`[CR DROPDOWN] Using profile batch_id fallback:`, detectedBatchId);
+            }
+            
+            // Apply detected batch to dropdown
+            if (detectedBatchId) {
+                const matchingOption = selectEl.querySelector(`option[value="${detectedBatchId}"]`);
+                if (matchingOption) {
+                    selectEl.value = detectedBatchId;
+                    console.log(`[BATCH DETECTED] Auto-selected batch ${detectedBatchId} (${matchingOption.textContent})`);
+                } else {
+                    console.log(`[BATCH DETECTED] Detected batch ${detectedBatchId} but no matching option found. Options:`, [...selectEl.options].map(o => o.value));
+                }
+            } else {
+                console.log(`[BATCH DETECTED] Could not detect batch for student.`);
+            }
+
+            openCRModal('modal-assign-cr');
+        }
+
+        function openRemoveCRModal(studentId) {
+            crTargetStudentId = studentId;
+            openCRModal('modal-remove-cr');
+        }
+
+        async function confirmAssignCR() {
+            if (!(await window.verifyAdminStatus())) { showGlobalToast("Access Denied", "Live verification failed."); return; }
+            if (window.crPermissionService && !window.crPermissionService.isAdmin()) { showGlobalToast("Access Denied", "Only full administrators can assign CR roles."); return; }
+            if (!crTargetStudentId) return;
+            const batchId = document.getElementById('assign-cr-batch-select').value;
+            if (!batchId) return;
+
+            showLoader(true, "Assigning CR...");
+            try {
+                // Step 1: Check CR limit
+                console.log(`[CR COUNT CHECK] Checking active CRs for batch ${batchId}`);
+                const { data: activeCRs, error: countErr } = await _supabase
+                    .from('batch_crs')
+                    .select('id')
+                    .eq('batch_id', batchId)
+                    .eq('active', true);
+                
+                if (countErr) throw countErr;
+
+                if (activeCRs && activeCRs.length >= 2) {
+                    showGlobalToast("Error", "This batch already has 2 active CRs.");
+                    closeCRModal('modal-assign-cr');
+                    return;
+                }
+
+                // Step 2 & 3: Upsert into batch_crs and Update profiles.role safely using the backend RPC
+                console.log(`[CR ROLE UPDATE] Calling RPC for user ${crTargetStudentId}`);
+                
+                const { data: rpcData, error: rpcError } = await _supabase.rpc('assign_cr_secure_rpc', {
+                    target_user_id: crTargetStudentId,
+                    target_batch_id: batchId,
+                    admin_id: window.authState.user.id
+                });
+                
+                if (rpcError) throw rpcError;
+
+                showGlobalToast("Success", "Class Representative assigned successfully.");
+                closeCRModal('modal-assign-cr');
+
+                // Refresh UI
+                await loadAdminStudents();
+                if (isScreenActive('screen-admin-student-details')) {
+                    await openAdminStudentDetails(crTargetStudentId);
+                }
+            } catch (err) {
+                console.error("[CR ASSIGN ERROR]", err);
+                showGlobalToast("Error", "Failed to assign CR.");
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        async function confirmRemoveCR() {
+            if (!(await window.verifyAdminStatus())) { showGlobalToast("Access Denied", "Live verification failed."); return; }
+            if (window.crPermissionService && !window.crPermissionService.isAdmin()) { showGlobalToast("Access Denied", "Only full administrators can remove CR roles."); return; }
+            if (!crTargetStudentId) return;
+
+            showLoader(true, "Removing CR access...");
+            try {
+                console.log(`[CR REMOVE] Marking batch_crs active=false for user ${crTargetStudentId}`);
+                console.log(`[CR REMOVE] Calling RPC to remove CR access for user ${crTargetStudentId}`);
+                
+                const { error: rpcError } = await _supabase.rpc('remove_cr_secure_rpc', {
+                    target_user_id: crTargetStudentId
+                });
+                
+                if (rpcError) throw rpcError;
+
+                showGlobalToast("Success", "CR Access removed successfully.");
+                closeCRModal('modal-remove-cr');
+
+                // Refresh UI
+                await loadAdminStudents();
+                if (isScreenActive('screen-admin-student-details')) {
+                    await openAdminStudentDetails(crTargetStudentId);
+                }
+            } catch (err) {
+                console.error("[CR REMOVE ERROR]", err);
+                showGlobalToast("Error", "Failed to remove CR access.");
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        async function deleteAdminStudentAction() {
+            if (!(await window.verifyAdminStatus())) { showGlobalToast("Access Denied", "Live verification failed."); return; }
+            if (window.crPermissionService && !window.crPermissionService.isAdmin()) { showGlobalToast("Access Denied", "Only full administrators can delete students."); return; }
+            if (!confirm("Are you sure you want to completely delete this student profile and all enrollments? This cannot be undone.")) return;
+            const studentIdToDelete = adminViewedStudentId;
+            console.log("[USER DELETE] Initiating cascading delete for student ID:", studentIdToDelete);
+            showLoader(true, "Deleting student...");
+            try {
+                console.log(`[USER DELETE] Calling secure RPC to delete user ${studentIdToDelete}`);
+                
+                const { error: rpcError } = await _supabase.rpc('delete_student_rpc', {
+                    target_user_id: studentIdToDelete
+                });
+                
+                if (rpcError) {
+                    console.error("[USER DELETE] RPC failed:", rpcError);
+                    throw new Error(`Failed to delete student: ${rpcError.message}`);
+                }
+                
+                console.log("[USER DELETE] Student deleted successfully via RPC.");
+
+                // Remove deleted user from frontend state array
+                if (typeof adminDirectoryProfiles !== 'undefined' && Array.isArray(adminDirectoryProfiles)) {
+                    console.log("[USER DELETE] Step 6: Removing deleted user from local state array...");
+                    adminDirectoryProfiles = adminDirectoryProfiles.filter(st => st.id !== studentIdToDelete);
+                }
+
+                showGlobalToast("Success", "Student deleted permanently.");
+                navigate('screen-admin-students');
+                await loadAdminStudents(); // refresh UI list
+            } catch (err) {
+                console.error("[USER DELETE] FAILED:", err);
+                showGlobalToast("Error", err.message || "Failed to delete student. Check permissions.");
+            } finally {
+                showLoader(false);
+            }
+        }
 
         // Safe Navigation between pages
         let _navigationHistory = [];
@@ -7975,6 +8186,10 @@
         }
 
         window.navigate = function navigate(screenId) {
+            if (typeof window.__ROUTE_COUNT !== 'undefined') window.__ROUTE_COUNT++;
+            if (window.currentActiveScreen === 'screen-student-dashboard' && screenId === 'screen-student-dashboard') {
+                return;
+            }
             if (typeof window.__LIFECYCLE_DEBUG__ === 'function') window.__LIFECYCLE_DEBUG__('[NAVIGATE]', `Navigating to ${screenId}`);
             
             if (typeof window.clearLastFocusedEditor === 'function') window.clearLastFocusedEditor();
@@ -7982,21 +8197,6 @@
             // Clear floating emoji picker menus to prevent ghosting
             document.querySelectorAll('.reaction-container.force-hovered, .reaction-container.hovered').forEach(el => {
                 el.classList.remove('force-hovered', 'hovered');
-            });
-
-            const allowedUnconfirmed = [
-                'screen-splash',
-                'screen-welcome',
-                'screen-login',
-                'screen-register',
-                'screen-forgot',
-                'screen-recovery-otp',
-                'screen-confirm-email',
-                'screen-update-password'
-            ];
-            
-            // Strict security guard for onboarding and internal screens
-            if (!allowedUnconfirmed.includes(screenId)) {
                 if (!authState.session || !authState.user) {
                     console.warn(`[AUTH GUARD] Blocking access to ${screenId}: No active session token.`);
                     screenId = 'screen-login';
@@ -8053,12 +8253,6 @@
                     if (typeof window.__pageInitCount !== 'undefined') window.__pageInitCount++;
                     if (typeof window.__LIFECYCLE_DEBUG__ === 'function') window.__LIFECYCLE_DEBUG__('[PAGE INIT]', `Initializing ${screenId}`);
                     
-                    if (typeof window.updateDashboardGreetings === 'function') {
-                        window.updateDashboardGreetings();
-                    }
-                    if (typeof window.loadDashboardTodayRoutine === 'function') {
-                        window.loadDashboardTodayRoutine();
-                    }
                     if (typeof window.triggerSafePrompts === 'function') {
                         setTimeout(window.triggerSafePrompts, 1500);
                     }
@@ -10270,7 +10464,7 @@
     </div>
 
     <!-- Pull to Refresh Global Logic -->
-    <script src="js/pull-to-refresh.js?v=rescue3"></script>
+    <script src="js/pull-to-refresh.js"></script>
 </body>
 </html>
 

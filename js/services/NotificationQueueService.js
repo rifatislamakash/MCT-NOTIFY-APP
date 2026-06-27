@@ -1,6 +1,6 @@
 // js/services/NotificationQueueService.js
-import { NotificationFormatter } from './NotificationFormatter.js?v=rescue2';
-import { _supabase } from '../supabase-client.js?v=rescue2';
+import { NotificationFormatter } from './NotificationFormatter.js';
+import { _supabase } from '../supabase-client.js';
 
 /**
  * Universal Notification Queue Service

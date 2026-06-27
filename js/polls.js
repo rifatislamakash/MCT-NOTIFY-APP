@@ -1,6 +1,6 @@
-import { _supabase } from './supabase-client.js?v=rescue2';
-import { crPermissionService } from './services/crPermissionService.js?v=rescue2';
-import { showGlobalToast, showLoader, forceHideLoader, cancelActiveRequest } from './utils.js?v=rescue2';
+import { _supabase } from './supabase-client.js';
+import { crPermissionService } from './services/crPermissionService.js';
+import { showGlobalToast, showLoader, forceHideLoader, cancelActiveRequest } from './utils.js';
 
 export class PollService {
     static currentPolls = [];
@@ -404,7 +404,7 @@ export class PollService {
 
                 // Queue Notification
                 if (notifyAudience) {
-                    const { NotificationQueueService } = await import('./services/NotificationQueueService.js?v=rescue2');
+                    const { NotificationQueueService } = await import('./services/NotificationQueueService.js');
                     const queueRes = await NotificationQueueService.queueNotification({
                         parentType: 'poll',
                         parentId: data[0].id,
@@ -417,7 +417,7 @@ export class PollService {
                 }
             } else if (batch === 'global' && notifyAudience && data && data.length > 0) {
                 // Global push notification
-                const { NotificationQueueService } = await import('./services/NotificationQueueService.js?v=rescue2');
+                const { NotificationQueueService } = await import('./services/NotificationQueueService.js');
                 const queueRes = await NotificationQueueService.queueNotification({
                     parentType: 'poll',
                     parentId: data[0].id,

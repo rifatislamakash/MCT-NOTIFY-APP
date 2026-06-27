@@ -45,6 +45,7 @@
 
         async function initFirebase() {
             if (typeof window.__FORENSIC_TRACER === 'function') window.__FORENSIC_TRACER('INIT_FIREBASE');
+            if (typeof window.__FIREBASE_COUNT !== 'undefined') window.__FIREBASE_COUNT++;
             if (_firebaseInitPromise) return _firebaseInitPromise;
 
             _firebaseInitPromise = (async () => {

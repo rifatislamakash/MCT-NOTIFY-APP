@@ -1,11 +1,11 @@
-import { _supabase } from './supabase-client.js?v=rescue3';
-import { crPermissionService } from './services/crPermissionService.js?v=rescue3';
-import { showGlobalToast, showLoader, forceHideLoader, cancelActiveRequest, fetchWithRetry } from './utils.js?v=rescue3';
-import { CourseStore } from './stores/CourseStore.js?v=rescue3';
-import { FacultyStore } from './stores/FacultyStore.js?v=rescue3';
-import { RoutineStore } from './stores/RoutineStore.js?v=rescue3';
-import { NotificationStore } from './stores/NotificationStore.js?v=rescue3';
-import { ProfileStore } from './stores/ProfileStore.js?v=rescue3';
+import { _supabase } from './supabase-client.js';
+import { crPermissionService } from './services/crPermissionService.js';
+import { showGlobalToast, showLoader, forceHideLoader, cancelActiveRequest, fetchWithRetry } from './utils.js';
+import { CourseStore } from './stores/CourseStore.js';
+import { FacultyStore } from './stores/FacultyStore.js';
+import { RoutineStore } from './stores/RoutineStore.js';
+import { NotificationStore } from './stores/NotificationStore.js';
+import { ProfileStore } from './stores/ProfileStore.js';
 
 
         // ----------------- NOTICES SYSTEM -----------------
@@ -1140,7 +1140,7 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue3';
                     
                     if (shouldNotify && (!id || publish_now)) {
                         console.log("[NOTICE CREATE] Passing to universal Notification Queue Service...");
-                        const { NotificationQueueService } = await import('./services/NotificationQueueService.js?v=rescue3');
+                        const { NotificationQueueService } = await import('./services/NotificationQueueService.js');
                         const queueRes = await NotificationQueueService.queueNotification({
                             parentType: 'notice',
                             parentId: savedNoticeId,
@@ -1467,7 +1467,7 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue3';
             console.log("[NOTICE DELETE] Starting deletion for notice ID:", id);
             window.showLoader(true, "Deleting notice...");
             try {
-                const { CascadeDeleteService } = await import('./services/CascadeDeleteService.js?v=rescue3');
+                const { CascadeDeleteService } = await import('./services/CascadeDeleteService.js');
                 const cascadeRes = await CascadeDeleteService.cascadeDelete({
                     parentType: 'notice',
                     parentId: id,

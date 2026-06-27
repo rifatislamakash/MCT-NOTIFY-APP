@@ -1,10 +1,10 @@
-import { _supabase } from './supabase-client.js?v=rescue3';
-import { showGlobalToast, showLoader, cancelActiveRequest, getGreeting } from './utils.js?v=rescue3';
-import { CourseStore } from './stores/CourseStore.js?v=rescue3';
-import { FacultyStore } from './stores/FacultyStore.js?v=rescue3';
-import { RoutineStore } from './stores/RoutineStore.js?v=rescue3';
-import { NotificationStore } from './stores/NotificationStore.js?v=rescue3';
-import { ProfileStore } from './stores/ProfileStore.js?v=rescue3';
+import { _supabase } from './supabase-client.js';
+import { showGlobalToast, showLoader, cancelActiveRequest, getGreeting } from './utils.js';
+import { CourseStore } from './stores/CourseStore.js';
+import { FacultyStore } from './stores/FacultyStore.js';
+import { RoutineStore } from './stores/RoutineStore.js';
+import { NotificationStore } from './stores/NotificationStore.js';
+import { ProfileStore } from './stores/ProfileStore.js';
 
 // Safari-safe Date parser (Strict WebKit compatibility)
 window.getSafariSafeDate = function(dateInput) {
@@ -192,6 +192,7 @@ const getSafariSafeDate = window.getSafariSafeDate;
         // ---- DASHBOARD: Smart Today/Tomorrow Routine ----
         // ---- DASHBOARD: Smart Today/Tomorrow Routine ----
         export async function loadDashboardTodayRoutine(skipRender = false) {
+            if (typeof window.__DASHBOARD_FETCH_COUNT !== 'undefined') window.__DASHBOARD_FETCH_COUNT++;
             if (window.isModuleLoading('dashboard')) {
                 if (window.activeLoadControllers && (!window.activeLoadControllers['dashboard'] || window.activeLoadControllers['dashboard'].signal.aborted)) {
                     console.log("[DASHBOARD ROUTINE] Previous load was aborted. Forcing reset to allow new load.");
@@ -578,6 +579,7 @@ const getSafariSafeDate = window.getSafariSafeDate;
         }
 
         window.renderDashboardTodayRoutine = function() {
+            if (typeof window.__DASHBOARD_RENDER_COUNT !== 'undefined') window.__DASHBOARD_RENDER_COUNT++;
             const dashContainer = document.getElementById('dashboard-today-routine');
             if (!dashContainer || typeof window._dashboardRoutineHTML === 'undefined') return;
             dashContainer.innerHTML = window._dashboardRoutineHTML;

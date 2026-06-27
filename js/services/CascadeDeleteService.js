@@ -1,5 +1,5 @@
 // js/services/CascadeDeleteService.js
-import { _supabase } from '../supabase-client.js?v=rescue2';
+import { _supabase } from '../supabase-client.js';
 
 /**
  * Universal Cascade Delete Service

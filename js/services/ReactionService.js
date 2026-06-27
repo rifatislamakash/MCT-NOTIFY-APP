@@ -1,5 +1,5 @@
-import { _supabase } from '../supabase-client.js?v=rescue2';
-import { showGlobalToast } from '../utils.js?v=rescue2';
+import { _supabase } from '../supabase-client.js';
+import { showGlobalToast } from '../utils.js';
 
 export const REACTION_ICONS = {
     'like': 'https://ngropmfrneaaejwocnbf.supabase.co/storage/v1/object/public/materials/Like.png',

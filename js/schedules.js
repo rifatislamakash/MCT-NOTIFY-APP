@@ -1,11 +1,11 @@
-import { _supabase } from './supabase-client.js?v=rescue3';
-import { crPermissionService } from './services/crPermissionService.js?v=rescue3';
-import { showGlobalToast, showLoader, forceHideLoader, fetchCachedOrDeduplicated, cancelActiveRequest, fetchWithRetry } from './utils.js?v=rescue3';
-import { CourseStore } from './stores/CourseStore.js?v=rescue3';
-import { FacultyStore } from './stores/FacultyStore.js?v=rescue3';
-import { RoutineStore } from './stores/RoutineStore.js?v=rescue3';
-import { NotificationStore } from './stores/NotificationStore.js?v=rescue3';
-import { ProfileStore } from './stores/ProfileStore.js?v=rescue3';
+import { _supabase } from './supabase-client.js';
+import { crPermissionService } from './services/crPermissionService.js';
+import { showGlobalToast, showLoader, forceHideLoader, fetchCachedOrDeduplicated, cancelActiveRequest, fetchWithRetry } from './utils.js';
+import { CourseStore } from './stores/CourseStore.js';
+import { FacultyStore } from './stores/FacultyStore.js';
+import { RoutineStore } from './stores/RoutineStore.js';
+import { NotificationStore } from './stores/NotificationStore.js';
+import { ProfileStore } from './stores/ProfileStore.js';
 
         // ==========================================
         // SCHEDULE SYSTEM — COMPLETE ENGINE
@@ -1161,7 +1161,7 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue3';
                     }
 
                     // Auto-queue notification for the notice ONLY after targets are inserted
-                    const { NotificationQueueService } = await import('./services/NotificationQueueService.js?v=rescue3');
+                    const { NotificationQueueService } = await import('./services/NotificationQueueService.js');
                     const noticeQueueRes = await NotificationQueueService.queueNotification({
                         parentType: 'notice',
                         parentId: noticeData[0].id,
@@ -1180,7 +1180,7 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue3';
                     const reminderRows = [];
                     
                     if (notifyAudience) {
-                        const { NotificationQueueService } = await import('./services/NotificationQueueService.js?v=rescue3');
+                        const { NotificationQueueService } = await import('./services/NotificationQueueService.js');
                     const queueRes = await NotificationQueueService.queueNotification({
                             parentType: 'schedule',
                             parentId: newSchedule.id,
@@ -1729,7 +1729,7 @@ import { ProfileStore } from './stores/ProfileStore.js?v=rescue3';
             try {
                 const s = schedulesList.find(x => x.id === selectedScheduleId);
 
-                const { CascadeDeleteService } = await import('./services/CascadeDeleteService.js?v=rescue3');
+                const { CascadeDeleteService } = await import('./services/CascadeDeleteService.js');
                 const cascadeRes = await CascadeDeleteService.cascadeDelete({
                     parentType: 'schedule',
                     parentId: selectedScheduleId,

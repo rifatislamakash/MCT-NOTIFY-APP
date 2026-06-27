@@ -1,11 +1,11 @@
-import { _supabase } from './supabase-client.js?v=rescue3';
-import { showGlobalToast, showLoader, forceHideLoader, fetchCachedOrDeduplicated, cancelActiveRequest, fetchWithRetry } from './utils.js?v=rescue3';
-import { CourseStore } from './stores/CourseStore.js?v=rescue3';
-import { FacultyStore } from './stores/FacultyStore.js?v=rescue3';
-import { crPermissionService } from './services/crPermissionService.js?v=rescue3';
-import { RoutineStore } from './stores/RoutineStore.js?v=rescue3';
-import { NotificationStore } from './stores/NotificationStore.js?v=rescue3';
-import { ProfileStore } from './stores/ProfileStore.js?v=rescue3';
+import { _supabase } from './supabase-client.js';
+import { showGlobalToast, showLoader, forceHideLoader, fetchCachedOrDeduplicated, cancelActiveRequest, fetchWithRetry } from './utils.js';
+import { CourseStore } from './stores/CourseStore.js';
+import { FacultyStore } from './stores/FacultyStore.js';
+import { crPermissionService } from './services/crPermissionService.js';
+import { RoutineStore } from './stores/RoutineStore.js';
+import { NotificationStore } from './stores/NotificationStore.js';
+import { ProfileStore } from './stores/ProfileStore.js';
 
         // ==========================================
         // ROUTINE SYSTEM - COMPLETE ENGINE
@@ -1786,7 +1786,7 @@ window.switchRoutineView = switchRoutineView;
                 const shouldNotify = document.getElementById('notify-audience-exam')?.checked !== false;
 
                 if (shouldNotify) {
-                        const { NotificationQueueService } = await import('./services/NotificationQueueService.js?v=rescue3');
+                        const { NotificationQueueService } = await import('./services/NotificationQueueService.js');
                         const queueRes = await NotificationQueueService.queueNotification({
                         parentType: 'exam',
                         parentId: newExam.id,
@@ -2105,7 +2105,7 @@ window.switchRoutineView = switchRoutineView;
                 const shouldNotify = document.getElementById('notify-audience-edit-exam')?.checked !== false;
 
                 if (shouldNotify) {
-                    const { NotificationQueueService } = await import('./services/NotificationQueueService.js?v=rescue3');
+                    const { NotificationQueueService } = await import('./services/NotificationQueueService.js');
                     const queueRes = await NotificationQueueService.queueNotification({
                         parentType: 'exam',
                         parentId: examId,
