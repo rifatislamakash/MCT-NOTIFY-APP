@@ -3,6 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <script>
+        // ERUDA LOG BUFFER
+        window._erudaLogBuffer = [];
+        ['log', 'warn', 'error', 'info'].forEach(method => {
+            const original = console[method];
+            console[method] = function(...args) {
+                if (window._erudaLogBuffer.length < 1000) window._erudaLogBuffer.push({method, args});
+                original.apply(console, args);
+            };
+        });
+
         // LIFECYCLE DIAGNOSTICS & COUNTERS
         window.__DEBUG_PRODUCTION = false;
         window.__firebaseInitCount = 0;
@@ -86,11 +96,8 @@
         }
 
         html, body {
-            position: fixed;
-            top: 0;
-            left: 0;
             width: 100%;
-            height: 100dvh !important;
+            height: 100%;
             overflow: hidden !important; /* Absolutely no scrolling on the root */
             overscroll-behavior: none; /* Block both vertical rubber-banding AND horizontal swipe-to-go-back */
             margin: 0;
@@ -100,6 +107,23 @@
             -webkit-user-select: none;
             user-select: none;
         }
+
+        #app-viewport-shell {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #F8FAFC;
+        }
+
+        /* iOS WebKit GPU Isolation - Prevents monolithic render crashes */
+        .ios-render-safe, .routine-card, .notice-card {
+            contain: content;
+        }
+
         
         /* Force kill any horizontal scrolling inside scrollable containers */
         .overflow-y-auto {
@@ -10492,6 +10516,11 @@
                     script.src = "https://cdn.jsdelivr.net/npm/eruda";
                     script.onload = function () {
                         eruda.init();
+                        if (window._erudaLogBuffer) {
+                            window._erudaLogBuffer.forEach(log => {
+                                console[log.method].apply(console, ['[EARLY LOG]', ...log.args]);
+                            });
+                        }
                         eruda.show();
                     };
                     document.body.appendChild(script);
