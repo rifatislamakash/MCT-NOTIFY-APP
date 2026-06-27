@@ -247,15 +247,19 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                     }
                                     let timerId;
                                     const timeoutPromise = new Promise((_, reject) => {
-                                        timerId = setTimeout(() => reject(new Error('sdk_timeout')), 400);
+                                        timerId = setTimeout(() => reject(new Error('sdk_timeout')), 8000);
                                     });
-                                    try {
-                                        const result = await Promise.race([sdkPromise, timeoutPromise]);
+                                    console.log("[SCHEDULE ADMIN] [SDK START]");
+                        const startSdk = performance.now();
+                        try {
+                            const result = await Promise.race([sdkPromise, timeoutPromise]);
                                         batchesData = result.data;
                                         error = result.error;
-                                    } finally {
-                                        clearTimeout(timerId);
-                                    }
+                                    console.log("[SCHEDULE ADMIN] [SDK SUCCESS]");
+                            console.log(`[SCHEDULE ADMIN] [SDK DURATION] ${Math.round(performance.now() - startSdk)}ms`);
+                        } finally {
+                            clearTimeout(timerId);
+                        }
                                     if (error) throw error;
                                     
                                     let optionsHTML = '<option value="" disabled selected class="text-black">Select Batch</option>';
@@ -266,8 +270,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                     batchFilter.innerHTML = optionsHTML;
                                 } catch(e) { 
                                     if (e.message === 'sdk_timeout') {
+                                        if (typeof sdkController !== 'undefined') sdkController.abort();
                                         window._supabaseSdkFailing = true;
-                                        console.log("[SCHEDULE ADMIN] Supabase SDK hung, falling back to REST for batches");
+                                        console.log("[SCHEDULE ADMIN] [SDK TIMEOUT] 8000ms limit reached");
+                            console.log("[SCHEDULE ADMIN] [REST FALLBACK]");
                                         try {
                                             const url = `${_supabase.supabaseUrl}/rest/v1/batches?select=id,batch_name&order=batch_name.asc`;
                                             const res = await fetch(url, {

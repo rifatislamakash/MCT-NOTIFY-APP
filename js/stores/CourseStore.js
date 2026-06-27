@@ -23,13 +23,17 @@ export const CourseStore = (function () {
                         if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
                         let timerId;
                         const timeoutPromise = new Promise((_, reject) => {
-                            timerId = setTimeout(() => reject(new Error('sdk_timeout')), 400);
+                            timerId = setTimeout(() => reject(new Error('sdk_timeout')), 8000);
                         });
                         let courses, error;
+                        console.log("[CourseStore] [SDK START]");
+                        const startSdk = performance.now();
                         try {
                             const result = await Promise.race([sdkPromise, timeoutPromise]);
                             courses = result.data;
                             error = result.error;
+                        console.log("[CourseStore] [SDK SUCCESS]");
+                            console.log(`[CourseStore] [SDK DURATION] ${Math.round(performance.now() - startSdk)}ms`);
                         } finally {
                             clearTimeout(timerId);
                         }
@@ -39,7 +43,8 @@ export const CourseStore = (function () {
                         if (e.message === 'sdk_timeout') {
                             sdkController.abort();
                             window._supabaseSdkFailing = true;
-                            console.log("[CourseStore] Supabase SDK hung, falling back to REST");
+                            console.log("[CourseStore] [SDK TIMEOUT] 8000ms limit reached");
+                            console.log("[CourseStore] [REST FALLBACK]");
                             const url = `${_supabase.supabaseUrl}/rest/v1/courses?select=id,course_name,short_name,course_code,total_credit,batch_id,sections_name,faculty_id,batches(batch_name)&order=course_name.asc`;
                             const res = await fetch(url, {
                                 headers: {
@@ -49,7 +54,11 @@ export const CourseStore = (function () {
                                 },
                                 cache: 'no-store'
                             });
-                            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                            if (!res.ok) {
+                                console.log("[CourseStore] [REST FAILURE]");
+                                throw new Error(`HTTP error! status: ${res.status}`);
+                            }
+                            console.log("[CourseStore] [REST SUCCESS]");
                             return await res.json();
                         }
                         throw e;

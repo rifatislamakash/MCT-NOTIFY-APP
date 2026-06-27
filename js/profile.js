@@ -94,15 +94,17 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
                                 let timerId;
                                 const timeoutPromise = new Promise((_, reject) => {
-                                    timerId = setTimeout(() => reject(new Error('sdk_timeout')), 400);
+                                    timerId = setTimeout(() => reject(new Error('sdk_timeout')), 8000);
                                 });
                                 try {
                                     const { data, error } = await Promise.race([coursesInfoPromise, timeoutPromise]);
                                     if (error) throw error;
                                     cData = data;
-                                } finally {
-                                    clearTimeout(timerId);
-                                }
+                                console.log("[PROFILE] [SDK SUCCESS]");
+                            console.log(`[PROFILE] [SDK DURATION] ${Math.round(performance.now() - startSdk)}ms`);
+                        } finally {
+                            clearTimeout(timerId);
+                        }
                             } catch (e) {
                                 if (e.message === 'sdk_timeout') {
                                     sdkController.abort();

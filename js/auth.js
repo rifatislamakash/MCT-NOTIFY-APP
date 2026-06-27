@@ -373,7 +373,14 @@ let isRegistering = false;
         let isRecovering = false;
         _supabase.auth.onAuthStateChange(async (event, session) => {
             console.log("[AUTH] Auth State Change Event:", event);
-            if (event === 'INITIAL_SESSION') return;
+            if (
+                event !== 'SIGNED_OUT' &&
+                !window.isAppFullyInitialized &&
+                !window.authState?.user
+            ) {
+                console.log("[AUTH BOOT LOCK] Ignoring boot auth event:", event);
+                return;
+            }
             if (_isCheckingSession) {
                 console.log("[AUTH] Ignored onAuthStateChange because checkActiveSession is running.");
                 return;

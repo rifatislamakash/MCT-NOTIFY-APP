@@ -8202,10 +8202,11 @@
             // Clear floating emoji picker menus to prevent ghosting
             document.querySelectorAll('.reaction-container.force-hovered, .reaction-container.hovered').forEach(el => {
                 el.classList.remove('force-hovered', 'hovered');
-                if (!authState.session || !authState.user) {
-                    console.warn(`[AUTH GUARD] Blocking access to ${screenId}: No active session token.`);
-                    screenId = 'screen-login';
-                }
+            });
+
+            if (!authState.session || !authState.user) {
+                console.warn(`[AUTH GUARD] Blocking access to ${screenId}: No active session token.`);
+                screenId = 'screen-login';
             }
 
             const authScreensList = ['screen-splash', 'screen-welcome', 'screen-login', 'screen-register', 'screen-forgot', 'screen-recovery-otp', 'screen-confirm-email', 'screen-update-password', 'screen-onboarding', 'screen-notification-permission'];

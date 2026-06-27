@@ -48,19 +48,25 @@ export const crPermissionService = {
             if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
             let timerId;
             const timeoutPromise = new Promise((_, reject) => {
-                timerId = setTimeout(() => reject(new Error('sdk_timeout')), 400);
+                timerId = setTimeout(() => reject(new Error('sdk_timeout')), 8000);
             });
-            try {
-                const result = await Promise.race([sdkPromise, timeoutPromise]);
+            console.log("[CR PERMISSION] [SDK START]");
+                        const startSdk = performance.now();
+                        try {
+                            const result = await Promise.race([sdkPromise, timeoutPromise]);
                 data = result.data;
                 error = result.error;
-            } finally {
-                clearTimeout(timerId);
-            }
+            console.log("[CR PERMISSION] [SDK SUCCESS]");
+                            console.log(`[CR PERMISSION] [SDK DURATION] ${Math.round(performance.now() - startSdk)}ms`);
+                        } finally {
+                            clearTimeout(timerId);
+                        }
         } catch (e) {
             if (e.message === 'sdk_timeout') {
-                window._supabaseSdkFailing = true;
-                console.log("[CR PERMISSION] Supabase SDK hung, falling back to REST");
+                                        if (typeof sdkController !== 'undefined') sdkController.abort();
+                                        window._supabaseSdkFailing = true;
+                console.log("[CR PERMISSION] [SDK TIMEOUT] 8000ms limit reached");
+                            console.log("[CR PERMISSION] [REST FALLBACK]");
                 try {
                     const url = `${_supabase.supabaseUrl}/rest/v1/batch_crs?user_id=eq.${window.authState.user.id}&active=is.true&select=batch_id`;
                     const res = await fetch(url, {
@@ -71,7 +77,11 @@ export const crPermissionService = {
                         },
                         cache: 'no-store'
                     });
-                    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                    if (!res.ok) {
+                                console.log("[CR PERMISSION] [REST FAILURE]");
+                                throw new Error(`HTTP error! status: ${res.status}`);
+                            }
+                            console.log("[CR PERMISSION] [REST SUCCESS]");
                     data = await res.json();
                 } catch (fetchErr) {
                     console.error("[CR PERMISSION] REST fallback failed:", fetchErr);
