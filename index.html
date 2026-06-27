@@ -7950,7 +7950,12 @@
                 showLoader(false);
             }
         }
-modal.classList.remove('opacity-0', 'translate-y-full');
+        function openCRModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0', 'translate-y-full');
                 }, 10);
             }
         }
