@@ -265,7 +265,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                      const codeSub = courseCodeText ? `<span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[11px] font-bold">${window.sanitizeHTML(courseCodeText)}</span>` : '';
                      const subtitleHtml = codeSub || facultySub ? `<div class="flex items-center gap-2 mt-1 flex-wrap">${codeSub}${facultySub}</div>` : '';
                      
-                     html += `<div id="exam-card-${exam.id}" class="bg-gradient-to-br from-indigo-50 to-white rounded-[24px] p-4 shadow-sm border ${isNextUpcoming ? 'border-orange-500 ring-1 ring-orange-500' : 'border-indigo-100'} relative ${isPast ? 'opacity-60 grayscale' : ''}">
+                     html += `<div id="exam-card-${exam.id}" class="bg-gradient-to-br from-indigo-50 to-white rounded-[24px] p-4 shadow-sm border ${isNextUpcoming ? 'border-orange-500 ring-1 ring-orange-500' : 'border-indigo-100'} relative ${isPast ? 'opacity-50' : ''}">
                           ${isAdminOrCR ? `
                           <div class="absolute top-4 right-4 flex items-center gap-2 z-10">
                               <button onclick="event.stopPropagation(); window.openEditExamSchedule('${exam.id}')" class="w-8 h-8 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-full hover:bg-indigo-100 transition active:scale-95" title="Edit Exam">
