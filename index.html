@@ -91,7 +91,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            overflow: hidden !important; /* Absolutely no scrolling on the root */
+            /* overflow: hidden removed */ /* Absolutely no scrolling on the root */
             overscroll-behavior: none; /* Block both vertical rubber-banding AND horizontal swipe-to-go-back */
             margin: 0;
             padding: 0;
@@ -152,7 +152,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            overflow: hidden !important; /* Prevent screen wrapper from scrolling; delegate to inner flex-1 */
+            /* overflow: hidden removed */ /* Prevent screen wrapper from scrolling; delegate to inner flex-1 */
             overscroll-behavior-x: none; /* Kill horizontal swipe-to-navigate in iOS Safari */
             -webkit-overflow-scrolling: touch; /* Re-enables smooth momentum scrolling on iOS */
             touch-action: pan-y;
@@ -202,8 +202,8 @@
         /* Mobile Viewport and Scroll Fix */
         @media (max-width: 640px) {
             html, body {
-                height: 100dvh !important;
-                overflow: hidden !important;
+                height: 100% !important;
+                /* overflow: hidden removed */
                 position: fixed;
                 width: 100%;
                 margin: 0 !important;
@@ -211,13 +211,13 @@
             }
             /* Reset any outer flex presentation wrappers to prevent light-gray borders and top gaps */
             div.min-h-screen.w-full {
-                height: 100dvh !important;
-                min-height: 100dvh !important;
-                overflow: hidden !important;
+                height: 100% !important;
+                min-height: 100% !important;
+                /* overflow: hidden removed */
                 display: block !important;
             }
             div.min-h-screen.w-full > div.flex-1 {
-                height: 100dvh !important;
+                height: 100% !important;
                 width: 100% !important;
                 padding: 0 !important;
                 margin: 0 !important;
@@ -226,8 +226,8 @@
             /* Force the mobile viewport container inside the phone frame to be exactly 100% width/height of the device window */
             #app-viewport-shell {
                 width: 100% !important;
-                height: 100dvh !important;
-                max-height: 100dvh !important;
+                height: 100% !important;
+                max-height: 100% !important;
                 border: none !important;
                 border-radius: 0 !important;
                 margin: 0 !important;

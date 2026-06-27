@@ -70,8 +70,7 @@
 
             // Only pull if pulling down significantly
             if (dy > 15 && !isHorizontalSwipe) {
-                // Prevent default scrolling when we are actively pulling down
-                if (e.cancelable) e.preventDefault();
+                /* preventDefault removed to fix iOS WebKit thread freeze */
                 
                 // Visual pull effect with resistance
                 let pullDistance = Math.min((dy - 15) * 0.4, 80); 
