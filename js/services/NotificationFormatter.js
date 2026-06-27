@@ -42,7 +42,7 @@ export const NotificationFormatter = {
 
     formatExam: function(courseName, date, time) {
         return {
-            title: `✊🏻🥺 Knock knock...! '${courseName || 'Course'}' exam is knocking at the door.`,
+            title: `📝 Exam: '${courseName || 'Course'}'`,
             message: `Upcoming Exam is '${courseName || 'Course'}' at ${date} ${time ? '& ' + time : ''}. Open the app to see the syllabus.`
         };
     },

@@ -348,7 +348,7 @@
                         if (tableName === 'exam_schedules') {
                             const formattedDate = new Date(data.exam_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
                             const formattedTime = window.formatTimeIfPossible ? window.formatTimeIfPossible(data.start_time) : data.start_time;
-                            safeTitle = `Knock knock...! '${data.course_name}' is knocking at the door.`;
+                            safeTitle = `📝 Exam: '${data.course_name}'`;
                             safeMessage = `Upcoming Exam is '${data.course_name}' at '${formattedDate} & ${formattedTime}'. Open the app to see the syllabus.`;
                         } else {
                             safeTitle = data.title || data.course_title || data.subject || 'MCT Update';
