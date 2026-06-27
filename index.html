@@ -79,7 +79,25 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <!-- Lucide Icon Library -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Supabase JS Library CDN -->
+    <script>
+        // GLOBAL LUCIDE OPTIMIZATION: Prevent Main Thread Freeze on iOS
+        if (typeof lucide !== 'undefined') {
+            window._lucideScanTimeout = null;
+            const originalCreateIcons = lucide.createIcons;
+            lucide.createIcons = function(options) {
+                if (options && options.root) {
+                    originalCreateIcons(options);
+                    return;
+                }
+                if (window._lucideScanTimeout) clearTimeout(window._lucideScanTimeout);
+                window._lucideScanTimeout = setTimeout(() => {
+                    requestAnimationFrame(() => {
+                        originalCreateIcons(options);
+                    });
+                }, 50);
+            };
+        }
+    </script>
     <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -96,8 +114,11 @@
         }
 
         html, body {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: 100%;
+            height: 100dvh !important;
             overflow: hidden !important; /* Absolutely no scrolling on the root */
             overscroll-behavior: none; /* Block both vertical rubber-banding AND horizontal swipe-to-go-back */
             margin: 0;
@@ -109,10 +130,9 @@
         }
 
         #app-viewport-shell {
-            position: fixed;
-            inset: 0;
+            position: absolute;
             width: 100%;
-            height: 100dvh;
+            height: 100%;
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -128,6 +148,8 @@
         /* Force kill any horizontal scrolling inside scrollable containers */
         .overflow-y-auto {
             overflow-x: hidden !important;
+            isolation: isolate;
+            transform: translateZ(0);
         }
         input, textarea { -webkit-user-select: auto; user-select: auto; }
 
@@ -144,6 +166,19 @@
                 backdrop-filter: none !important;
                 -webkit-backdrop-filter: none !important;
             }
+
+        /* Force hidden elements to relinquish GPU memory on iOS */
+        .opacity-0.pointer-events-none {
+            visibility: hidden !important;
+        }
+
+        @supports (-webkit-touch-callout: none) {
+            /* Stop transition-all from preparing massive graphics layers for properties that don't animate */
+            .transition-all {
+                transition-property: opacity, transform, background-color, border-color, color, box-shadow !important;
+            }
+        }
+
             /* Solid fallback for modals */
             .fixed.inset-0.bg-black\/60, .absolute.inset-0.bg-black\/60, 
             .fixed.inset-0.bg-slate-900\/40, .absolute.inset-0.bg-slate-900\/40,
@@ -183,11 +218,13 @@
             opacity: 0;
             pointer-events: none;
             z-index: 10;
+            visibility: hidden;
         }
         .screen.active {
             opacity: 1;
             pointer-events: all;
             z-index: 20;
+            visibility: visible;
         }
 
         /* Scrollbar hides */
