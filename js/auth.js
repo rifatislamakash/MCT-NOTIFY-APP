@@ -216,7 +216,7 @@ let isRegistering = false;
                         if (window.DashboardService && window.DashboardService.applyCRDashboardRestrictions) {
                             window.DashboardService.applyCRDashboardRestrictions();
                         }
-                        loadDashboardDataAsync();
+                        await loadDashboardDataAsync();
                         setTimeout(() => {
                             const cmSection = document.getElementById('admin-content-management-section');
                             if (isCR && cmSection) cmSection.classList.add('hidden');
@@ -236,7 +236,7 @@ let isRegistering = false;
                             } else {
                                 window.navigate('screen-student-dashboard');
                                 // window.updateDashboardGreetings(); removed for single owner
-                                loadDashboardDataAsync().catch(console.warn);
+                                await loadDashboardDataAsync().catch(console.warn);
                                 window.triggerUrgentPopupModal();
                                 setTimeout(window.startReminderEngine, 2000);
                                 window.showGlobalToast("Student Portal", `Welcome back, ${profile?.full_name || 'Fellow'}`);

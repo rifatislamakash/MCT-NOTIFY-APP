@@ -447,11 +447,8 @@
             } else {
                 window.navigate('screen-student-dashboard');
             }
-            if (typeof window.updateDashboardGreetings === 'function') window.updateDashboardGreetings();
             if (typeof window.loadDashboardDataAsync === 'function') window.loadDashboardDataAsync();
             if (typeof window.triggerUrgentPopupModal === 'function') window.triggerUrgentPopupModal();
-            setTimeout(() => { if (typeof window.loadDashboardTodayRoutine === 'function') window.loadDashboardTodayRoutine(); }, 600);
-            setTimeout(() => { if (typeof window.loadScheduleList === 'function') window.loadScheduleList(); }, 1000);
             updateNotificationStatusUI();
         }
 

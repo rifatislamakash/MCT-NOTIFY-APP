@@ -5653,9 +5653,8 @@
                         window.isAppFullyInitialized = true;
                         await window.checkActiveSession();
                         startTypewriter();
-                        
                         console.log("==========");
-                        console.log("BOOT REPORT");
+                        console.log("[BOOT REPORT FINAL]");
                         console.log("==========");
                         console.log(`Boots: ${window.__BOOT_COUNT || 0}`);
                         console.log(`Auth Events: ${window.__AUTH_COUNT || 0}`);
@@ -5664,6 +5663,7 @@
                         console.log(`Dashboard Renders: ${window.__DASHBOARD_RENDER_COUNT || 0}`);
                         console.log(`Firebase Init: ${window.__FIREBASE_COUNT || 0}`);
                         console.log("==========");
+                        console.log("[LIFECYCLE] Boot execution complete");
 
                         if ((window.__ROUTE_COUNT || 0) >= 7 || (window.__DASHBOARD_FETCH_COUNT || 0) >= 5) {
                             console.error("[CRITICAL WARNING] High route or fetch count detected during boot, recursion is likely occurring!");

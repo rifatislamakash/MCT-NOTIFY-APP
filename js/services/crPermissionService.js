@@ -4,6 +4,7 @@ import { CourseStore } from '../stores/CourseStore.js';
 
 export const crPermissionService = {
     currentAssignedBatches: [],
+    _hasFetchedPermissions: false,
 
     /**
      * Check if the current user is an Admin
@@ -26,6 +27,11 @@ export const crPermissionService = {
         if (!window.authState || !window.authState.user) return;
         if (!this.isCR()) return; // Admins and students don't need assigned batches
         
+        if (this._hasFetchedPermissions) {
+            console.log("[CR CACHE] Using cached CR permissions.");
+            return;
+        }
+
         await this.refreshPermissions();
     },
 
@@ -99,6 +105,7 @@ export const crPermissionService = {
         }
         
         this.currentAssignedBatches = data ? data.map(d => d.batch_id) : [];
+        this._hasFetchedPermissions = true;
         // Update global window variable for backward compatibility where needed
         window.currentUserCRBatches = this.currentAssignedBatches;
         console.log('[CR BATCH ACCESS] Assigned Batches:', this.currentAssignedBatches);

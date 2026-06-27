@@ -479,6 +479,13 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const initial = name.charAt(0).toUpperCase();
             const needsPermission = (window.Notification && Notification.permission !== 'granted');
 
+            const hash = `${profileUrl}|${name}|${needsPermission}`;
+            if (window.__LAST_AVATAR_HASH === hash) {
+                console.log("[PROFILE RENDER] Avatar unchanged, skipping repaint.");
+                return;
+            }
+            window.__LAST_AVATAR_HASH = hash;
+
             console.log(`[PROFILE IMAGE RENDER] Updating ${containers.length} avatar containers. profileUrl: ${profileUrl || 'null'}`);
 
             containers.forEach(container => {
