@@ -248,7 +248,8 @@ const getSafariSafeDate = window.getSafariSafeDate;
                         dashContainer.innerHTML = `<div class="animate-pulse flex flex-col gap-3"><div class="h-[80px] bg-slate-100 rounded-[22px] border border-slate-50 w-full"></div></div>`;
                     }
                     
-                    const todayStr = new Date().toISOString().split('T')[0];
+                    const d = new Date();
+                    const todayStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
                     let query = _supabase.from('exam_schedules').select('*').gte('exam_date', todayStr).order('exam_date', { ascending: true }).order('start_time', { ascending: true }).abortSignal(localController.signal);
                     
                     if (window.currentUserRole !== 'admin') {
@@ -267,13 +268,20 @@ const getSafariSafeDate = window.getSafariSafeDate;
                                 nextExam = ex;
                                 break;
                             } else if (ex.exam_date === todayStr) {
+                                let isPast = false;
                                 if (ex.end_time) {
                                     const [h, m] = ex.end_time.split(':').map(Number);
-                                    if ((h * 60 + m) > currentTotalMinutes) {
-                                        nextExam = ex;
-                                        break;
+                                    if ((h * 60 + m) <= currentTotalMinutes) {
+                                        isPast = true;
                                     }
-                                } else {
+                                } else if (ex.start_time) {
+                                    const [h, m] = ex.start_time.split(':').map(Number);
+                                    if ((h * 60 + m) <= currentTotalMinutes) {
+                                        isPast = true;
+                                    }
+                                }
+                                
+                                if (!isPast) {
                                     nextExam = ex;
                                     break;
                                 }

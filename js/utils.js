@@ -69,7 +69,7 @@ import { _supabase } from './supabase-client.js';
             if (!loaderEl) {
                 loaderEl = document.createElement('div');
                 loaderEl.id = 'global-dynamic-loader';
-                loaderEl.className = 'fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center hidden transition-opacity duration-300 opacity-0';
+                loaderEl.className = 'fixed inset-0 bg-slate-900/40 backdrop- z-[9999] flex flex-col items-center justify-center hidden transition-opacity duration-300 opacity-0';
                 loaderEl.innerHTML = `<div class="bg-white px-6 py-5 rounded-2xl shadow-2xl flex flex-col items-center gap-3 border border-slate-100">
                         <div class="w-8 h-8 border-4 border-[#4226E9] border-t-transparent rounded-full animate-spin"></div>
                         <p class="text-xs font-bold text-slate-600" id="global-dynamic-loader-text">` + text + `</p>
