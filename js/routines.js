@@ -855,7 +855,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     <table class="border-collapse" style="width:auto;">
                         <thead>
                             <tr>
-                                <th class="bg-slate-100 border border-slate-200 p-2 text-[9px] font-black text-slate-500 text-center sticky left-0 z-10" style="min-width:56px;">
+                                <th class="bg-slate-100 border border-slate-200 p-2 text-[9px] font-black text-slate-500 text-center" style="min-width:56px;">
                                     <div class="text-slate-600 font-black text-[8px] uppercase leading-tight">Time</div>
                                 </th>`;
 
@@ -887,7 +887,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const timeDisplay = formatRoutineTime(slot.start_time);
 
                 html += `<tr>
-                        <td class="border border-slate-200 bg-amber-50 p-1.5 text-center align-middle sticky left-0 z-10" style="min-width:56px;">
+                        <td class="border border-slate-200 bg-amber-50 p-1.5 text-center align-middle" style="min-width:56px;">
                             <div class="text-[11px] font-black text-amber-700 leading-tight">${timeDisplay.split(' ')[0]}</div>
                             <div class="text-[8px] font-bold text-amber-500 uppercase">${timeDisplay.split(' ')[1] || ''}</div>
                         </td>`;

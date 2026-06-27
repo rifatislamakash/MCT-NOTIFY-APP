@@ -90,8 +90,8 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 100%;
-            /* overflow: hidden removed */ /* Absolutely no scrolling on the root */
+            height: 100dvh !important;
+            overflow: hidden !important; /* Absolutely no scrolling on the root */
             overscroll-behavior: none; /* Block both vertical rubber-banding AND horizontal swipe-to-go-back */
             margin: 0;
             padding: 0;
@@ -226,8 +226,8 @@
             /* Force the mobile viewport container inside the phone frame to be exactly 100% width/height of the device window */
             #app-viewport-shell {
                 width: 100% !important;
-                height: 100% !important;
-                max-height: 100% !important;
+                height: 100dvh !important;
+                max-height: 100dvh !important;
                 border: none !important;
                 border-radius: 0 !important;
                 margin: 0 !important;
