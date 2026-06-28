@@ -562,6 +562,7 @@ let isRegistering = false;
             if (typeof window.validateDIUEmail === 'function' && !validateDIUEmail(email)) {
                 if (emailError) emailError.classList.remove('hidden');
                 if (typeof window.showGlobalToast === 'function') window.showGlobalToast("Authentication Error", "Only valid MCT (xxx-40-xxx) emails allowed.");
+                isLoggingIn = false;
                 return;
             }
 
