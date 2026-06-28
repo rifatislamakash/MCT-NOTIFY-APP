@@ -29,29 +29,30 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     allCoursesList = await CourseStore.getCourses();
                 }
                 
-                let noticesData;
-                if (crPermissionService.isCR()) {
-                    noticesData = await crPermissionService.getVisibleNotices();
-                } else {
-                    noticesData = await fetchWithRetry(async (signal) => {
-                        const { data, error } = await _supabase
-                            .from('notices')
-                            .select(`
-                                    *,
-                                    notice_courses ( course_id ),
-                                    profiles (id, full_name, profile_url, role)
-                                `)
-                            .order('is_pinned', { ascending: false })
-                            .order('created_at', { ascending: false })
-                            .abortSignal(signal);
+                let noticesData = await fetchCachedOrDeduplicated('all_notices_global_' + (window.authState?.user?.id || 'guest'), async () => {
+                    if (crPermissionService.isCR()) {
+                        return await crPermissionService.getVisibleNotices();
+                    } else {
+                        return await fetchWithRetry(async (signal) => {
+                            const { data, error } = await _supabase
+                                .from('notices')
+                                .select(`
+                                        *,
+                                        notice_courses ( course_id ),
+                                        profiles (id, full_name, profile_url, role)
+                                    `)
+                                .order('is_pinned', { ascending: false })
+                                .order('created_at', { ascending: false })
+                                .abortSignal(signal);
 
-                        if (error) {
-                            console.error("[NOTICES] Query error:", error);
-                            throw error;
-                        }
-                        return data;
-                    }, 3, 1000, 30000, localController.signal);
-                }
+                            if (error) {
+                                console.error("[NOTICES] Query error:", error);
+                                throw error;
+                            }
+                            return data;
+                        }, 3, 1000, 30000, localController.signal);
+                    }
+                });
 
                 // Fetch content_targets separately (no FK relationship)
                 if (noticesData && noticesData.length > 0) {

@@ -218,7 +218,16 @@ const getSafariSafeDate = window.getSafariSafeDate;
                 if (window.contentSettings && typeof window.contentSettings.is_exam_mode !== 'undefined') {
                     isExamModeOn = (window.contentSettings.is_exam_mode === true || String(window.contentSettings.is_exam_mode).toLowerCase() === 'true' || window.contentSettings.is_exam_mode === '1' || window.contentSettings.is_exam_mode === 1);
                 } else {
-                    const { data: dbSettings } = await _supabase.from('content_management').select('is_exam_mode').limit(1).abortSignal(localController.signal).single();
+                    let dbSettings;
+                    try {
+                        dbSettings = await fetchCachedOrDeduplicated('content_management_exam_mode', async () => {
+                            const { data, error } = await _supabase.from('content_management').select('is_exam_mode').limit(1).abortSignal(localController.signal).single();
+                            if (error) throw error;
+                            return data;
+                        });
+                    } catch (e) {
+                        console.warn("[DASHBOARD] Failed to fetch content_management", e);
+                    }
                     if (dbSettings) {
                         isExamModeOn = (dbSettings.is_exam_mode === true || String(dbSettings.is_exam_mode).toLowerCase() === 'true' || dbSettings.is_exam_mode === '1' || dbSettings.is_exam_mode === 1);
                         window.contentSettings = dbSettings;
@@ -250,13 +259,22 @@ const getSafariSafeDate = window.getSafariSafeDate;
                     
                     const d = new Date();
                     const todayStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-                    let query = _supabase.from('exam_schedules').select('*').gte('exam_date', todayStr).order('exam_date', { ascending: true }).order('start_time', { ascending: true }).abortSignal(localController.signal);
-                    
-                    if (window.currentUserRole !== 'admin') {
-                         query = query.eq('target_batch', window.authState?.profile?.batch_id || 'none');
+                    let exams = null;
+                    let error = null;
+                    try {
+                        const cacheKey = window.currentUserRole === 'admin' ? 'dashboard_exams_admin' : 'dashboard_exams_' + (window.authState?.profile?.batch_id || 'none');
+                        exams = await fetchCachedOrDeduplicated(cacheKey, async () => {
+                            let query = _supabase.from('exam_schedules').select('*').gte('exam_date', todayStr).order('exam_date', { ascending: true }).order('start_time', { ascending: true }).abortSignal(localController.signal);
+                            if (window.currentUserRole !== 'admin') {
+                                query = query.eq('target_batch', window.authState?.profile?.batch_id || 'none');
+                            }
+                            const { data, error: qErr } = await query;
+                            if (qErr) throw qErr;
+                            return data;
+                        });
+                    } catch (e) {
+                        error = e;
                     }
-                    
-                    const { data: exams, error } = await query;
                     
                     let nextExam = null;
                     if (!error && exams && exams.length > 0) {
