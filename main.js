@@ -210,3 +210,58 @@ window.executeStartupQueue = function() {
         }
     });
 };
+
+// ==========================================
+// OFFLINE MODE MANAGER
+// ==========================================
+window.addEventListener('load', () => {
+    const offlineBanner = document.getElementById('offline-banner');
+    const offlineText = document.getElementById('offline-banner-text');
+    const offlineIcon = offlineBanner?.querySelector('i');
+
+    function setOfflineState() {
+        if (!offlineBanner) return;
+        offlineBanner.className = 'fixed top-0 left-0 w-full z-[99999] bg-[#111827] text-white text-center py-2 text-[12px] font-bold shadow-md transition-transform duration-500 translate-y-0 flex items-center justify-center gap-2';
+        if (offlineText) offlineText.innerText = 'You are offline. Showing cached data.';
+        if (offlineIcon) {
+            offlineIcon.setAttribute('data-lucide', 'wifi-off');
+            if (window.lucide) window.lucide.createIcons();
+        }
+        
+        // If new user (no session) and offline
+        if (!window.authState?.user) {
+            window.showGlobalToast('Offline', 'You are offline, please connect to internet to continue');
+            // Disable login button
+            const loginBtn = document.getElementById('login-btn');
+            if (loginBtn) { loginBtn.disabled = true; loginBtn.style.opacity = '0.5'; }
+        }
+    }
+
+    function setOnlineState() {
+        if (!offlineBanner) return;
+        // Green tick state
+        offlineBanner.className = 'fixed top-0 left-0 w-full z-[99999] bg-emerald-500 text-white text-center py-2 text-[12px] font-bold shadow-md transition-transform duration-500 translate-y-0 flex items-center justify-center gap-2';
+        if (offlineText) offlineText.innerText = 'Connected with the internet';
+        if (offlineIcon) {
+            offlineIcon.setAttribute('data-lucide', 'check-circle-2');
+            if (window.lucide) window.lucide.createIcons();
+        }
+
+        const loginBtn = document.getElementById('login-btn');
+        if (loginBtn) { loginBtn.disabled = false; loginBtn.style.opacity = '1'; }
+
+        // Slide up after 3 seconds
+        setTimeout(() => {
+            offlineBanner.classList.remove('translate-y-0');
+            offlineBanner.classList.add('-translate-y-full');
+        }, 3000);
+    }
+
+    window.addEventListener('offline', setOfflineState);
+    window.addEventListener('online', setOnlineState);
+
+    // Initial check
+    if (!navigator.onLine) {
+        setTimeout(setOfflineState, 1500); // Wait for auth to settle slightly
+    }
+});

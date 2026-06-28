@@ -118,14 +118,37 @@ import { _supabase } from './supabase-client.js';
         export async function fetchCachedOrDeduplicated(key, fetchFn, bypassCache = false) {
             const now = Date.now();
             if (!bypassCache && _requestCache[key] && (now - _requestCache.lastFetch[key] < window.CACHE_TTL)) {
-                console.log(`[REQUEST CACHE] Serving ${key} from cache. Age: ${(now - _requestCache.lastFetch[key]) / 1000}s`);
+                console.log(`[REQUEST CACHE] Serving ${key} from memory cache. Age: ${(now - _requestCache.lastFetch[key]) / 1000}s`);
                 return _requestCache[key];
             }
             
-            const result = await deduplicateRequest(key, fetchFn);
-            _requestCache[key] = result;
-            _requestCache.lastFetch[key] = Date.now();
-            return result;
+            try {
+                const result = await deduplicateRequest(key, fetchFn);
+                _requestCache[key] = result;
+                _requestCache.lastFetch[key] = Date.now();
+                
+                // OFFLINE CACHE: Save strictly to localStorage
+                try {
+                    localStorage.setItem(`offline_cache_${key}`, JSON.stringify(result));
+                } catch (e) {
+                    console.warn('[OFFLINE CACHE] Error saving to localStorage', e);
+                }
+                
+                return result;
+            } catch (err) {
+                // Network failure or explicitly offline
+                if (!navigator.onLine || err.message.includes('Failed to fetch') || err.message.includes('Load failed')) {
+                    const cachedStr = localStorage.getItem(`offline_cache_${key}`);
+                    if (cachedStr) {
+                        console.warn(`[OFFLINE CACHE] Network failed, serving ${key} from offline storage`);
+                        const parsed = JSON.parse(cachedStr);
+                        _requestCache[key] = parsed;
+                        _requestCache.lastFetch[key] = Date.now();
+                        return parsed;
+                    }
+                }
+                throw err;
+            }
         }
 
         export function cancelActiveRequest(key) {
@@ -149,8 +172,7 @@ import { _supabase } from './supabase-client.js';
             }
         }
 
-        export async function fetchWithRetry(fn, retries = 2, delay = 1000, timeoutMs = 20000, parentSignal = null) {
-            let lastError = null;
+        export async function fetchWithRetry(fn, retries = 2, delay = 1000, timeoutMs = 20000, parentSignal = null) {let lastError = null;
             for (let i = 0; i < retries; i++) {
                 if (parentSignal && parentSignal.aborted) {
                     throw new DOMException("The user aborted a request.", "AbortError");

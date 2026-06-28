@@ -2,14 +2,25 @@
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
 
-const CACHE_NAME = 'mct-notify-v4';
+const CACHE_NAME = 'mct-notify-v5';
+const MEDIA_CACHE = 'mct-media-cache-v1';
 
 // ======================
 // SERVICE WORKER INSTALL
 // ======================
 
 self.addEventListener('install', (event) => {
-    console.log('[SW] Installing...');
+    console.log('[SW] Installing offline shell...');
+    event.waitUntil(
+        caches.open(CACHE_NAME).then((cache) => {
+            return cache.addAll([
+                './',
+                './index.html',
+                './manifest.json',
+                './assets/Logo.png'
+            ]);
+        })
+    );
     self.skipWaiting();
 });
 
@@ -24,7 +35,8 @@ self.addEventListener('activate', (event) => {
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
-                    if (cacheName !== CACHE_NAME) {
+                    // Only delete old 'mct-notify-' caches, preserve others like media or profile rules
+                    if (cacheName.startsWith('mct-notify-') && cacheName !== CACHE_NAME) {
                         console.log('[SW] Removing old cache:', cacheName);
                         return caches.delete(cacheName);
                     }
@@ -32,6 +44,50 @@ self.addEventListener('activate', (event) => {
             );
         }).then(() => self.clients.claim())
     );
+});
+
+// ======================
+// OFFLINE FETCH HANDLER
+// ======================
+
+self.addEventListener('fetch', (event) => {
+    if (event.request.method !== 'GET') return;
+    const url = new URL(event.request.url);
+    
+    // Cache Supabase Storage media (Images, PDFs)
+    if (url.origin.includes('supabase.co') && url.pathname.includes('/storage/v1/object/public/')) {
+        event.respondWith(
+            caches.match(event.request).then((cached) => {
+                if (cached) return cached; // Serve from cache if available
+                return fetch(event.request).then((response) => {
+                    if (response.ok) {
+                        const clone = response.clone();
+                        caches.open(MEDIA_CACHE).then(c => c.put(event.request, clone));
+                    }
+                    return response;
+                }).catch(() => {
+                    return new Response('', { status: 404, statusText: 'Offline' });
+                });
+            })
+        );
+        return;
+    }
+
+    // Cache App Shell (HTML, JS, CSS) using Network-First strategy
+    if (url.origin === self.location.origin) {
+        event.respondWith(
+            fetch(event.request).then((response) => {
+                if (response.ok) {
+                    const clone = response.clone();
+                    caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+                }
+                return response;
+            }).catch(() => {
+                // Fallback to cache when offline
+                return caches.match(event.request);
+            })
+        );
+    }
 });
 
 // ======================
