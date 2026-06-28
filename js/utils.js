@@ -122,6 +122,17 @@ import { _supabase } from './supabase-client.js';
                 return _requestCache[key];
             }
             
+            if (!navigator.onLine) {
+                const cachedStr = localStorage.getItem(`offline_cache_${key}`);
+                if (cachedStr) {
+                    console.warn(`[OFFLINE INSTANT] Serving ${key} from offline storage`);
+                    const parsed = JSON.parse(cachedStr);
+                    _requestCache[key] = parsed;
+                    _requestCache.lastFetch[key] = Date.now();
+                    return parsed;
+                }
+            }
+            
             try {
                 const result = await deduplicateRequest(key, fetchFn);
                 _requestCache[key] = result;
@@ -137,7 +148,7 @@ import { _supabase } from './supabase-client.js';
                 return result;
             } catch (err) {
                 // Network failure or explicitly offline
-                if (!navigator.onLine || err.message.includes('Failed to fetch') || err.message.includes('Load failed')) {
+                if (!navigator.onLine || err.message.includes('Failed to fetch') || err.message.includes('Load failed') || err.message.includes('sdk_timeout') || err.message.includes('Network request timed out')) {
                     const cachedStr = localStorage.getItem(`offline_cache_${key}`);
                     if (cachedStr) {
                         console.warn(`[OFFLINE CACHE] Network failed, serving ${key} from offline storage`);
@@ -214,7 +225,7 @@ import { _supabase } from './supabase-client.js';
                         console.error(`[REQUEST FAILURE] Attempt ${i + 1} failed after ${duration}ms:`, err.message || err);
                     }
                     lastError = err;
-                    if (i === retries - 1 || err.name === 'AbortError' || (parentSignal && parentSignal.aborted)) {
+                    if (i === retries - 1 || err.name === 'AbortError' || (parentSignal && parentSignal.aborted) || (err.message && err.message.includes('sdk_timeout'))) {
                         throw err;
                     }
                     // Exponential backoff

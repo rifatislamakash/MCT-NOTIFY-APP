@@ -5402,12 +5402,11 @@
         // Load content settings from Supabase (called on login/boot)
         async function loadContentSettings() {
             try {
-                const { data, error } = await _supabase
-                    .from('content_management')
-                    .select('*')
-                    .limit(1)
-                    .maybeSingle();
-                if (error) throw error;
+                const data = await window.fetchCachedOrDeduplicated('global_content_settings', async () => {
+                    const { data: qData, error } = await _supabase.from('content_management').select('*').limit(1).maybeSingle();
+                    if (error) throw error;
+                    return qData;
+                });
                 if (data) {
                     contentSettingsRowId = data.id;
                     contentSettings = {

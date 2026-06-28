@@ -268,9 +268,18 @@ const getSafariSafeDate = window.getSafariSafeDate;
                             if (window.currentUserRole !== 'admin') {
                                 query = query.eq('target_batch', window.authState?.profile?.batch_id || 'none');
                             }
-                            const { data, error: qErr } = await query;
-                            if (qErr) throw qErr;
-                            return data;
+                            if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
+                            let timerId;
+                            const timeoutPromise = new Promise((_, reject) => {
+                                timerId = setTimeout(() => reject(new Error('sdk_timeout')), 8000);
+                            });
+                            try {
+                                const result = await Promise.race([query, timeoutPromise]);
+                                if (result.error) throw result.error;
+                                return result.data;
+                            } finally {
+                                clearTimeout(timerId);
+                            }
                         });
                     } catch (e) {
                         error = e;
