@@ -109,7 +109,12 @@ import { _supabase } from './supabase-client.js';
                 console.log(`[REQUEST DEDUPE] Reusing active promise for: ${key}`);
                 return activePromises[key];
             }
-            activePromises[key] = fetchFn().finally(() => {
+            let timerId;
+            const timeoutPromise = new Promise((_, reject) => {
+                timerId = setTimeout(() => reject(new Error('sdk_timeout (global)')), 6000);
+            });
+            activePromises[key] = Promise.race([fetchFn(), timeoutPromise]).finally(() => {
+                clearTimeout(timerId);
                 activePromises[key] = null;
             });
             return activePromises[key];
@@ -183,7 +188,7 @@ import { _supabase } from './supabase-client.js';
             }
         }
 
-        export async function fetchWithRetry(fn, retries = 2, delay = 1000, timeoutMs = 20000, parentSignal = null) {let lastError = null;
+        export async function fetchWithRetry(fn, retries = 2, delay = 1000, timeoutMs = 5000, parentSignal = null) {let lastError = null;
             for (let i = 0; i < retries; i++) {
                 if (parentSignal && parentSignal.aborted) {
                     throw new DOMException("The user aborted a request.", "AbortError");

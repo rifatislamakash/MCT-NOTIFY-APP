@@ -175,13 +175,20 @@ import { ProfileStore } from './stores/ProfileStore.js';
                       return;
                   }
 
-                  let query = _supabase.from('exam_schedules').select('*').order('exam_date', { ascending: true }).order('start_time', { ascending: true });
-                  if (window.currentUserRole !== 'admin') {
-                       console.log('[EXAM ROUTINE] Fetching data for Batch ID:', window.authState.profile.batch_id);
-                       query = query.eq('target_batch', window.authState.profile.batch_id);
-                  }
-                  const { data: exams, error } = await query;
-                  if (error) throw error;
+                  const batchId = window.authState?.profile?.batch_id || 'none';
+                  const cacheKey = window.currentUserRole === 'admin' ? 'full_exams_admin' : 'full_exams_' + batchId;
+                  
+                  const exams = await window.fetchCachedOrDeduplicated(cacheKey, async () => {
+                      let query = _supabase.from('exam_schedules').select('*').order('exam_date', { ascending: true }).order('start_time', { ascending: true });
+                      if (window.currentUserRole !== 'admin') {
+                           console.log('[EXAM ROUTINE] Fetching data for Batch ID:', batchId);
+                           query = query.eq('target_batch', batchId);
+                      }
+                      if (window._supabaseSdkFailing) throw new Error('sdk_timeout (global)');
+                      const { data, error } = await query;
+                      if (error) throw error;
+                      return data;
+                  });
 
                   if (exams && exams.length > 0 && window.ReactionService) {
                       const examIds = exams.map(e => e.id);

@@ -215,23 +215,14 @@ const getSafariSafeDate = window.getSafariSafeDate;
                 }
                 
                 let isExamModeOn = false;
+                if (!window.contentSettings || typeof window.contentSettings.is_exam_mode === 'undefined') {
+                    if (typeof window.loadContentSettings === 'function') {
+                        await window.loadContentSettings();
+                    }
+                }
+                
                 if (window.contentSettings && typeof window.contentSettings.is_exam_mode !== 'undefined') {
                     isExamModeOn = (window.contentSettings.is_exam_mode === true || String(window.contentSettings.is_exam_mode).toLowerCase() === 'true' || window.contentSettings.is_exam_mode === '1' || window.contentSettings.is_exam_mode === 1);
-                } else {
-                    let dbSettings;
-                    try {
-                        dbSettings = await fetchCachedOrDeduplicated('content_management_exam_mode', async () => {
-                            const { data, error } = await _supabase.from('content_management').select('is_exam_mode').limit(1).abortSignal(localController.signal).single();
-                            if (error) throw error;
-                            return data;
-                        });
-                    } catch (e) {
-                        console.warn("[DASHBOARD] Failed to fetch content_management", e);
-                    }
-                    if (dbSettings) {
-                        isExamModeOn = (dbSettings.is_exam_mode === true || String(dbSettings.is_exam_mode).toLowerCase() === 'true' || dbSettings.is_exam_mode === '1' || dbSettings.is_exam_mode === 1);
-                        window.contentSettings = dbSettings;
-                    }
                 }
                 
                 const sectionHeader = document.getElementById('dashboard-routine-section-label');
