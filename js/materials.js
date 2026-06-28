@@ -298,8 +298,32 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (courseEl) courseEl.innerText = (material.courses?.course_name || 'Unknown Course');
             if (dateEl) dateEl.innerText = new Date(material.created_at).toLocaleDateString();
 
+            function formatRichText(txt) {
+                if (!txt) return '';
+                let escaped = txt.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                
+                escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                escaped = escaped.replace(/\[color=(#[a-zA-Z0-9]{3,6})\](.*?)\[\/color\]/g, '<span style="color: $1">$2</span>');
+                
+                let linkMap = [];
+                escaped = escaped.replace(/\[(.*?)\]\((https?:\/\/[^\)]+)\)/g, (match, p1, p2) => {
+                    linkMap.push(`<a href="${p2}" target="_blank" class="text-[#4226E9] font-bold hover:underline break-all">${p1}</a>`);
+                    return `___LINK_${linkMap.length - 1}___`;
+                });
+                
+                escaped = escaped.replace(/(https?:\/\/[^\s<]+)/g, (match) => {
+                    return `<a href="${match}" target="_blank" class="text-[#4226E9] font-bold hover:underline break-all">${match}</a>`;
+                });
+                
+                for (let i = 0; i < linkMap.length; i++) {
+                    escaped = escaped.replace(`___LINK_${i}___`, linkMap[i]);
+                }
+                
+                return escaped;
+            }
+
             if (material.description && descCont && descEl) {
-                descEl.innerText = material.description;
+                descEl.innerHTML = formatRichText(material.description);
                 descCont.classList.remove('hidden');
             } else if (descCont) {
                 descCont.classList.add('hidden');

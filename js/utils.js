@@ -300,22 +300,32 @@ window.applyFormat = function(type, value = null) {
 
 window.safeFormatRichText = function(text) {
     if (!text) return '';
-    let safeText = String(text).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    let safeText = String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     
-    // Bold
+    // Bold, Italic, Underline
     safeText = safeText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    // Italic
     safeText = safeText.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    // Underline
     safeText = safeText.replace(/__(.*?)__/g, '<u>$1</u>');
+    
     // Color
-    safeText = safeText.replace(/\[color=(#[0-9a-fA-F]{6})\](.*?)\[\/color\]/g, '<span style="color: $1; font-weight: 600;">$2</span>');
+    safeText = safeText.replace(/\[color=(#[a-zA-Z0-9]{3,6})\](.*?)\[\/color\]/g, '<span style="color: $1; font-weight: 600;">$2</span>');
     
-    // Markdown Links: [Text](url)
-    safeText = safeText.replace(/\[([^\]]+)\]\((https?:\/\/[^\s<]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 font-semibold underline hover:text-blue-800">$1</a>');
+    // Links (Placeholder approach to prevent double parsing and WebKit issues)
+    let linkMap = [];
+    safeText = safeText.replace(/\[(.*?)\]\((https?:\/\/[^\)]+)\)/g, (match, p1, p2) => {
+        linkMap.push(`<a href="${p2}" target="_blank" rel="noopener noreferrer" class="text-blue-600 font-bold hover:underline break-all">${p1}</a>`);
+        return `___LINK_${linkMap.length - 1}___`;
+    });
     
-    // Raw Links (http:// or https://) that are not already inside an href
-    safeText = safeText.replace(/(^|[^="'])(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 font-semibold underline hover:text-blue-800">$2</a>');
+    // Raw URLs fallback
+    safeText = safeText.replace(/(https?:\/\/[^\s<]+)/g, (match) => {
+        return `<a href="${match}" target="_blank" rel="noopener noreferrer" class="text-blue-600 font-bold hover:underline break-all">${match}</a>`;
+    });
+    
+    // Restore placeholders
+    for (let i = 0; i < linkMap.length; i++) {
+        safeText = safeText.replace(`___LINK_${i}___`, linkMap[i]);
+    }
     
     // Convert newlines to breaks
     safeText = safeText.replace(/\n/g, '<br>');
