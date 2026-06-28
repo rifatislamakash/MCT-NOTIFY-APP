@@ -12,31 +12,16 @@ export const RoutineStore = (function () {
         fetchPromise = new Promise(async (resolve, reject) => {
             try {
                 const data = await fetchCachedOrDeduplicated('store_routines', async () => {
-                    const sdkController = new AbortController();
-                    const sdkPromise = _supabase
+                    const { data: routines, error } = await _supabase
                         .from('weekly_routines')
                         .select(`
                             id, batch_id, day_name, start_time, class_order, room_number, course_id, faculty_id, section_name,
                             courses ( id, course_name, short_name ),
                             faculty ( id, faculty_name, teacher_initial )
                         `)
-                        .order('class_order', { ascending: true })
-                        .abortSignal(sdkController.signal);
-                    
-                    let timerId;
-                    const timeoutPromise = new Promise((_, reject) => {
-                        timerId = setTimeout(() => reject(new Error('sdk_timeout')), 8000);
-                    });
-                    try {
-                        const { data: routines, error } = await Promise.race([sdkPromise, timeoutPromise]);
-                        if (error) throw error;
-                        return routines || [];
-                    } catch(e) {
-                        if (e.message === 'sdk_timeout') sdkController.abort();
-                        throw e;
-                    } finally {
-                        clearTimeout(timerId);
-                    }
+                        .order('class_order', { ascending: true });
+                    if (error) throw error;
+                    return routines || [];
                 });
                 routineCache = data;
                 // Legacy compatibility

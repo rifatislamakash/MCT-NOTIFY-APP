@@ -12,58 +12,58 @@ let isRegistering = false;
 
         export async function fetchUserProfile(userId) {
             try {
-                return await fetchCachedOrDeduplicated(`user_profile_${userId}`, async () => {
-                    const controller = new AbortController();
-                    const profilePromise = _supabase
-                        .from('profiles')
-                        .select('*')
-                        .eq('id', userId)
-                        .abortSignal(controller.signal)
-                        .maybeSingle();
-                    
-                    let data, error;
+                const controller = new AbortController();
+                const profilePromise = _supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', userId)
+                    .abortSignal(controller.signal)
+                    .maybeSingle();
+                
+                let data, error;
+                try {
+                    if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
+                    let timerId;
+                    const timeoutPromise = new Promise((_, reject) => {
+                        timerId = setTimeout(() => {
+                            controller.abort();
+                            reject(new Error('sdk_timeout'));
+                        }, 5000);
+                    });
                     try {
-                        if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
-                        let timerId;
-                        const timeoutPromise = new Promise((_, reject) => {
-                            timerId = setTimeout(() => {
-                                controller.abort();
-                                reject(new Error('sdk_timeout'));
-                            }, 5000);
-                        });
-                        try {
-                            const result = await Promise.race([profilePromise, timeoutPromise]);
-                            data = result.data;
-                            error = result.error;
-                        } finally {
-                            clearTimeout(timerId);
-                        }
-                    } catch (e) {
-                        if (e.message === 'sdk_timeout') {
-                            window._supabaseSdkFailing = true;
-                            const url = `${_supabase.supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=*`;
-                            const res = await fetch(url, {
-                                headers: {
-                                    'apikey': _supabase.supabaseKey,
-                                    'Authorization': `Bearer ${window.authState?.session?.access_token || _supabase.supabaseKey}`,
-                                    'cache-control': 'no-cache'
-                                },
-                                cache: 'no-store'
-                            });
-                            const fetchResult = await res.json();
-                            data = fetchResult && fetchResult.length > 0 ? fetchResult[0] : null;
-                        } else {
-                            throw e;
-                        }
+                        const result = await Promise.race([profilePromise, timeoutPromise]);
+                        data = result.data;
+                        error = result.error;
+                    } finally {
+                        clearTimeout(timerId);
                     }
-                    if (error) throw error;
-                    return data;
-                });
+                } catch (e) {
+                    if (e.message === 'sdk_timeout') {
+                        window._supabaseSdkFailing = true;
+                        const url = `${_supabase.supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=*`;
+                        const res = await fetch(url, {
+                            headers: {
+                                'apikey': _supabase.supabaseKey,
+                                'Authorization': `Bearer ${window.authState?.session?.access_token || _supabase.supabaseKey}`,
+                                'cache-control': 'no-cache'
+                            },
+                            cache: 'no-store'
+                        });
+                        const fetchResult = await res.json();
+                        data = fetchResult && fetchResult.length > 0 ? fetchResult[0] : null;
+                    } else {
+                        throw e;
+                    }
+                }
+                if (error) throw error;
+                return data;
             } catch (err) {
                 console.error('Exception caught in fetchUserProfile:', err);
                 return null;
             }
         }
+
+
 
         export const handleUserRouting = async (user, profile) => {
             console.log("[ROUTING INIT] Starting user routing...");
@@ -104,7 +104,7 @@ let isRegistering = false;
                 if (isAdminCheck) {
                     window.currentUserCoursesList = [];
                 } else {
-                    const coursesPromise = fetchCachedOrDeduplicated('user_courses_boot', async () => {
+                    const coursesPromise = deduplicateRequest('user_courses_boot', async () => {
                         const sdkPromise = _supabase.from('user_courses').select('*').eq('user_id', user.id);
                         const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('sdk_timeout')), 2000));
                         try {

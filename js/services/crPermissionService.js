@@ -1,5 +1,4 @@
 import { _supabase } from '../supabase-client.js';
-import { fetchCachedOrDeduplicated } from '../utils.js';
 import { batchService } from './batchService.js';
 import { CourseStore } from '../stores/CourseStore.js';
 
@@ -43,75 +42,73 @@ export const crPermissionService = {
         if (!window.authState || !window.authState.user) return;
         
         console.log('[CR PERMISSION] Refreshing batch assignments...');
+        const sdkPromise = _supabase
+            .from('batch_crs')
+            .select('batch_id')
+            .eq('user_id', window.authState.user.id)
+            .eq('active', true);
+            
+        let data, error;
         
         try {
-            const data = await fetchCachedOrDeduplicated('cr_permissions_' + window.authState.user.id, async () => {
-                const sdkPromise = _supabase
-                    .from('batch_crs')
-                    .select('batch_id')
-                    .eq('user_id', window.authState.user.id)
-                    .eq('active', true);
-                    
-                let resData, error;
-                
-                try {
-                    if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
-                    let timerId;
-                    const timeoutPromise = new Promise((_, reject) => {
-                        timerId = setTimeout(() => reject(new Error('sdk_timeout')), 8000);
-                    });
-                    const result = await Promise.race([sdkPromise, timeoutPromise]);
-                    resData = result.data;
-                    error = result.error;
-                    clearTimeout(timerId);
-                } catch (e) {
-                    if (e.message === 'sdk_timeout') {
-                        if (typeof sdkController !== 'undefined') sdkController.abort();
-                        window._supabaseSdkFailing = true;
-                        console.log("[CR PERMISSION] [SDK TIMEOUT] 8000ms limit reached");
-                        console.log("[CR PERMISSION] [REST FALLBACK]");
+            if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
+            let timerId;
+            const timeoutPromise = new Promise((_, reject) => {
+                timerId = setTimeout(() => reject(new Error('sdk_timeout')), 8000);
+            });
+            console.log("[CR PERMISSION] [SDK START]");
+                        const startSdk = performance.now();
                         try {
-                            const url = `${_supabase.supabaseUrl}/rest/v1/batch_crs?user_id=eq.${window.authState.user.id}&active=is.true&select=batch_id`;
-                            const res = await fetch(url, {
-                                headers: {
-                                    'apikey': _supabase.supabaseKey,
-                                    'Authorization': `Bearer ${window.authState?.session?.access_token || _supabase.supabaseKey}`,
-                                    'cache-control': 'no-cache'
-                                },
-                                cache: 'no-store'
-                            });
-                            if (!res.ok) {
+                            const result = await Promise.race([sdkPromise, timeoutPromise]);
+                data = result.data;
+                error = result.error;
+            console.log("[CR PERMISSION] [SDK SUCCESS]");
+                            console.log(`[CR PERMISSION] [SDK DURATION] ${Math.round(performance.now() - startSdk)}ms`);
+                        } finally {
+                            clearTimeout(timerId);
+                        }
+        } catch (e) {
+            if (e.message === 'sdk_timeout') {
+                                        if (typeof sdkController !== 'undefined') sdkController.abort();
+                                        window._supabaseSdkFailing = true;
+                console.log("[CR PERMISSION] [SDK TIMEOUT] 8000ms limit reached");
+                            console.log("[CR PERMISSION] [REST FALLBACK]");
+                try {
+                    const url = `${_supabase.supabaseUrl}/rest/v1/batch_crs?user_id=eq.${window.authState.user.id}&active=is.true&select=batch_id`;
+                    const res = await fetch(url, {
+                        headers: {
+                            'apikey': _supabase.supabaseKey,
+                            'Authorization': `Bearer ${window.authState?.session?.access_token || _supabase.supabaseKey}`,
+                            'cache-control': 'no-cache'
+                        },
+                        cache: 'no-store'
+                    });
+                    if (!res.ok) {
                                 console.log("[CR PERMISSION] [REST FAILURE]");
                                 throw new Error(`HTTP error! status: ${res.status}`);
                             }
                             console.log("[CR PERMISSION] [REST SUCCESS]");
-                            resData = await res.json();
-                        } catch (fetchErr) {
-                            console.error("[CR PERMISSION] REST fallback failed:", fetchErr);
-                            error = fetchErr;
-                        }
-                    } else {
-                        error = e;
-                    }
+                    data = await res.json();
+                } catch (fetchErr) {
+                    console.error("[CR PERMISSION] REST fallback failed:", fetchErr);
+                    error = fetchErr;
                 }
-                    
-                if (error) {
-                    console.error('[CR PERMISSION] Error fetching assigned batches:', error);
-                    throw error;
-                }
-                
-                return resData;
-            });
-            
-            this.currentAssignedBatches = data ? data.map(b => b.batch_id) : [];
-            window.currentUserCRBatches = this.currentAssignedBatches;
-            this._hasFetchedPermissions = true;
-            console.log(`[CR BATCH ACCESS] Assigned Batches: [${this.currentAssignedBatches.join("', '")}]`);
-        } catch (err) {
-            console.error('[CR PERMISSION] Fatal error refreshing permissions:', err);
-            this.currentAssignedBatches = [];
-            window.currentUserCRBatches = [];
+            } else {
+                error = e;
+            }
         }
+            
+        if (error) {
+            console.error('[CR PERMISSION] Error fetching assigned batches:', error);
+            this.currentAssignedBatches = [];
+            return;
+        }
+        
+        this.currentAssignedBatches = data ? data.map(d => d.batch_id) : [];
+        this._hasFetchedPermissions = true;
+        // Update global window variable for backward compatibility where needed
+        window.currentUserCRBatches = this.currentAssignedBatches;
+        console.log('[CR BATCH ACCESS] Assigned Batches:', this.currentAssignedBatches);
     },
 
     /**

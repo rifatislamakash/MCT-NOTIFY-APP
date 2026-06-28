@@ -109,12 +109,7 @@ import { _supabase } from './supabase-client.js';
                 console.log(`[REQUEST DEDUPE] Reusing active promise for: ${key}`);
                 return activePromises[key];
             }
-            let timerId;
-            const timeoutPromise = new Promise((_, reject) => {
-                timerId = setTimeout(() => reject(new Error('sdk_timeout (global)')), 6000);
-            });
-            activePromises[key] = Promise.race([fetchFn(), timeoutPromise]).finally(() => {
-                clearTimeout(timerId);
+            activePromises[key] = fetchFn().finally(() => {
                 activePromises[key] = null;
             });
             return activePromises[key];
@@ -123,48 +118,14 @@ import { _supabase } from './supabase-client.js';
         export async function fetchCachedOrDeduplicated(key, fetchFn, bypassCache = false) {
             const now = Date.now();
             if (!bypassCache && _requestCache[key] && (now - _requestCache.lastFetch[key] < window.CACHE_TTL)) {
-                console.log(`[REQUEST CACHE] Serving ${key} from memory cache. Age: ${(now - _requestCache.lastFetch[key]) / 1000}s`);
+                console.log(`[REQUEST CACHE] Serving ${key} from cache. Age: ${(now - _requestCache.lastFetch[key]) / 1000}s`);
                 return _requestCache[key];
             }
             
-            if (!navigator.onLine) {
-                const cachedStr = localStorage.getItem(`offline_cache_${key}`);
-                if (cachedStr) {
-                    console.warn(`[OFFLINE INSTANT] Serving ${key} from offline storage`);
-                    const parsed = JSON.parse(cachedStr);
-                    _requestCache[key] = parsed;
-                    _requestCache.lastFetch[key] = Date.now();
-                    return parsed;
-                }
-            }
-            
-            try {
-                const result = await deduplicateRequest(key, fetchFn);
-                _requestCache[key] = result;
-                _requestCache.lastFetch[key] = Date.now();
-                
-                // OFFLINE CACHE: Save strictly to localStorage
-                try {
-                    localStorage.setItem(`offline_cache_${key}`, JSON.stringify(result));
-                } catch (e) {
-                    console.warn('[OFFLINE CACHE] Error saving to localStorage', e);
-                }
-                
-                return result;
-            } catch (err) {
-                // Network failure or explicitly offline
-                if (!navigator.onLine || err.message.includes('Failed to fetch') || err.message.includes('Load failed') || err.message.includes('sdk_timeout') || err.message.includes('Network request timed out')) {
-                    const cachedStr = localStorage.getItem(`offline_cache_${key}`);
-                    if (cachedStr) {
-                        console.warn(`[OFFLINE CACHE] Network failed, serving ${key} from offline storage`);
-                        const parsed = JSON.parse(cachedStr);
-                        _requestCache[key] = parsed;
-                        _requestCache.lastFetch[key] = Date.now();
-                        return parsed;
-                    }
-                }
-                throw err;
-            }
+            const result = await deduplicateRequest(key, fetchFn);
+            _requestCache[key] = result;
+            _requestCache.lastFetch[key] = Date.now();
+            return result;
         }
 
         export function cancelActiveRequest(key) {
@@ -188,7 +149,8 @@ import { _supabase } from './supabase-client.js';
             }
         }
 
-        export async function fetchWithRetry(fn, retries = 2, delay = 1000, timeoutMs = 5000, parentSignal = null) {let lastError = null;
+        export async function fetchWithRetry(fn, retries = 2, delay = 1000, timeoutMs = 20000, parentSignal = null) {
+            let lastError = null;
             for (let i = 0; i < retries; i++) {
                 if (parentSignal && parentSignal.aborted) {
                     throw new DOMException("The user aborted a request.", "AbortError");
@@ -230,7 +192,7 @@ import { _supabase } from './supabase-client.js';
                         console.error(`[REQUEST FAILURE] Attempt ${i + 1} failed after ${duration}ms:`, err.message || err);
                     }
                     lastError = err;
-                    if (i === retries - 1 || err.name === 'AbortError' || (parentSignal && parentSignal.aborted) || (err.message && err.message.includes('sdk_timeout'))) {
+                    if (i === retries - 1 || err.name === 'AbortError' || (parentSignal && parentSignal.aborted)) {
                         throw err;
                     }
                     // Exponential backoff

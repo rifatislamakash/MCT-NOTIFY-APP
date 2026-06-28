@@ -87,48 +87,45 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         if (coursesCountEl) coursesCountEl.innerText = courseIds.length;
 
                         if (courseIds.length > 0) {
+                            const sdkController = new AbortController();
+                            const coursesInfoPromise = _supabase.from('courses').select('total_credit').in('id', courseIds).abortSignal(sdkController.signal);
                             let cData;
                             try {
-                                cData = await fetchCachedOrDeduplicated('profile_courses_' + courseIds.join('_'), async () => {
-                                    const sdkController = new AbortController();
-                                    const coursesInfoPromise = _supabase.from('courses').select('total_credit').in('id', courseIds).abortSignal(sdkController.signal);
-                                    if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
-                                    let timerId;
-                                    const timeoutPromise = new Promise((_, reject) => {
-                                        timerId = setTimeout(() => reject(new Error('sdk_timeout')), 8000);
-                                    });
-                                    const startSdk = performance.now();
-                                    try {
-                                        const { data, error } = await Promise.race([coursesInfoPromise, timeoutPromise]);
-                                        if (error) throw error;
-                                        console.log("[PROFILE] [SDK SUCCESS]");
-                                        console.log(`[PROFILE] [SDK DURATION] ${Math.round(performance.now() - startSdk)}ms`);
-                                        return data;
-                                    } catch (e) {
-                                        if (e.message === 'sdk_timeout') {
-                                            sdkController.abort();
-                                            window._supabaseSdkFailing = true;
-                                            const inList = courseIds.map(id => `"${id}"`).join(',');
-                                            const url = `${_supabase.supabaseUrl}/rest/v1/courses?id=in.(${inList})&select=total_credit`;
-                                            const res = await fetch(url, {
-                                                headers: {
-                                                    'apikey': _supabase.supabaseKey,
-                                                    'Authorization': `Bearer ${window.authState?.session?.access_token || _supabase.supabaseKey}`,
-                                                    'cache-control': 'no-cache'
-                                                },
-                                                cache: 'no-store'
-                                            });
-                                            const data = await res.json();
-                                            return data;
-                                        } else {
-                                            throw e;
-                                        }
-                                    } finally {
-                                        clearTimeout(timerId);
-                                    }
+                                if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
+                                let timerId;
+                                const timeoutPromise = new Promise((_, reject) => {
+                                    timerId = setTimeout(() => reject(new Error('sdk_timeout')), 8000);
                                 });
+                                try {
+                                    const { data, error } = await Promise.race([coursesInfoPromise, timeoutPromise]);
+                                    if (error) throw error;
+                                    cData = data;
+                                console.log("[PROFILE] [SDK SUCCESS]");
+                            console.log(`[PROFILE] [SDK DURATION] ${Math.round(performance.now() - startSdk)}ms`);
+                        } finally {
+                            clearTimeout(timerId);
+                        }
                             } catch (e) {
-                                console.error("[PROFILE] Courses fetching failed:", e);
+                                if (e.message === 'sdk_timeout') {
+                                    sdkController.abort();
+                                    window._supabaseSdkFailing = true;
+                                    const inList = courseIds.map(id => `"${id}"`).join(',');
+                                    const url = `${_supabase.supabaseUrl}/rest/v1/courses?id=in.(${inList})&select=total_credit`;
+                                    const res = await fetch(url, {
+                                        headers: {
+                                            'apikey': _supabase.supabaseKey,
+                                            'Authorization': `Bearer ${window.authState?.session?.access_token || _supabase.supabaseKey}`,
+                                            'cache-control': 'no-cache'
+                                        },
+                                        cache: 'no-store',
+                                        signal: localController.signal
+                                    });
+                                    const fetchResult = await res.json();
+                                    if (fetchResult.error) throw new Error(fetchResult.error.message);
+                                    cData = fetchResult;
+                                } else {
+                                    throw e;
+                                }
                             }
 
                             if (localController.signal.aborted) return;

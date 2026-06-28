@@ -19,25 +19,10 @@ export const FacultyStore = (function () {
                     if (signal) {
                         query = query.abortSignal(signal);
                     }
-                    if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
-                    let timerId;
-                    const timeoutPromise = new Promise((_, reject) => {
-                        timerId = setTimeout(() => reject(new Error('sdk_timeout')), 8000);
-                    });
-                    let faculty, error;
-                    try {
-                        const result = await Promise.race([query, timeoutPromise]);
-                        faculty = result.data;
-                        error = result.error;
-                        if (error) throw error;
-                    } catch(e) {
-                        if (e.message === 'sdk_timeout' && signal && signal.abort) {
-                            // Can't abort parent signal directly, but we throw
-                        }
-                        console.error("[FacultyStore] Query error:", e);
-                        throw e;
-                    } finally {
-                        clearTimeout(timerId);
+                    const { data: faculty, error } = await query;
+                    if (error) {
+                        console.error("[FacultyStore] Query error:", error);
+                        throw error;
                     }
                     console.log("[FacultyStore] Query success");
                     console.log(`[FacultyStore] Loaded ${faculty ? faculty.length : 0} faculty members`);

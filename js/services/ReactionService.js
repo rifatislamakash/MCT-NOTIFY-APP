@@ -222,8 +222,6 @@ export class ReactionService {
     static pendingToggles = {};
 
     static async toggleReaction(contentType, contentId, reactionType) {
-    if (!navigator.onLine) { window.showGlobalToast("Offline", "This action is not available offline."); return; }
-
         if (!window.authState?.user) {
             showGlobalToast("Error", "You must be logged in to react.");
             return;
