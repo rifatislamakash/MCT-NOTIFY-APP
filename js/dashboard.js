@@ -30,8 +30,17 @@ const getSafariSafeDate = window.getSafariSafeDate;
             const greet = getGreeting();
             const studentEl = document.getElementById('student-greeting-text');
             const adminEl = document.getElementById('admin-greeting-text');
-            if (studentEl) studentEl.textContent = greet;
+            if (studentEl) studentEl.textContent = greet + " 👋";
             if (adminEl) adminEl.textContent = greet;
+            
+            const nameEl = document.getElementById('student-greeting-name');
+            if (nameEl) {
+                if (window.authState && window.authState.profile && window.authState.profile.full_name) {
+                    nameEl.textContent = window.authState.profile.full_name;
+                } else {
+                    nameEl.textContent = "Welcome";
+                }
+            }
             if (typeof window.silentNotificationInit === 'function') window.silentNotificationInit();
 
             // --- ONE-TIME NEW REGISTRATION WELCOME PUSH NOTIFICATION ---
@@ -663,3 +672,46 @@ export const DashboardService = {
     }
 };
 
+
+
+// ----------------------------------------------------
+// Quick Access Pagination Logic
+// ----------------------------------------------------
+function updateQuickAccessPagination() {
+    const container = document.getElementById('quick-access-scroll-container');
+    if (!container) return;
+    
+    // Calculate which page we are on based on scroll position
+    const scrollLeft = container.scrollLeft;
+    const width = container.clientWidth;
+    
+    if (width === 0) return;
+    
+    const pageIndex = Math.round(scrollLeft / width);
+    const dots = document.querySelectorAll('.qa-dot');
+    
+    dots.forEach((dot, index) => {
+        if (index === pageIndex) {
+            dot.classList.remove('bg-slate-200');
+            dot.classList.add('bg-blue-600');
+        } else {
+            dot.classList.remove('bg-blue-600');
+            dot.classList.add('bg-slate-200');
+        }
+    });
+}
+
+// Attach event listener passively for better scroll performance
+function initQuickAccessPagination() {
+    const container = document.getElementById('quick-access-scroll-container');
+    if (container) {
+        container.addEventListener('scroll', updateQuickAccessPagination, { passive: true });
+        window.addEventListener('resize', updateQuickAccessPagination, { passive: true });
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initQuickAccessPagination);
+} else {
+    initQuickAccessPagination();
+}
