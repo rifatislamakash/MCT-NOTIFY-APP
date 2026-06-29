@@ -267,6 +267,11 @@ const getSafariSafeDate = window.getSafariSafeDate;
                     
                     const { data: exams, error } = await query;
                     
+                    const atGlanceExams = document.getElementById('at-glance-exams');
+                    if (atGlanceExams && exams) {
+                        atGlanceExams.textContent = exams.filter(ex => ex.exam_date === todayStr).length;
+                    }
+                    
                     let nextExam = null;
                     if (!error && exams && exams.length > 0) {
                         const now = new Date();
@@ -453,6 +458,11 @@ const getSafariSafeDate = window.getSafariSafeDate;
                     });
                 }
 
+                const atGlanceClasses = document.getElementById('at-glance-classes');
+                if (atGlanceClasses) {
+                    atGlanceClasses.textContent = todayClasses.length;
+                }
+                
                 if (todayClasses.length === 0) {
                     const emptyMsg = isToday ? 'No classes scheduled for today.' : `No classes scheduled for tomorrow (${targetDay}).`;
                     window._dashboardRoutineHTML = `
@@ -715,3 +725,38 @@ if (document.readyState === 'loading') {
 } else {
     initQuickAccessPagination();
 }
+
+// ----------------------------------------------------
+// Today At a Glance Metrics
+// ----------------------------------------------------
+window.updateTodayAtGlanceCounters = function() {
+    try {
+        const today = new Date();
+        const toDateStr = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
+        const todayStr = toDateStr(today);
+
+        // 1. New Notices (Unread / New)
+        const noticesEl = document.getElementById('at-glance-notices');
+        if (noticesEl) {
+            let noticesCount = 0;
+            const notices = window.currentNoticesList || [];
+            if (window.globalUserNoticeReads) {
+                noticesCount = notices.filter(n => !window.globalUserNoticeReads.has(n.id)).length;
+            } else {
+                noticesCount = notices.filter(n => n.notice_date === todayStr).length;
+            }
+            noticesEl.textContent = noticesCount > 99 ? '99+' : noticesCount;
+        }
+    } catch (e) {
+        console.warn("Failed to update Today at Glance counters", e);
+    }
+};
+
+// Hook into existing badge update to also update At A Glance
+const originalUpdateBadges = updateDashboardQuickAccessBadges;
+updateDashboardQuickAccessBadges = function() {
+    originalUpdateBadges();
+    if (typeof window.updateTodayAtGlanceCounters === 'function') {
+        window.updateTodayAtGlanceCounters();
+    }
+};

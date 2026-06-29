@@ -1056,10 +1056,47 @@
                                 </div>
                             </div>
 
+                            <!-- Today at a Glance -->
+                            <div class="px-6 mt-4">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <h3 class="font-bold text-[14px] text-slate-800 tracking-tight leading-none">Today at a Glance</h3>
+                                </div>
+                                <div class="flex items-center justify-between bg-white rounded-2xl shadow-sm border border-slate-100 p-3 h-[52px]">
+                                    
+                                    <!-- Classes Today Chip -->
+                                    <div class="flex items-center gap-2 px-2 flex-1 justify-center border-r border-slate-100 last:border-0 cursor-pointer transition-transform active:scale-95" onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();">
+                                        <i data-lucide="book-open" class="w-4 h-4 text-indigo-500"></i>
+                                        <div class="flex flex-col items-start">
+                                            <span class="text-[8.5px] font-bold text-slate-500 uppercase tracking-wider leading-none">Classes</span>
+                                            <span id="at-glance-classes" class="text-[14px] font-extrabold text-slate-800 leading-none mt-1">0</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Exams Today Chip -->
+                                    <div class="flex items-center gap-2 px-2 flex-1 justify-center border-r border-slate-100 last:border-0 cursor-pointer transition-transform active:scale-95" onclick="window.openDedicatedExamPanel ? window.openDedicatedExamPanel() : null">
+                                        <i data-lucide="file-check-2" class="w-4 h-4 text-orange-500"></i>
+                                        <div class="flex flex-col items-start">
+                                            <span class="text-[8.5px] font-bold text-slate-500 uppercase tracking-wider leading-none">Exams</span>
+                                            <span id="at-glance-exams" class="text-[14px] font-extrabold text-slate-800 leading-none mt-1">0</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- New Notices Chip -->
+                                    <div class="flex items-center gap-2 px-2 flex-1 justify-center cursor-pointer transition-transform active:scale-95" onclick="navigate('screen-notices-list'); loadNotices();">
+                                        <i data-lucide="megaphone" class="w-4 h-4 text-red-500"></i>
+                                        <div class="flex flex-col items-start">
+                                            <span class="text-[8.5px] font-bold text-slate-500 uppercase tracking-wider leading-none">Notices</span>
+                                            <span id="at-glance-notices" class="text-[14px] font-extrabold text-slate-800 leading-none mt-1">0</span>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                            </div>
+
                             <!-- Swipeable Quick Access -->
                             <div class="mt-4 relative" id="dashboard-quick-access-section">
                                 <div class="px-6 flex flex-col justify-center">
-                                    <h3 class="font-bold text-[14px] text-slate-500 tracking-tight leading-none">Quick Access</h3>
+                                    <h3 class="font-bold text-[14px] text-slate-800 tracking-tight leading-none">Quick Access</h3>
                                     <span class="text-[9px] font-bold text-slate-400 mt-1 block">Swipe left to view more</span>
                                 </div>
                                 <div id="quick-access-scroll-container" class="flex overflow-x-auto no-scrollbar snap-x snap-mandatory touch-pan-x scroll-smooth w-full px-6 gap-4 mt-3 pb-2" style="-webkit-overflow-scrolling: touch;">
@@ -1136,13 +1173,13 @@
                                             </div>
                                             <span class="text-[9px] font-bold text-slate-700">Edit Profile</span>
                                         </div>
-                                        <div id="qa-dev-thoughts" class="flex flex-col items-center text-center space-y-1 cursor-pointer group relative" onclick="window.showGlobalToast('Coming Soon', 'Dev Thoughts feature is under development.');">
+                                        <div id="qa-dev-thoughts" class="flex flex-col items-center text-center space-y-1 cursor-pointer group relative" onclick="navigate('screen-developer-thought')">
                                             <div class="w-[52px] h-[52px] bg-pink-50 text-pink-600 rounded-2xl flex items-center justify-center shadow-2xs transition-transform active:scale-95">
                                                 <i data-lucide="code" class="w-5.5 h-5.5"></i>
                                             </div>
                                             <span class="text-[9px] font-bold text-slate-700">Dev Thoughts</span>
                                         </div>
-                                        <div id="qa-about" class="flex flex-col items-center text-center space-y-1 cursor-pointer group relative" onclick="window.showGlobalToast('Coming Soon', 'About section is under development.');">
+                                        <div id="qa-about" class="flex flex-col items-center text-center space-y-1 cursor-pointer group relative" onclick="navigate('screen-about-app')">
                                             <div class="w-[52px] h-[52px] bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center shadow-2xs transition-transform active:scale-95">
                                                 <i data-lucide="info" class="w-5.5 h-5.5"></i>
                                             </div>
