@@ -1059,13 +1059,13 @@
                             <!-- Today at a Glance -->
                             <div class="px-6 mt-4">
                                 <div class="flex items-center gap-2 mb-2">
-                                    <h3 class="font-bold text-[14px] text-slate-800 tracking-tight leading-none">Today at a Glance</h3>
+                                    <h3 class="font-bold text-[14px] text-slate-700 tracking-tight leading-none">Today at a Glance</h3>
                                 </div>
                                 <div class="flex items-center justify-between bg-white rounded-2xl shadow-sm border border-slate-100 p-3 h-[52px]">
                                     
                                     <!-- Classes Today Chip -->
                                     <div class="flex items-center gap-2 px-2 flex-1 justify-center border-r border-slate-100 last:border-0 cursor-pointer transition-transform active:scale-95" onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();">
-                                        <i data-lucide="book-open" class="w-4 h-4 text-indigo-500"></i>
+                                        <i data-lucide="book-open" class="w-[18px] h-[18px] text-indigo-500"></i>
                                         <div class="flex flex-col items-start">
                                             <span class="text-[8.5px] font-bold text-slate-500 uppercase tracking-wider leading-none">Classes</span>
                                             <span id="at-glance-classes" class="text-[14px] font-extrabold text-slate-800 leading-none mt-1">0</span>
@@ -1074,7 +1074,7 @@
 
                                     <!-- Exams Today Chip -->
                                     <div class="flex items-center gap-2 px-2 flex-1 justify-center border-r border-slate-100 last:border-0 cursor-pointer transition-transform active:scale-95" onclick="window.openDedicatedExamPanel ? window.openDedicatedExamPanel() : null">
-                                        <i data-lucide="file-check-2" class="w-4 h-4 text-orange-500"></i>
+                                        <i data-lucide="file-check-2" class="w-[18px] h-[18px] text-orange-500"></i>
                                         <div class="flex flex-col items-start">
                                             <span class="text-[8.5px] font-bold text-slate-500 uppercase tracking-wider leading-none">Exams</span>
                                             <span id="at-glance-exams" class="text-[14px] font-extrabold text-slate-800 leading-none mt-1">0</span>
@@ -1083,7 +1083,7 @@
 
                                     <!-- New Notices Chip -->
                                     <div class="flex items-center gap-2 px-2 flex-1 justify-center cursor-pointer transition-transform active:scale-95" onclick="navigate('screen-notices-list'); loadNotices();">
-                                        <i data-lucide="megaphone" class="w-4 h-4 text-red-500"></i>
+                                        <i data-lucide="megaphone" class="w-[18px] h-[18px] text-red-500"></i>
                                         <div class="flex flex-col items-start">
                                             <span class="text-[8.5px] font-bold text-slate-500 uppercase tracking-wider leading-none">Notices</span>
                                             <span id="at-glance-notices" class="text-[14px] font-extrabold text-slate-800 leading-none mt-1">0</span>
@@ -1096,7 +1096,7 @@
                             <!-- Swipeable Quick Access -->
                             <div class="mt-4 relative" id="dashboard-quick-access-section">
                                 <div class="px-6 flex flex-col justify-center">
-                                    <h3 class="font-bold text-[14px] text-slate-800 tracking-tight leading-none">Quick Access</h3>
+                                    <h3 class="font-bold text-[14px] text-slate-700 tracking-tight leading-none">Quick Access</h3>
                                     <span class="text-[9px] font-bold text-slate-400 mt-1 block">Swipe left to view more</span>
                                 </div>
                                 <div id="quick-access-scroll-container" class="flex overflow-x-auto no-scrollbar snap-x snap-mandatory touch-pan-x scroll-smooth w-full px-6 gap-4 mt-3 pb-2" style="-webkit-overflow-scrolling: touch;">
@@ -1197,7 +1197,7 @@
                             </div>
 
                             <div class="px-6 mt-4 flex items-center justify-between">
-                                <h3 id="dashboard-routine-section-label" class="font-bold text-[14px] text-slate-500 tracking-tight">Today's Classes</h3>
+                                <h3 id="dashboard-routine-section-label" class="font-bold text-[14px] text-slate-700 tracking-tight">Today's Classes</h3>
                                 <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="text-xs font-bold text-indigo-600 hover:underline">View full routine</button>
                             </div>
 
@@ -1209,7 +1209,7 @@
                             </div>
 
                             <div class="px-6 mt-4 flex items-center justify-between">
-                                <h3 class="font-bold text-[14px] text-slate-500 tracking-tight">Unread Updates</h3>
+                                <h3 class="font-bold text-[14px] text-slate-700 tracking-tight">Unread Updates</h3>
                                 <button onclick="navigate('screen-notices-list'); loadNotices();" class="text-xs font-bold text-indigo-600 hover:underline">See all</button>
                             </div>
 
