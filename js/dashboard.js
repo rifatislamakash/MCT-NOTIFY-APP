@@ -826,12 +826,8 @@ window.updateTodayAtGlanceCounters = function() {
             { id: 'presentations', label: 'Present', count: presentationsCount, priority: 5, icon: '<i data-lucide="monitor-play" class="w-[18px] h-[18px] text-pink-500"></i>', color: 'bg-pink-500', action: "navigate('screen-weekly-routine');" }
         ];
 
-        // Sort: count > 0 first, then priority.
-        items.sort((a, b) => {
-            if (a.count > 0 && b.count === 0) return -1;
-            if (b.count > 0 && a.count === 0) return 1;
-            return a.priority - b.priority;
-        });
+        // Sort: just by priority.
+        items.sort((a, b) => a.priority - b.priority);
 
         // Generate HTML
         container.innerHTML = items.map(item => `
