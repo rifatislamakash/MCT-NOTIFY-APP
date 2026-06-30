@@ -772,7 +772,7 @@ window.startTAGAutoScroll = function() {
     }, {passive: true});
 
     let lastTime = 0;
-    const pixelsPerSecond = 30; // Smooth 30px per second
+    const pixelsPerSecond = 45; // Smooth 45px per second (slightly faster)
 
     function step(timestamp) {
         if (!lastTime) lastTime = timestamp;
@@ -787,13 +787,17 @@ window.startTAGAutoScroll = function() {
                 currentScroll += pixelsPerSecond * (dt / 1000);
                 
                 if (currentScroll >= (container.scrollWidth - container.clientWidth - 1)) {
-                    delayFrames = 120;
                     isResetting = true;
-                    container.scrollTo({ left: 0, behavior: 'smooth' });
+                    container.scrollLeft = container.scrollWidth - container.clientWidth; // Ensure it visually hits the absolute end
+                    
                     setTimeout(() => {
-                        isResetting = false;
-                        currentScroll = 0;
-                    }, 400);
+                        container.scrollTo({ left: 0, behavior: 'smooth' });
+                        setTimeout(() => {
+                            isResetting = false;
+                            currentScroll = 0;
+                            delayFrames = 60; // 1 second pause at the beginning before starting again
+                        }, 400); // 400ms for smooth scroll back to 0 to complete
+                    }, 1000); // 1 second pause at the end
                 } else {
                     container.scrollLeft = currentScroll;
                 }
@@ -861,8 +865,8 @@ window.updateTodayAtGlanceCounters = function() {
             { id: 'exams', label: 'Exams', count: examsCount, priority: 1, icon: '<i data-lucide="file-check-2" class="w-[18px] h-[18px] text-orange-500"></i>', color: 'text-orange-500', action: "window.openDedicatedExamPanel ? window.openDedicatedExamPanel() : null" },
             { id: 'classes', label: 'Classes', count: classesCount, priority: 2, icon: '<i data-lucide="book-open" class="w-[18px] h-[18px] text-indigo-500"></i>', color: 'text-indigo-500', action: "navigate('screen-weekly-routine'); loadWeeklyRoutine();" },
             { id: 'notices', label: 'Notices', count: noticesCount, priority: 3, icon: '<i data-lucide="megaphone" class="w-[18px] h-[18px] text-red-500"></i>', color: 'text-red-500', action: "navigate('screen-notices-list'); loadNotices();" },
-            { id: 'assignments', label: 'Assignments', count: assignmentsCount, priority: 4, icon: '<i data-lucide="clipboard-list" class="w-[20px] h-[20px] text-purple-500"></i>', color: 'text-purple-500', action: "navigate('screen-weekly-routine');" },
-            { id: 'presentations', label: 'Presentation', count: presentationsCount, priority: 5, icon: '<i data-lucide="monitor-play" class="w-[20px] h-[20px] text-pink-500"></i>', color: 'text-pink-500', action: "navigate('screen-weekly-routine');" }
+            { id: 'assignments', label: 'Assignments', count: assignmentsCount, priority: 4, icon: '<i data-lucide="clipboard-list" class="w-[24px] h-[24px] text-purple-500" stroke-width="2.25"></i>', color: 'text-purple-500', action: "navigate('screen-weekly-routine');" },
+            { id: 'presentations', label: 'Presentation', count: presentationsCount, priority: 5, icon: '<i data-lucide="monitor-play" class="w-[24px] h-[24px] text-pink-500" stroke-width="2.25"></i>', color: 'text-pink-500', action: "navigate('screen-weekly-routine');" }
         ];
 
         items.sort((a, b) => a.priority - b.priority);
