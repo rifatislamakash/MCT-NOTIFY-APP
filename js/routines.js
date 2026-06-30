@@ -212,7 +212,22 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
                 
                 exams.forEach(exam => {
-                     let isPast = exam._isPast;
+                     let isPast = false;
+                     if (exam.exam_date < todayStr) {
+                         isPast = true;
+                     } else if (exam.exam_date === todayStr) {
+                         if (exam.end_time) {
+                             const [h, m] = exam.end_time.split(':').map(Number);
+                             if ((h * 60 + m) <= currentTotalMinutes) {
+                                 isPast = true;
+                             }
+                         } else if (exam.start_time) {
+                             const [h, m] = exam.start_time.split(':').map(Number);
+                             if ((h * 60 + m) <= currentTotalMinutes) {
+                                 isPast = true;
+                             }
+                         }
+                     }
                      exam._isPast = isPast;
                 });
 
