@@ -61,22 +61,54 @@ export class PollService {
         const container = document.getElementById('polls-list-container');
         if (!container) return;
 
+        try {
+            this._renderPollsListInner(container);
+        } catch (err) {
+            console.error('[POLLS] Render failed:', err);
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-12 px-4 text-center">
+                    <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-3">
+                        <i data-lucide="alert-triangle" class="w-8 h-8 text-red-300"></i>
+                    </div>
+                    <p class="text-[14px] font-bold text-slate-500">Couldn't display polls.</p>
+                    <button onclick="window.PollService.renderPollsList()" class="mt-3 text-[12px] font-bold text-indigo-600 hover:underline">Try again</button>
+                </div>
+            `;
+            if (window.lucide) window.lucide.createIcons();
+        }
+    }
+
+    static _renderPollsListInner(container) {
         if (this.currentPolls.length === 0) {
             container.innerHTML = `<div class="text-center py-10 text-slate-400 font-medium text-sm">No polls found</div>`;
             return;
         }
 
-        container.innerHTML = this.currentPolls.map(poll => {
-            const pollData = JSON.parse(poll.attachment_url || "{}");
+        const myUserId = window.authState?.user?.id;
+
+        // Pre-compute vote state once per poll so we can both sort and render with it
+        const decorated = this.currentPolls.map(poll => {
+            const votes = window.ReactionService?.cache[poll.id] || [];
+            const myVotes = votes.filter(v => v.user_id === myUserId);
+            return { poll, votes, hasVoted: myVotes.length > 0 };
+        });
+
+        // Active (not-yet-voted) polls stay on top; already-voted polls are grayed out and sink to the bottom.
+        // Array.sort is stable, so the existing newest-first ordering is preserved within each group.
+        decorated.sort((a, b) => (a.hasVoted === b.hasVoted) ? 0 : (a.hasVoted ? 1 : -1));
+
+        container.innerHTML = decorated.map(({ poll, votes, hasVoted }) => {
+            let pollData = {};
+            try {
+                pollData = JSON.parse(poll.attachment_url || "{}");
+            } catch (parseErr) {
+                console.warn('[POLLS] Malformed poll data for', poll.id, parseErr);
+            }
             const options = pollData.options || [];
             const allowMultiple = pollData.allowMultiple || false;
             const releaseResults = pollData.releaseResults || false;
 
-            // Get votes
-            const votes = window.ReactionService?.cache[poll.id] || [];
             const totalVotes = votes.length;
-            const myVotes = votes.filter(v => v.user_id === window.authState?.user?.id);
-            const hasVoted = myVotes.length > 0;
 
             let statusBadge = hasVoted ? 
                 `<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider">Voted</span>` :
@@ -90,7 +122,7 @@ export class PollService {
                 }
             }
 
-            const formattedDate = new Date(poll.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+            const formattedDate = poll.created_at ? new Date(poll.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 
             let deleteBtnHtml = '';
             if (window.currentUserRole === 'admin' || (window.currentUserRole === 'cr' && poll.created_by === window.authState?.user?.id)) {
@@ -101,8 +133,12 @@ export class PollService {
                 `;
             }
 
+            const cardClasses = hasVoted
+                ? "bg-slate-50 p-4 rounded-[20px] shadow-sm border border-slate-100 transition-all hover:shadow-md cursor-pointer opacity-50 grayscale hover:opacity-80"
+                : "bg-white p-4 rounded-[20px] shadow-sm border border-slate-100 transition-all hover:shadow-md cursor-pointer";
+
             return `
-                <div id="poll-card-${poll.id}" class="bg-white p-4 rounded-[20px] shadow-sm border border-slate-100 transition-all hover:shadow-md cursor-pointer" onclick="window.PollService.openPollDetails('${poll.id}')">
+                <div id="poll-card-${poll.id}" class="${cardClasses}" onclick="window.PollService.openPollDetails('${poll.id}')">
                     <div class="flex items-start justify-between mb-2">
                         <div class="flex items-center gap-2">
                             <div class="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">

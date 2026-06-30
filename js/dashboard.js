@@ -736,54 +736,110 @@ if (document.readyState === 'loading') {
 window.startTAGAutoScroll = function() {
     const container = document.getElementById('tag-scroll-container');
     if (!container) return;
-    
+
+    // Stop any previous animation loop AND remove its listeners before starting a fresh one.
+    // (Previously listeners were re-added on every call without cleanup, stacking up duplicates
+    // over time and adding to the jank as the dashboard re-rendered repeatedly.)
     if (window._tagScrollRAF) {
         cancelAnimationFrame(window._tagScrollRAF);
+        window._tagScrollRAF = null;
+    }
+    if (typeof window._tagScrollTeardown === 'function') {
+        window._tagScrollTeardown();
+        window._tagScrollTeardown = null;
     }
 
-    let speed = 0.3; // Stable scrolling speed
+    const SPEED_PX_PER_SEC = 28;   // constant visual speed, independent of frame rate
+    const START_DELAY_MS = 1500;   // pause before the very first auto-scroll move
+    const RESUME_DELAY_MS = 1200;  // pause after the user lets go of a manual scroll
+    const END_PAUSE_MS = 1500;     // pause once it reaches the end, before resetting to start
+    const RESET_ANIM_MS = 450;     // approx duration of the smooth scrollTo reset
+
     let isPaused = false;
-    let delayFrames = 120; // 2 seconds delay
     let currentScroll = container.scrollLeft;
+    // Cache the scroll bounds ONCE instead of reading container.scrollWidth/clientWidth
+    // on every animation frame — those reads force a synchronous layout recalculation
+    // ("layout thrashing"), which is what was capping this animation at ~12fps.
+    let maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+    let resumeAt = performance.now() + START_DELAY_MS;
+    let lastTs = null;
+    let isAutoWriting = false;
 
-    container.addEventListener('touchstart', () => isPaused = true, {passive: true});
-    container.addEventListener('touchend', () => isPaused = false, {passive: true});
-    container.addEventListener('mouseenter', () => isPaused = true);
-    container.addEventListener('mouseleave', () => isPaused = false);
-    container.addEventListener('scroll', () => {
-        // If user manually scrolled, detect it and sync currentScroll
-        if (Math.abs(container.scrollLeft - currentScroll) > 2) {
-            currentScroll = container.scrollLeft;
-            isPaused = true;
-            if (window._resumeTimeout) clearTimeout(window._resumeTimeout);
-            window._resumeTimeout = setTimeout(() => { isPaused = false; }, 2000);
-        }
-    }, {passive: true});
+    const recalcBounds = () => {
+        maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+    };
 
-    function step() {
-        if (!isPaused && container.scrollWidth > container.clientWidth) {
-            if (delayFrames > 0) {
-                delayFrames--;
-                currentScroll = container.scrollLeft;
-            } else {
-                currentScroll += speed;
+    const onHoldStart = () => { isPaused = true; };
+    const onHoldEnd = () => {
+        isPaused = false;
+        currentScroll = container.scrollLeft;
+        resumeAt = performance.now() + RESUME_DELAY_MS;
+    };
+    const onMouseLeave = () => { isPaused = false; };
+    const onScroll = () => {
+        // Ignore scroll events caused by our own writes below; only resync from genuine
+        // user-driven scrolling (e.g. trackpad / scrollbar drag while not "held").
+        if (isAutoWriting || isPaused) return;
+        currentScroll = container.scrollLeft;
+    };
+    const onResize = () => recalcBounds();
+
+    container.addEventListener('touchstart', onHoldStart, { passive: true });
+    container.addEventListener('touchend', onHoldEnd, { passive: true });
+    container.addEventListener('mousedown', onHoldStart);
+    container.addEventListener('mouseup', onHoldEnd);
+    container.addEventListener('mouseleave', onMouseLeave);
+    container.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onResize, { passive: true });
+
+    window._tagScrollTeardown = function() {
+        container.removeEventListener('touchstart', onHoldStart);
+        container.removeEventListener('touchend', onHoldEnd);
+        container.removeEventListener('mousedown', onHoldStart);
+        container.removeEventListener('mouseup', onHoldEnd);
+        container.removeEventListener('mouseleave', onMouseLeave);
+        container.removeEventListener('scroll', onScroll);
+        window.removeEventListener('resize', onResize);
+    };
+
+    function step(ts) {
+        if (lastTs === null) lastTs = ts;
+        // Clamp delta so a dropped/backgrounded tab doesn't cause a huge jump on return
+        const deltaMs = Math.min(ts - lastTs, 100);
+        lastTs = ts;
+
+        if (!isPaused && maxScroll > 0 && ts >= resumeAt) {
+            currentScroll += (SPEED_PX_PER_SEC * deltaMs) / 1000;
+
+            if (currentScroll >= maxScroll) {
+                currentScroll = maxScroll;
+                isAutoWriting = true;
                 container.scrollLeft = currentScroll;
-                
-                if (container.scrollLeft >= (container.scrollWidth - container.clientWidth - 1)) {
-                    // reset smoothly with native behavior
+                isAutoWriting = false;
+
+                resumeAt = ts + END_PAUSE_MS;
+                setTimeout(() => {
+                    isAutoWriting = true;
                     container.scrollTo({ left: 0, behavior: 'smooth' });
                     currentScroll = 0;
-                    delayFrames = 120; 
-                }
+                    setTimeout(() => { isAutoWriting = false; }, RESET_ANIM_MS);
+                }, END_PAUSE_MS);
+            } else {
+                isAutoWriting = true;
+                container.scrollLeft = currentScroll;
+                isAutoWriting = false;
             }
-        } else {
-            currentScroll = container.scrollLeft;
         }
+
         window._tagScrollRAF = requestAnimationFrame(step);
     }
-    
+
+    recalcBounds();
+    container.scrollLeft = 0;
+    currentScroll = 0;
     window._tagScrollRAF = requestAnimationFrame(step);
 };
+
 
 window.updateTodayAtGlanceCounters = function() {
     try {
@@ -847,10 +903,10 @@ window.updateTodayAtGlanceCounters = function() {
         items.sort((a, b) => a.priority - b.priority);
 
         container.innerHTML = items.map(item => `
-            <div class="flex items-center gap-2 px-2 flex-[0_0_33.333%] justify-center border-r border-slate-100 last:border-0 cursor-pointer transition-transform active:scale-95" onclick="${item.action}">
+            <div class="flex items-center justify-center gap-2 px-2 flex-[0_0_33.333%] h-full border-r border-slate-100 last:border-0 cursor-pointer transition-transform active:scale-95" onclick="${item.action}">
                 ${item.icon}
-                <div class="flex flex-col items-start leading-none gap-1">
-                    <span class="text-[8.5px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap overflow-hidden text-ellipsis max-w-full block">${item.label}</span>
+                <div class="flex flex-col items-start leading-none gap-0.5">
+                    <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap overflow-hidden text-ellipsis max-w-full block">${item.label}</span>
                     <span class="text-[14px] font-extrabold text-slate-800 leading-none">${item.count > 99 ? '99+' : item.count}</span>
                 </div>
             </div>`).join('');

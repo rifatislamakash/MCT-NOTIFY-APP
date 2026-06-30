@@ -212,12 +212,6 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
                 
                 exams.forEach(exam => {
-                     let examDateStr = 'Date unset';
-                     if (exam.exam_date) {
-                         const examDateObj = getSafariSafeDate(exam.exam_date + 'T00:00:00');
-                         examDateStr = examDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                     }
-                     
                      let isPast = false;
                      if (exam.exam_date < todayStr) {
                          isPast = true;
@@ -234,6 +228,30 @@ import { ProfileStore } from './stores/ProfileStore.js';
                              }
                          }
                      }
+                     exam._isPast = isPast;
+                });
+
+                exams.sort((a, b) => {
+                    if (a._isPast !== b._isPast) {
+                        return a._isPast ? 1 : -1; // Upcoming/ongoing first, past (grayed) last
+                    }
+                    // If both are past, show the most recent past exam first
+                    if (a._isPast) {
+                        return new Date(b.exam_date) - new Date(a.exam_date);
+                    }
+                    // If both are upcoming, show the nearest upcoming exam first (ascending)
+                    return 0; // Already sorted ascending by Supabase
+                });
+
+                exams.forEach(exam => {
+                     let examDateStr = 'Date unset';
+                     if (exam.exam_date) {
+                         const examDateObj = getSafariSafeDate(exam.exam_date + 'T00:00:00');
+                         examDateStr = examDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                     }
+                     
+                     // Reuse the value computed (and used for sorting) above instead of recalculating it
+                     let isPast = exam._isPast;
 
                      let isNextUpcoming = false;
                      if (!isPast && !firstUpcomingFound) {
