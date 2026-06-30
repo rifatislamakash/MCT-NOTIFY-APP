@@ -861,8 +861,8 @@ window.updateTodayAtGlanceCounters = function() {
             { id: 'exams', label: 'Exams', count: examsCount, priority: 1, icon: '<i data-lucide="file-check-2" class="w-[18px] h-[18px] text-orange-500"></i>', color: 'text-orange-500', action: "window.openDedicatedExamPanel ? window.openDedicatedExamPanel() : null" },
             { id: 'classes', label: 'Classes', count: classesCount, priority: 2, icon: '<i data-lucide="book-open" class="w-[18px] h-[18px] text-indigo-500"></i>', color: 'text-indigo-500', action: "navigate('screen-weekly-routine'); loadWeeklyRoutine();" },
             { id: 'notices', label: 'Notices', count: noticesCount, priority: 3, icon: '<i data-lucide="megaphone" class="w-[18px] h-[18px] text-red-500"></i>', color: 'text-red-500', action: "navigate('screen-notices-list'); loadNotices();" },
-            { id: 'assignments', label: 'Assignments', count: assignmentsCount, priority: 4, icon: '<i data-lucide="clipboard-list" class="w-[18px] h-[18px] text-purple-500"></i>', color: 'text-purple-500', action: "navigate('screen-weekly-routine');" },
-            { id: 'presentations', label: 'Presentation', count: presentationsCount, priority: 5, icon: '<i data-lucide="monitor-play" class="w-[18px] h-[18px] text-pink-500"></i>', color: 'text-pink-500', action: "navigate('screen-weekly-routine');" }
+            { id: 'assignments', label: 'Assignments', count: assignmentsCount, priority: 4, icon: '<i data-lucide="clipboard-list" class="w-[20px] h-[20px] text-purple-500"></i>', color: 'text-purple-500', action: "navigate('screen-weekly-routine');" },
+            { id: 'presentations', label: 'Presentation', count: presentationsCount, priority: 5, icon: '<i data-lucide="monitor-play" class="w-[20px] h-[20px] text-pink-500"></i>', color: 'text-pink-500', action: "navigate('screen-weekly-routine');" }
         ];
 
         items.sort((a, b) => a.priority - b.priority);
