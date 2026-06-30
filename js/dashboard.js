@@ -741,28 +741,43 @@ window.startTAGAutoScroll = function() {
         cancelAnimationFrame(window._tagScrollRAF);
     }
 
-    // Very slow speed
-    let speed = 0.15;
+    let speed = 0.3; // Stable scrolling speed
     let isPaused = false;
-    let delayFrames = 120; // 2 seconds delay before scrolling starts
+    let delayFrames = 120; // 2 seconds delay
+    let currentScroll = container.scrollLeft;
 
     container.addEventListener('touchstart', () => isPaused = true, {passive: true});
     container.addEventListener('touchend', () => isPaused = false, {passive: true});
     container.addEventListener('mouseenter', () => isPaused = true);
     container.addEventListener('mouseleave', () => isPaused = false);
+    container.addEventListener('scroll', () => {
+        // If user manually scrolled, detect it and sync currentScroll
+        if (Math.abs(container.scrollLeft - currentScroll) > 2) {
+            currentScroll = container.scrollLeft;
+            isPaused = true;
+            if (window._resumeTimeout) clearTimeout(window._resumeTimeout);
+            window._resumeTimeout = setTimeout(() => { isPaused = false; }, 2000);
+        }
+    }, {passive: true});
 
     function step() {
         if (!isPaused && container.scrollWidth > container.clientWidth) {
             if (delayFrames > 0) {
                 delayFrames--;
+                currentScroll = container.scrollLeft;
             } else {
-                container.scrollLeft += speed;
+                currentScroll += speed;
+                container.scrollLeft = currentScroll;
+                
                 if (container.scrollLeft >= (container.scrollWidth - container.clientWidth - 1)) {
-                    // reset smoothly
-                    container.scrollLeft = 0;
-                    delayFrames = 120; // Pause again when it resets
+                    // reset smoothly with native behavior
+                    container.scrollTo({ left: 0, behavior: 'smooth' });
+                    currentScroll = 0;
+                    delayFrames = 120; 
                 }
             }
+        } else {
+            currentScroll = container.scrollLeft;
         }
         window._tagScrollRAF = requestAnimationFrame(step);
     }
