@@ -298,31 +298,13 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const container = document.getElementById('notices-list-container');
             if (!container) return;
 
-            try {
-                renderNoticesListInner(container);
-            } catch (err) {
-                console.error('[NOTICES] Render failed:', err);
-                container.innerHTML = `
-                    <div class="flex flex-col items-center justify-center py-12 px-4 text-center">
-                        <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-3">
-                            <i data-lucide="alert-triangle" class="w-8 h-8 text-red-300"></i>
-                        </div>
-                        <p class="text-[14px] font-bold text-slate-500">Couldn't display notices.</p>
-                        <button onclick="renderNoticesList()" class="mt-3 text-[12px] font-bold text-indigo-600 hover:underline">Try again</button>
-                    </div>
-                `;
-                if (typeof lucide !== 'undefined') lucide.createIcons();
-            }
-        }
-
-        function renderNoticesListInner(container) {
             if (!window.currentNoticesList) window.currentNoticesList = [];
 
             const q = document.getElementById('notices-search')?.value.toLowerCase() || '';
 
             let filtered = window.currentNoticesList.filter(n => {
                 if (n.notice_type === 'poll') return false; // Exclude polls from the general Notices list
-                const matchQuery = (n.title || '').toLowerCase().includes(q) || (n.message || '').toLowerCase().includes(q);
+                const matchQuery = n.title.toLowerCase().includes(q) || n.message.toLowerCase().includes(q);
                 const matchType = currentNoticeFilter === 'all' || n.notice_type === currentNoticeFilter;
                 
                 let matchBatch = true;
@@ -497,14 +479,6 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
         
         async function injectDashboardNotices() {
-            try {
-                await injectDashboardNoticesInner();
-            } catch (err) {
-                console.error('[DASHBOARD NOTICES] Render failed:', err);
-            }
-        }
-
-        async function injectDashboardNoticesInner() {
             if (!allCoursesList || allCoursesList.length === 0) {
                 try {
                     allCoursesList = await CourseStore.getCourses();
@@ -554,13 +528,13 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                 // Collect Notices
                 const noticesArray = (window.currentNoticesList || []).filter(n => n.notice_type === 'general' || n.notice_type === 'poll').map(n => {
-                    const noticeD = new Date((n.notice_date || (n.created_at ? n.created_at.split('T')[0] : new Date().toISOString().split('T')[0])) + 'T' + (n.notice_time || '23:59:00'));
+                    const noticeD = new Date((n.notice_date || n.created_at.split('T')[0]) + 'T' + (n.notice_time || '23:59:00'));
                     return { ...n, __type: 'notice', sortDate: noticeD };
                 });
                 
                 // Collect Schedules
                 const schedulesArray = (window.currentSchedulesList || []).map(s => {
-                    const schedD = new Date((s.schedule_date || (s.created_at ? s.created_at.split('T')[0] : new Date().toISOString().split('T')[0])) + 'T' + (s.schedule_time || '23:59:00'));
+                    const schedD = new Date((s.schedule_date || s.created_at.split('T')[0]) + 'T' + (s.schedule_time || '23:59:00'));
                     return { ...s, __type: 'schedule', sortDate: schedD };
                 });
                 

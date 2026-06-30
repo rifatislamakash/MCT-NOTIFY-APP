@@ -1,0 +1,401 @@
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        img, video, canvas, svg, iframe { max-width: 100%; height: auto; }
+        p, h1, h2, h3, h4, h5, h6, span, div { overflow-wrap: break-word; word-wrap: break-word; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #F8FAFC;
+        }
+
+        html, body {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100dvh !important;
+            overflow: hidden !important; /* Absolutely no scrolling on the root */
+            overscroll-behavior: none; /* Block both vertical rubber-banding AND horizontal swipe-to-go-back */
+            margin: 0;
+            padding: 0;
+            touch-action: pan-y;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        #app-viewport-shell {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #F8FAFC;
+        }
+
+        /* iOS WebKit GPU Isolation - Prevents monolithic render crashes */
+        .ios-render-safe, .routine-card, .notice-card {
+            contain: content;
+        }
+
+        
+        /* Force kill any horizontal scrolling inside scrollable containers */
+        .overflow-y-auto {
+            overflow-x: hidden !important;
+            isolation: isolate;
+            transform: translateZ(0);
+        }
+        input, textarea { -webkit-user-select: auto; user-select: auto; }
+
+        /* Hardware acceleration for dropdowns */
+        select, .dropdown-container {
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+        }
+        
+        /* Disable backdrop-filter on iOS to prevent WebKit memory leak crashes */
+        @supports (-webkit-touch-callout: none) {
+            .backdrop-blur-sm, .backdrop-blur-md, .backdrop-blur-lg, .backdrop-blur-xl, .backdrop-blur-2xl, .backdrop-blur,
+            [class*="backdrop-blur-"], .modal-overlay, .frosted-glass-element, .dropdown-backdrop {
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
+        }
+
+        /* Force hidden elements to relinquish GPU memory on iOS */
+        .opacity-0.pointer-events-none {
+            visibility: hidden !important;
+        }
+
+        @supports (-webkit-touch-callout: none) {
+            /* Stop transition-all from preparing massive graphics layers for properties that don't animate */
+            .transition-all {
+                transition-property: opacity, transform, background-color, border-color, color, box-shadow !important;
+            }
+        }
+
+            /* Solid fallback for modals */
+            .fixed.inset-0.bg-black\/60, .absolute.inset-0.bg-black\/60, 
+            .fixed.inset-0.bg-slate-900\/40, .absolute.inset-0.bg-slate-900\/40,
+            .absolute.inset-0.bg-black\/40, .absolute.inset-0.bg-slate-950\/95,
+            .modal-overlay {
+                background-color: rgba(20, 20, 30, 0.95) !important;
+            }
+            .bg-slate-900\/80 {
+                background-color: rgba(20, 20, 30, 0.95) !important;
+            }
+
+        
+        .onboarding-scroll-container-class {
+            padding-bottom: calc(120px + env(safe-area-inset-bottom)) !important;
+        }
+
+        /* Float animations matching references */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(1deg); }
+        }
+        .animate-float {
+            animation: float 4s ease-in-out infinite;
+        }
+
+        /* Screen Transitions */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden !important; /* Restore hidden overflow to contain flex children */
+            overscroll-behavior-x: none; /* Kill horizontal swipe-to-navigate in iOS Safari */
+            touch-action: pan-y;
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 10;
+            visibility: hidden;
+        }
+        .screen.active {
+            opacity: 1;
+            pointer-events: all;
+            z-index: 20;
+            visibility: visible;
+        }
+
+        /* Scrollbar hides */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Custom typewriter cursor indicator */
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: #4226E9; }
+        }
+        .typewriter-cursor {
+            border-right: 3px solid #4226E9;
+            animation: blink-caret 0.75s step-end infinite;
+            padding-right: 2px;
+        }
+
+        /* Dynamic scale-bounce for premium quick actions and controllers */
+        .interactive-btn {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .interactive-btn:hover {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 4px 12px rgba(66, 38, 233, 0.12);
+        }
+        .interactive-btn:active {
+            transform: translateY(0) scale(0.96);
+        }
+
+        /* Mobile Viewport and Scroll Fix */
+        @media (max-width: 640px) {
+            html, body {
+                height: 100% !important;
+                /* overflow: hidden removed */
+                position: fixed;
+                width: 100%;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            /* Reset any outer flex presentation wrappers to prevent light-gray borders and top gaps */
+            div.min-h-screen.w-full {
+                height: 100% !important;
+                min-height: 100% !important;
+                /* overflow: hidden removed */
+                display: block !important;
+            }
+            div.min-h-screen.w-full > div.flex-1 {
+                height: 100% !important;
+                width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                display: block !important;
+            }
+            /* Force the mobile viewport container inside the phone frame to be exactly 100% width/height of the device window */
+            #app-viewport-shell {
+                width: 100% !important;
+                height: 100dvh !important;
+                max-height: 100dvh !important;
+                border: none !important;
+                border-radius: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+        }
+
+        /* Safe Area Support for notch/island devices */
+        .screen {
+            box-sizing: border-box !important;
+        }
+
+        .bottom-nav-bar {
+            position: absolute !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+            box-sizing: border-box !important;
+            height: auto !important;
+            min-height: 80px !important;
+            z-index: 40 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-around !important;
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+        }
+
+        /* Scale Lucide SVG icons within the bottom navigation bar to exactly 24px */
+        .bottom-nav-bar svg,
+        .bottom-nav-bar [data-lucide] {
+            width: 24px !important;
+            height: 24px !important;
+        }
+
+        .screen:not(.active) .bottom-nav-bar,
+        .screen:not(.active) div.absolute.bottom-0 {
+            display: none !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        body.auth-mode .bottom-navbar,
+        body.auth-mode .bottom-nav-bar {
+            display: none !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        @media (max-width: 640px) {
+            .bottom-nav-bar {
+                padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px) !important;
+            }
+            
+            /* Reduce excessive hardcoded top padding and apply safe-area-inset-top */
+            #viewport-container .pt-16 {
+                padding-top: calc(env(safe-area-inset-top, 0px) + 1.25rem) !important;
+            }
+            #viewport-container .pt-14 {
+                padding-top: calc(env(safe-area-inset-top, 0px) + 1rem) !important;
+            }
+            #viewport-container .pt-12 {
+                padding-top: calc(env(safe-area-inset-top, 0px) + 0.75rem) !important;
+            }
+            #viewport-container .pt-8 {
+                padding-top: calc(env(safe-area-inset-top, 0px) + 0.5rem) !important;
+            }
+            
+            /* Force screens to align naturally with phone viewport and remove any fake margins */
+            .screen {
+                padding-top: 0 !important;
+                margin-top: 0 !important;
+                height: 100% !important;
+            }
+        }
+
+        .screen > .overflow-y-auto,
+        .screen > div > .overflow-y-auto {
+            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px) !important;
+            box-sizing: border-box !important;
+        }
+
+        @media (max-width: 640px) {
+            .screen > .overflow-y-auto,
+            .screen > div > .overflow-y-auto {
+                padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 120px) !important;
+            }
+        }
+        /* Messenger Reaction Styles */
+        .reaction-container:hover .reaction-picker,
+        .reaction-container:active .reaction-picker,
+        .reaction-container:focus-within .reaction-picker {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+        .reaction-picker .reaction-icon-wrapper:hover {
+            transform: scale(1.3) translateY(-4px);
+        }
+        
+        .reaction-container.force-hovered .reaction-picker {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0) scale(1);
+        }
+
+        @keyframes reactionBounce {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes pickerEmojiBounce {
+            0% { transform: translateY(15px) scale(0.5); opacity: 0; }
+            60% { transform: translateY(-5px) scale(1.1); opacity: 1; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        .trigger-bounce {
+            animation: reactionBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Prevent Android long-press image download popup */
+        .reaction-container img {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        /* Global Card Containment */
+        .notice-card, .schedule-card, .material-card, .card-container {
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        /* Rich Text Styling */
+        .rich-text-toolbar {
+            display: flex;
+            gap: 8px;
+            padding: 8px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 4px;
+            align-items: center;
+        }
+        .rich-text-toolbar button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .rich-text-toolbar button:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+            border-color: #cbd5e1;
+        }
+        .rich-text-toolbar input[type="color"] {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            background: none;
+        }
+        .link-action-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background-color: #f3f4f6;
+            color: #6d28d9;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            word-break: break-all;
+            text-decoration: none;
+            margin-top: 4px;
+        }
+        .link-action-button:hover {
+            background-color: #e5e7eb;
+        }
+
+        /* Ensure links inside rich text editors are styled clearly */
+        [contenteditable="true"] a {
+            color: #2563EB !important;
+            text-decoration: underline !important;
+            font-weight: 600 !important;
+        }
+    
+        /* Hardware Acceleration for TAG Auto Scroll */
+        #tag-scroll-container {
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            will-change: scroll-position;
+            perspective: 1000;
+            backface-visibility: hidden;
+        }
+    

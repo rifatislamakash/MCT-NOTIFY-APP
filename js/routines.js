@@ -212,28 +212,13 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
                 
                 exams.forEach(exam => {
-                     let isPast = false;
-                     if (exam.exam_date < todayStr) {
-                         isPast = true;
-                     } else if (exam.exam_date === todayStr) {
-                         if (exam.end_time) {
-                             const [h, m] = exam.end_time.split(':').map(Number);
-                             if ((h * 60 + m) <= currentTotalMinutes) {
-                                 isPast = true;
-                             }
-                         } else if (exam.start_time) {
-                             const [h, m] = exam.start_time.split(':').map(Number);
-                             if ((h * 60 + m) <= currentTotalMinutes) {
-                                 isPast = true;
-                             }
-                         }
-                     }
+                     let isPast = exam._isPast;
                      exam._isPast = isPast;
                 });
 
                 exams.sort((a, b) => {
                     if (a._isPast !== b._isPast) {
-                        return a._isPast ? 1 : -1; // Upcoming/ongoing first, past (grayed) last
+                        return a._isPast ? 1 : -1;
                     }
                     // If both are past, show the most recent past exam first
                     if (a._isPast) {
@@ -250,8 +235,22 @@ import { ProfileStore } from './stores/ProfileStore.js';
                          examDateStr = examDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
                      }
                      
-                     // Reuse the value computed (and used for sorting) above instead of recalculating it
-                     let isPast = exam._isPast;
+                     let isPast = false;
+                     if (exam.exam_date < todayStr) {
+                         isPast = true;
+                     } else if (exam.exam_date === todayStr) {
+                         if (exam.end_time) {
+                             const [h, m] = exam.end_time.split(':').map(Number);
+                             if ((h * 60 + m) <= currentTotalMinutes) {
+                                 isPast = true;
+                             }
+                         } else if (exam.start_time) {
+                             const [h, m] = exam.start_time.split(':').map(Number);
+                             if ((h * 60 + m) <= currentTotalMinutes) {
+                                 isPast = true;
+                             }
+                         }
+                     }
 
                      let isNextUpcoming = false;
                      if (!isPast && !firstUpcomingFound) {
