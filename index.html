@@ -101,6 +101,14 @@
     <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
         *, *::before, *::after {
             box-sizing: border-box;
         }
@@ -1057,39 +1065,11 @@
                             </div>
 
                             <!-- Today at a Glance -->
-                            <div class="px-6 mt-4">
+                            <div class="px-6 mt-4 relative">
                                 <div class="flex items-center gap-2 mb-2">
-                                    <h3 class="font-bold text-[14px] text-slate-500 tracking-tight leading-none">Today at a Glance</h3>
+                                    <h3 id="tag-header" class="font-bold text-[14px] text-slate-500 tracking-tight leading-none">Today at a Glance</h3>
                                 </div>
-                                <div class="flex items-center justify-between bg-white rounded-2xl shadow-sm border border-slate-100 p-3 h-[52px]">
-                                    
-                                    <!-- Classes Today Chip -->
-                                    <div class="flex items-center gap-2 px-2 flex-1 justify-center border-r border-slate-100 last:border-0 cursor-pointer transition-transform active:scale-95" onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();">
-                                        <i data-lucide="book-open" class="w-[18px] h-[18px] text-indigo-500"></i>
-                                        <div class="flex flex-col items-start">
-                                            <span class="text-[8.5px] font-bold text-slate-500 uppercase tracking-wider leading-none">Classes</span>
-                                            <span id="at-glance-classes" class="text-[14px] font-extrabold text-slate-800 leading-none mt-1">0</span>
-                                        </div>
-                                    </div>
-
-                                    <!-- Exams Today Chip -->
-                                    <div class="flex items-center gap-2 px-2 flex-1 justify-center border-r border-slate-100 last:border-0 cursor-pointer transition-transform active:scale-95" onclick="window.openDedicatedExamPanel ? window.openDedicatedExamPanel() : null">
-                                        <i data-lucide="file-check-2" class="w-[18px] h-[18px] text-orange-500"></i>
-                                        <div class="flex flex-col items-start">
-                                            <span class="text-[8.5px] font-bold text-slate-500 uppercase tracking-wider leading-none">Exams</span>
-                                            <span id="at-glance-exams" class="text-[14px] font-extrabold text-slate-800 leading-none mt-1">0</span>
-                                        </div>
-                                    </div>
-
-                                    <!-- New Notices Chip -->
-                                    <div class="flex items-center gap-2 px-2 flex-1 justify-center cursor-pointer transition-transform active:scale-95" onclick="navigate('screen-notices-list'); loadNotices();">
-                                        <i data-lucide="megaphone" class="w-[18px] h-[18px] text-red-500"></i>
-                                        <div class="flex flex-col items-start">
-                                            <span class="text-[8.5px] font-bold text-slate-500 uppercase tracking-wider leading-none">Notices</span>
-                                            <span id="at-glance-notices" class="text-[14px] font-extrabold text-slate-800 leading-none mt-1">0</span>
-                                        </div>
-                                    </div>
-                                    
+                                <div id="tag-scroll-container" class="flex items-center gap-3 overflow-x-auto snap-x flex-nowrap no-scrollbar pb-1 -mb-1 pt-1" style="-webkit-overflow-scrolling: touch; touch-action: pan-x;">
                                 </div>
                             </div>
 
@@ -4255,6 +4235,17 @@
 
                                         <!-- Date & Time Row -->
                                         <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                                        <div>
+                                            <label class="block text-[11px] font-bold text-slate-500 mb-1.5 tracking-wider uppercase">Schedule Type <span class="text-slate-400 font-medium normal-case">(Optional)</span></label>
+                                            <select id="cs-schedule-type" class="w-full h-[44px] px-4 rounded-[12px] border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-800 transition-all appearance-none">
+                                                <option value="">None</option>
+                                                <option value="Exam">Exam</option>
+                                                <option value="Class">Class</option>
+                                                <option value="Assignment">Assignment</option>
+                                                <option value="Presentation">Presentation</option>
+                                            </select>
+                                        </div>
+                                        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
                                             <div class="flex-1 min-w-0">
                                                 <label class="block text-[11px] font-bold text-slate-500 mb-1.5 tracking-wider uppercase">Date <span class="text-red-500">*</span></label>
                                                 <input type="date" id="cs-date" class="w-full h-[44px] px-2 sm:px-3 rounded-[12px] border border-slate-200 bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[13px] font-bold text-slate-800 transition-all">
@@ -4489,6 +4480,17 @@
                                                 <input type="color" value="#000000" onchange="applyFormat('color', this.value)" title="Choose Text Color">
                                             </div>
                                             <textarea id="es-message" rows="4" class="w-full px-4 py-3 rounded-[12px] border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-800 transition-all resize-none"></textarea>
+                                        </div>
+                                        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                                        <div>
+                                            <label class="block text-[11px] font-bold text-slate-500 mb-1.5 tracking-wider uppercase">Schedule Type <span class="text-slate-400 font-medium normal-case">(Optional)</span></label>
+                                            <select id="es-schedule-type" class="w-full h-[44px] px-4 rounded-[12px] border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-800 transition-all appearance-none">
+                                                <option value="">None</option>
+                                                <option value="Exam">Exam</option>
+                                                <option value="Class">Class</option>
+                                                <option value="Assignment">Assignment</option>
+                                                <option value="Presentation">Presentation</option>
+                                            </select>
                                         </div>
                                         <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
                                             <div class="flex-1 min-w-0">

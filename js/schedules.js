@@ -1054,6 +1054,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     schedule_time: time,
                     audience_type: audience_type,
                     is_pinned: isPinned,
+                schedule_type: scheduleType,
+                    schedule_type: scheduleType,
                     attachment_url: attachmentUrl,
                     created_by: window.authState.user?.id || null
                 };
