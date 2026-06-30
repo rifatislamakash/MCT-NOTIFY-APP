@@ -1811,11 +1811,11 @@
                                         </div>
                                         <span class="text-[9px] font-bold text-slate-700 leading-none mt-1">Supports</span>
                                     </div>
-                                    <div onclick="showGlobalToast('Info', 'Upload feature coming soon.');" id="admin-action-check-upload" class="flex flex-col items-center text-center space-y-1 relative cursor-pointer group">
+                                    <div onclick="navigate('screen-admin-system-monitor'); if(window.loadSystemMonitor) window.loadSystemMonitor();" id="admin-action-system-monitor" class="flex flex-col items-center text-center space-y-1 relative cursor-pointer group">
                                         <div class="w-[52px] h-[52px] bg-slate-50 text-slate-600 rounded-2xl flex items-center justify-center shadow-2xs transition-all duration-200 group-hover:scale-110 group-hover:shadow-md group-hover:-translate-y-1">
-                                            <i data-lucide="upload" class="w-5.5 h-5.5"></i>
+                                            <i data-lucide="activity" class="w-5.5 h-5.5"></i>
                                         </div>
-                                        <span class="text-[9px] font-bold text-slate-700 leading-none mt-1">Upload</span>
+                                        <span class="text-[9px] font-bold text-slate-700 leading-none mt-1">Monitor</span>
                                     </div>
 
                                     <!-- Row 4 -->
@@ -5010,6 +5010,65 @@
                                 </div>
                                 <button type="submit" class="w-full py-3.5 bg-[#4226E9] text-white rounded-xl font-bold shadow-lg shadow-indigo-600/30 active:scale-[0.98] transition">Create Poll & Notify</button>
                             </form>
+                        </div>
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- SCREEN: ADMIN SYSTEM MONITOR               -->
+                    <!-- ========================================== -->
+                    <div id="screen-admin-system-monitor" class="screen bg-[#F5F6F8] flex flex-col overflow-hidden">
+                        <div class="px-6 pt-12 pb-4 flex items-center justify-between bg-white border-b border-slate-100 shrink-0">
+                            <div class="flex items-center gap-3">
+                                <button onclick="navigate('screen-admin-dashboard')" class="w-9 h-9 bg-slate-50 hover:bg-slate-100 transition rounded-full flex items-center justify-center text-slate-700">
+                                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                                </button>
+                                <div>
+                                    <h2 class="text-[20px] font-extrabold text-slate-900 tracking-tight leading-none">Platform Monitor</h2>
+                                    <span id="sys-last-updated" class="text-[11px] font-bold text-slate-400">Loading...</span>
+                                </div>
+                            </div>
+                            <button id="sys-refresh-btn" onclick="if(window.loadSystemMonitor) window.loadSystemMonitor();" class="w-9 h-9 bg-indigo-50 hover:bg-indigo-100 transition rounded-full flex items-center justify-center text-indigo-600">
+                                <i id="sys-refresh-icon" data-lucide="refresh-cw" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <div class="flex-1 overflow-y-auto px-6 py-6 space-y-6 scrollbar-hide">
+                            <div>
+                                <h3 class="text-[13px] font-extrabold text-slate-900 uppercase tracking-wide mb-3">Platform Health</h3>
+                                <div id="sys-health-container" class="grid grid-cols-2 gap-3">
+                                    <!-- Health Cards populated by JS -->
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-[13px] font-extrabold text-slate-900 uppercase tracking-wide mb-3">Today's Snapshot</h3>
+                                <div id="sys-snapshot-container">
+                                    <!-- Snapshot populated by JS -->
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-[13px] font-extrabold text-slate-900 uppercase tracking-wide mb-3">Storage Overview</h3>
+                                <div id="sys-storage-progress-container" class="mb-4">
+                                    <!-- Progress bar populated by JS -->
+                                </div>
+                                <div id="sys-storage-container" class="grid grid-cols-2 gap-3 mb-6">
+                                    <!-- Storage Cards populated by JS -->
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-[13px] font-extrabold text-slate-900 uppercase tracking-wide mb-3">Database Storage</h3>
+                                <div id="sys-db-storage-container" class="mb-6">
+                                    <!-- DB Storage Progress populated by JS -->
+                                </div>
+                                <div id="sys-db-tables-container" class="mb-6">
+                                    <!-- DB Top Tables populated by JS -->
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-[13px] font-extrabold text-slate-900 uppercase tracking-wide mb-3">Database Overview</h3>
+                                <div id="sys-db-container" class="grid grid-cols-2 gap-3">
+                                    <!-- DB Cards populated by JS -->
+                                </div>
+                            </div>
+                            <div class="pb-10"></div>
                         </div>
                     </div>
 
@@ -10613,6 +10672,7 @@
 
     <!-- Pull to Refresh Global Logic -->
     <script src="js/pull-to-refresh.js"></script>
+    <script src="js/system-monitor.js"></script>
 
     <!-- Hidden Developer Console Trigger (5 Taps on Greetings) -->
     <script>
