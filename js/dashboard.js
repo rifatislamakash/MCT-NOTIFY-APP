@@ -135,6 +135,11 @@ const getSafariSafeDate = window.getSafariSafeDate;
             } catch (err) {
                 console.warn('[BADGE UPDATE ERROR]', err);
             }
+
+            // AT GLANCE HOOK
+            if (typeof window.updateTodayAtGlanceCounters === 'function') {
+                window.updateTodayAtGlanceCounters();
+            }
         }
 
         // Home redirection / Syncing action
@@ -605,6 +610,10 @@ const getSafariSafeDate = window.getSafariSafeDate;
             if (!dashContainer || typeof window._dashboardRoutineHTML === 'undefined') return;
             dashContainer.innerHTML = window._dashboardRoutineHTML;
             if (typeof lucide !== 'undefined') lucide.createIcons();
+
+            if (typeof window.updateTodayAtGlanceCounters === 'function') {
+                window.updateTodayAtGlanceCounters();
+            }
         };
 
         let isNavigatingToExams = false;
@@ -732,10 +741,10 @@ window.startTAGAutoScroll = function() {
         cancelAnimationFrame(window._tagScrollRAF);
     }
 
-    // Scroll amount per frame (~60fps) to cover in 4-5 seconds
-    // Full scrollable width is scrollWidth - clientWidth
-    let speed = 0.5;
+    // Very slow speed
+    let speed = 0.15;
     let isPaused = false;
+    let delayFrames = 120; // 2 seconds delay before scrolling starts
 
     container.addEventListener('touchstart', () => isPaused = true, {passive: true});
     container.addEventListener('touchend', () => isPaused = false, {passive: true});
@@ -744,10 +753,15 @@ window.startTAGAutoScroll = function() {
 
     function step() {
         if (!isPaused && container.scrollWidth > container.clientWidth) {
-            container.scrollLeft += speed;
-            if (container.scrollLeft >= (container.scrollWidth - container.clientWidth - 1)) {
-                // reset smoothly
-                container.scrollLeft = 0;
+            if (delayFrames > 0) {
+                delayFrames--;
+            } else {
+                container.scrollLeft += speed;
+                if (container.scrollLeft >= (container.scrollWidth - container.clientWidth - 1)) {
+                    // reset smoothly
+                    container.scrollLeft = 0;
+                    delayFrames = 120; // Pause again when it resets
+                }
             }
         }
         window._tagScrollRAF = requestAnimationFrame(step);
@@ -764,7 +778,6 @@ window.updateTodayAtGlanceCounters = function() {
         let targetDate = new Date();
         let isTomorrow = false;
         
-        // Between 18:00 and 23:59 show Tomorrow
         if (hour >= 18) {
             targetDate.setDate(targetDate.getDate() + 1);
             isTomorrow = true;
@@ -781,8 +794,6 @@ window.updateTodayAtGlanceCounters = function() {
         const container = document.getElementById('tag-scroll-container');
         if (!container) return;
 
-        // Calculate counts
-        // 1. Notices
         let noticesCount = 0;
         const notices = window.currentNoticesList || [];
         if (window.globalUserNoticeReads) {
@@ -791,7 +802,6 @@ window.updateTodayAtGlanceCounters = function() {
             noticesCount = notices.filter(n => n.notice_date === targetDateStr).length;
         }
 
-        // 2. Exams (from exam_schedules and schedules type='Exam')
         let examsCount = 0;
         if (window._currentExamsData) {
              examsCount += window._currentExamsData.filter(ex => ex.exam_date === targetDateStr).length;
@@ -799,49 +809,38 @@ window.updateTodayAtGlanceCounters = function() {
         const schedules = window.currentSchedulesList || [];
         examsCount += schedules.filter(s => (s.schedule_date || s.date) === targetDateStr && s.schedule_type === 'Exam').length;
 
-        // 3. Classes
         let classesCount = 0;
         if (window.dashboardClasses) {
-            classesCount += window.dashboardClasses.filter(c => (c.routine_date || c.date || c.targetDate) === targetDateStr || isTomorrow).length; // Rough fallback
+            classesCount += window.dashboardClasses.filter(c => (c.routine_date || c.date || c.targetDate) === targetDateStr || isTomorrow).length;
             if (typeof window.dashboardClasses.length !== 'undefined' && window.dashboardClasses[0] && (window.dashboardClasses[0].routine_date === undefined)) {
-                // If it's loaded by loadDashboardTodayRoutine, it's globally stored classes?
-                // Let's use window._todayClassesCount and window._tomorrowClassesCount if available
                 classesCount = isTomorrow ? (window._tomorrowClassesCount || 0) : (window._todayClassesCount || 0);
             }
         }
         classesCount += schedules.filter(s => (s.schedule_date || s.date) === targetDateStr && s.schedule_type === 'Class').length;
 
-        // 4. Assignments
         const assignmentsCount = schedules.filter(s => (s.schedule_date || s.date) === targetDateStr && s.schedule_type === 'Assignment').length;
-        
-        // 5. Presentations
         const presentationsCount = schedules.filter(s => (s.schedule_date || s.date) === targetDateStr && s.schedule_type === 'Presentation').length;
 
-        // Build array
         const items = [
-            { id: 'exams', label: 'Exams', count: examsCount, priority: 1, icon: '<i data-lucide="file-check-2" class="w-[18px] h-[18px] text-orange-500"></i>', color: 'bg-orange-500', action: "window.openDedicatedExamPanel ? window.openDedicatedExamPanel() : null" },
-            { id: 'classes', label: 'Classes', count: classesCount, priority: 2, icon: '<i data-lucide="book-open" class="w-[18px] h-[18px] text-indigo-500"></i>', color: 'bg-indigo-500', action: "navigate('screen-weekly-routine'); loadWeeklyRoutine();" },
-            { id: 'notices', label: 'Notices', count: noticesCount, priority: 3, icon: '<i data-lucide="megaphone" class="w-[18px] h-[18px] text-red-500"></i>', color: 'bg-red-500', action: "navigate('screen-notices-list'); loadNotices();" },
-            { id: 'assignments', label: 'Assgnmnts', count: assignmentsCount, priority: 4, icon: '<i data-lucide="clipboard-list" class="w-[18px] h-[18px] text-purple-500"></i>', color: 'bg-purple-500', action: "navigate('screen-weekly-routine');" },
-            { id: 'presentations', label: 'Present', count: presentationsCount, priority: 5, icon: '<i data-lucide="monitor-play" class="w-[18px] h-[18px] text-pink-500"></i>', color: 'bg-pink-500', action: "navigate('screen-weekly-routine');" }
+            { id: 'exams', label: 'Exams', count: examsCount, priority: 1, icon: '<i data-lucide="file-check-2" class="w-[18px] h-[18px] text-orange-500"></i>', color: 'text-orange-500', action: "window.openDedicatedExamPanel ? window.openDedicatedExamPanel() : null" },
+            { id: 'classes', label: 'Classes', count: classesCount, priority: 2, icon: '<i data-lucide="book-open" class="w-[18px] h-[18px] text-indigo-500"></i>', color: 'text-indigo-500', action: "navigate('screen-weekly-routine'); loadWeeklyRoutine();" },
+            { id: 'notices', label: 'Notices', count: noticesCount, priority: 3, icon: '<i data-lucide="megaphone" class="w-[18px] h-[18px] text-red-500"></i>', color: 'text-red-500', action: "navigate('screen-notices-list'); loadNotices();" },
+            { id: 'assignments', label: 'Assignments', count: assignmentsCount, priority: 4, icon: '<i data-lucide="clipboard-list" class="w-[18px] h-[18px] text-purple-500"></i>', color: 'text-purple-500', action: "navigate('screen-weekly-routine');" },
+            { id: 'presentations', label: 'Presentation', count: presentationsCount, priority: 5, icon: '<i data-lucide="monitor-play" class="w-[18px] h-[18px] text-pink-500"></i>', color: 'text-pink-500', action: "navigate('screen-weekly-routine');" }
         ];
 
-        // Sort: just by priority.
         items.sort((a, b) => a.priority - b.priority);
 
-        // Generate HTML
         container.innerHTML = items.map(item => `
-            <div class="flex items-center gap-2.5 px-3 py-2 shrink-0 justify-center bg-white rounded-[16px] shadow-sm border border-slate-100 min-w-[110px] cursor-pointer transition-transform active:scale-95" onclick="${item.action}">
-                <div class="w-8 h-8 rounded-full flex items-center justify-center ${item.color} bg-opacity-10 shrink-0">
-                    ${item.icon}
-                </div>
-                <div class="flex flex-col items-start pr-1">
-                    <span class="text-[8.5px] font-bold text-slate-500 uppercase tracking-wider leading-none">${item.label}</span>
-                    <span class="text-[14px] font-extrabold text-slate-800 leading-none mt-1.5">${item.count > 99 ? '99+' : item.count}</span>
+            <div class="flex items-center gap-2 px-2 flex-[0_0_33.333%] justify-center border-r border-slate-100 last:border-0 cursor-pointer transition-transform active:scale-95" onclick="${item.action}">
+                ${item.icon}
+                <div class="flex flex-col items-start leading-none gap-1">
+                    <span class="text-[8.5px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap overflow-hidden text-ellipsis max-w-full block">${item.label}</span>
+                    <span class="text-[14px] font-extrabold text-slate-800 leading-none">${item.count > 99 ? '99+' : item.count}</span>
                 </div>
             </div>`).join('');
 
-        if (window.lucide) {
+        if (typeof lucide !== 'undefined') {
             lucide.createIcons({ root: container });
         }
 
@@ -853,11 +852,4 @@ window.updateTodayAtGlanceCounters = function() {
 };
 
 
-// Hook into existing badge update to also update At A Glance
-const originalUpdateBadges = updateDashboardQuickAccessBadges;
-updateDashboardQuickAccessBadges = function() {
-    originalUpdateBadges();
-    if (typeof window.updateTodayAtGlanceCounters === 'function') {
-        window.updateTodayAtGlanceCounters();
-    }
-};
+
