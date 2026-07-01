@@ -59,7 +59,13 @@
                         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background-color:#f8fafc; font-family:sans-serif; padding: 20px; text-align:center;">
                             <h2 style="color:#1e293b; margin-bottom:10px;">Update Available</h2>
                             <p style="color:#64748b; margin-bottom:20px;">We've fixed some bugs! Tap the button below to update your app.</p>
-                            <button onclick="localStorage.clear(); sessionStorage.clear(); window.location.reload(true);" 
+                            <button onclick="
+                                const sbToken = localStorage.getItem('sb-ngropmfrneaaejwocnbf-auth-token');
+                                localStorage.clear();
+                                if (sbToken) localStorage.setItem('sb-ngropmfrneaaejwocnbf-auth-token', sbToken);
+                                sessionStorage.clear(); 
+                                window.location.reload(true);
+                            " 
                                     style="background-color:#4F46E5; color:white; border:none; padding:15px 30px; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
                                 Install Update
                             </button>

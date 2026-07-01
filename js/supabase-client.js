@@ -5,6 +5,12 @@
 
         try {
             _supabase = supabase.createClient(supabaseUrl, supabaseKey, {
+                auth: {
+                    persistSession: true,
+                    autoRefreshToken: true,
+                    detectSessionInUrl: true,
+                    storage: window.localStorage
+                },
                 global: {
                     headers: {
                         'Cache-Control': 'no-cache, no-store, must-revalidate'
