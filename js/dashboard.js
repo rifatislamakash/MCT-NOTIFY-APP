@@ -678,10 +678,12 @@ export const DashboardService = {
         const facultyBtn = document.getElementById('admin-action-faculty');
         const supportBtn = document.getElementById('admin-action-support');
         const checkUploadBtn = document.getElementById('admin-action-check-upload');
+        const monitorBtn = document.getElementById('admin-action-system-monitor');
         
         if (facultyBtn) { isCR ? facultyBtn.classList.add('hidden') : facultyBtn.classList.remove('hidden'); }
         if (supportBtn) { isCR ? supportBtn.classList.add('hidden') : supportBtn.classList.remove('hidden'); }
         if (checkUploadBtn) { isCR ? checkUploadBtn.classList.add('hidden') : checkUploadBtn.classList.remove('hidden'); }
+        if (monitorBtn) { isCR ? monitorBtn.classList.add('hidden') : monitorBtn.classList.remove('hidden'); }
     }
 };
 

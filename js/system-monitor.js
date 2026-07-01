@@ -14,6 +14,17 @@ function formatBytes(bytes) {
 window.loadSystemMonitor = async function() {
     console.log("[SYSTEM MONITOR] Navigation opened");
 
+    // Security Check: Only allow Admins to access this feature
+    const isAdmin = window.currentUserRole === 'admin' || (window.isAdminEmail && window.isAdminEmail(window.currentUserEmail));
+    if (!isAdmin) {
+        console.warn("[SYSTEM MONITOR] Unauthorized access attempt by CR/Student.");
+        if (typeof showGlobalToast === 'function') {
+            showGlobalToast("Unauthorized", "Only Admins can view System Monitor.");
+        }
+        if (typeof navigate === 'function') navigate('screen-admin-dashboard');
+        return;
+    }
+
     if (isSystemMonitorLoading) {
         console.log("[SYSTEM MONITOR] Duplicate request prevented");
         return;
