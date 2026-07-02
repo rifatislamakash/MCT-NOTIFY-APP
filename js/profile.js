@@ -81,6 +81,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         if (localController.signal.aborted) return;
 
                         const courseIds = (ucData || []).map(u => u.course_id);
+
                         const coursesCountEl = document.getElementById('profile-courses-count');
                         const creditsCountEl = document.getElementById('profile-credits-count');
 
@@ -90,6 +91,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             const sdkController = new AbortController();
                             const coursesInfoPromise = _supabase.from('courses').select('total_credit').in('id', courseIds).abortSignal(sdkController.signal);
                             let cData;
+                            const startSdk = performance.now();
                             try {
                                 if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
                                 let timerId;
@@ -100,11 +102,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                     const { data, error } = await Promise.race([coursesInfoPromise, timeoutPromise]);
                                     if (error) throw error;
                                     cData = data;
-                                console.log("[PROFILE] [SDK SUCCESS]");
-                            console.log(`[PROFILE] [SDK DURATION] ${Math.round(performance.now() - startSdk)}ms`);
-                        } finally {
-                            clearTimeout(timerId);
-                        }
+                                    console.log("[PROFILE] [SDK SUCCESS]");
+                                } finally {
+                                    clearTimeout(timerId);
+                                }
                             } catch (e) {
                                 if (e.message === 'sdk_timeout') {
                                     sdkController.abort();

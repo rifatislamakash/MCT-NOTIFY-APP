@@ -170,15 +170,15 @@ const getSafariSafeDate = window.getSafariSafeDate;
 
             document.querySelectorAll('.nav-home-btn').forEach(btn => {
                 if (btn && btn.classList) {
-                    if (isHome) { btn.classList.add('text-indigo-400'); btn.classList.remove('text-slate-400'); }
-                    else { btn.classList.remove('text-indigo-400'); btn.classList.add('text-slate-400'); }
+                    if (isHome) { btn.classList.add('nav-active'); }
+                    else { btn.classList.remove('nav-active'); }
                 }
             });
 
             document.querySelectorAll('.nav-profile-btn').forEach(btn => {
                 if (btn && btn.classList) {
-                    if (isProfile) { btn.classList.add('text-indigo-400'); btn.classList.remove('text-slate-400'); }
-                    else { btn.classList.remove('text-indigo-400'); btn.classList.add('text-slate-400'); }
+                    if (isProfile) { btn.classList.add('nav-active'); }
+                    else { btn.classList.remove('nav-active'); }
                 }
             });
 
@@ -189,8 +189,8 @@ const getSafariSafeDate = window.getSafariSafeDate;
                         return;
                     }
                     btn.classList.remove('hidden');
-                    if (isGroups) { btn.classList.add('text-indigo-400'); btn.classList.remove('text-slate-400'); }
-                    else { btn.classList.remove('text-indigo-400'); btn.classList.add('text-slate-400'); }
+                    if (isGroups) { btn.classList.add('nav-active'); }
+                    else { btn.classList.remove('nav-active'); }
                 }
             });
         }

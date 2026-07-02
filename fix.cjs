@@ -1,5 +1,5 @@
 const fs = require('fs');
-let code = fs.readFileSync('d:/MCT Notify - Antigravity/Notify/js/dashboard.js', 'utf8');
-code = code.replace(/\\"/g, '"');
-fs.writeFileSync('d:/MCT Notify - Antigravity/Notify/js/dashboard.js', code);
-console.log('Fixed escaping!');
+let html = fs.readFileSync('index.html', 'utf8');
+html = html.replace(/class="w-5 h-5 nav-icon-/g, 'class="w-6 h-6 object-contain nav-icon-');
+fs.writeFileSync('index.html', html);
+console.log('Fixed aspect ratio');

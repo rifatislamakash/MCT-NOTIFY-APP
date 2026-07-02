@@ -350,14 +350,29 @@ let isRegistering = false;
                     }
                 }
             } catch (err) {
-                console.log("[DEBUG] checkActiveSession: catch block triggered", err);
-                const loginPasswordInput = document.getElementById('login-password');
-                if (loginPasswordInput) {
-                    loginPasswordInput.type = 'password';
-                    loginPasswordInput.removeAttribute('readonly');
+                console.error("[DEBUG] checkActiveSession: catch block triggered", err);
+                
+                // If this is a network/fetch error, DO NOT log the user out!
+                // Just notify them and leave them on the current screen (or let offline caching work)
+                if (err.message && (err.message.includes('fetch') || err.message.includes('network') || err.message.includes('offline'))) {
+                    console.warn("[AUTH] Network error during session check. Preserving session state.");
+                    if (typeof window.showGlobalToast === 'function') {
+                        window.showGlobalToast("Offline", "Cannot connect to server. Some features may be unavailable.");
+                    }
+                    
+                    // Attempt offline fallback if we have a profile cached
+                    if (window.authState && window.authState.profile) {
+                        window.navigate(window.authState.profile.role === 'admin' ? 'screen-admin-dashboard' : 'screen-student-dashboard');
+                    }
+                } else {
+                    const loginPasswordInput = document.getElementById('login-password');
+                    if (loginPasswordInput) {
+                        loginPasswordInput.type = 'password';
+                        loginPasswordInput.removeAttribute('readonly');
+                    }
+                    window.currentUserRole = 'student';
+                    window.navigate('screen-welcome');
                 }
-                window.currentUserRole = 'student';
-                window.navigate('screen-welcome');
             } finally {
                 console.log("[DEBUG] checkActiveSession: finally block");
                 // Only hide loader if we actually did something and routing isn't still in progress
@@ -830,14 +845,11 @@ let isRegistering = false;
 
             setTimeout(() => {
                 if (typeof window.showLoader !== 'undefined') window.showLoader(false);
-                const loginPasswordInput = document.getElementById('login-password');
-                if (loginPasswordInput) {
-                    loginPasswordInput.type = 'password';
-                    loginPasswordInput.removeAttribute('readonly');
-                }
-                window.navigate('screen-login');
-                window.showGlobalToast("Logged Out", "Session destroyed successfully.");
-            }, 800);
+                
+                // Perform a hard reload to ensure all memory, state, and DOM are completely purged.
+                // Supabase's onAuthStateChange will detect the missing session and route to login on boot.
+                window.location.reload();
+            }, 500);
         }
 
 

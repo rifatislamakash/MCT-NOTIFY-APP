@@ -60,10 +60,6 @@
                             <h2 style="color:#1e293b; margin-bottom:10px;">Update Available</h2>
                             <p style="color:#64748b; margin-bottom:20px;">We've fixed some bugs! Tap the button below to update your app.</p>
                             <button onclick="
-                                const sbToken = localStorage.getItem('sb-ngropmfrneaaejwocnbf-auth-token');
-                                localStorage.clear();
-                                if (sbToken) localStorage.setItem('sb-ngropmfrneaaejwocnbf-auth-token', sbToken);
-                                sessionStorage.clear(); 
                                 window.location.reload(true);
                             " 
                                     style="background-color:#4F46E5; color:white; border:none; padding:15px 30px; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
@@ -141,16 +137,6 @@
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
-        }
-
-        #app-viewport-shell {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            background: #F8FAFC;
         }
 
         /* iOS WebKit GPU Isolation - Prevents monolithic render crashes */
@@ -300,9 +286,14 @@
             }
             /* Force the mobile viewport container inside the phone frame to be exactly 100% width/height of the device window */
             #app-viewport-shell {
+                position: absolute !important;
                 width: 100% !important;
                 height: 100dvh !important;
                 max-height: 100dvh !important;
+                display: flex !important;
+                flex-direction: column !important;
+                overflow: hidden !important;
+                background: #F8FAFC !important;
                 border: none !important;
                 border-radius: 0 !important;
                 margin: 0 !important;
@@ -317,19 +308,79 @@
 
         .bottom-nav-bar {
             position: absolute !important;
-            bottom: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 20px) !important;
+            left: 20px !important;
+            right: 20px !important;
             box-sizing: border-box !important;
-            height: auto !important;
-            min-height: 80px !important;
+            height: 72px !important;
+            min-height: 72px !important;
             z-index: 40 !important;
             display: flex !important;
             align-items: center !important;
             justify-content: space-around !important;
-            padding-left: 0.5rem !important;
-            padding-right: 0.5rem !important;
+            padding: 0 10px !important;
+            
+            /* Liquid Glass (Highly Transparent Refractive Glass) */
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02)) !important;
+            backdrop-filter: blur(8px) saturate(150%) !important;
+            -webkit-backdrop-filter: blur(8px) saturate(150%) !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.3) !important;
+            border-left: 1px solid rgba(255, 255, 255, 0.3) !important;
+            border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+            border-radius: 9999px !important;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1) !important;
+            transform: translate3d(0, 0, 0);
+            -webkit-transform: translate3d(0, 0, 0);
+            will-change: transform, backdrop-filter;
+        }
+
+        /* Base inactive button style */
+        .bottom-nav-bar button {
+            color: #64748b !important;
+            padding: 8px 12px !important;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            opacity: 0.8;
+        }
+
+        /* Active button style */
+        .bottom-nav-bar button.nav-active {
+            color: #341BC4 !important;
+            opacity: 1;
+        }
+
+        /* Custom Icon Styling */
+        .bottom-nav-bar button.nav-active .nav-icon-normal {
+            display: none !important;
+        }
+        
+        .bottom-nav-bar button.nav-active .nav-icon-active {
+            display: block !important;
+            animation: iconPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Optional: drop shadow for the icons to give them depth */
+        .bottom-nav-bar button img.nav-icon-active {
+            filter: drop-shadow(0 2px 4px rgba(66, 38, 233, 0.2));
+        }
+
+        /* Override Tailwind sizing to make icons smaller and crisper */
+        .bottom-nav-bar button img {
+            width: 20px !important;
+            height: 20px !important;
+        }
+
+        /* Slightly increase Notices and Schedule icons to compensate for their internal padding */
+        .bottom-nav-bar .nav-notices-btn img,
+        .bottom-nav-bar .nav-schedule-btn img {
+            width: 22px !important;
+            height: 22px !important;
+        }
+
+        @keyframes iconPop {
+            0% { transform: scale(0.8); }
+            100% { transform: scale(1); }
         }
 
         /* Scale Lucide SVG icons within the bottom navigation bar to exactly 24px */
@@ -337,6 +388,7 @@
         .bottom-nav-bar [data-lucide] {
             width: 24px !important;
             height: 24px !important;
+            transition: all 0.2s ease;
         }
 
         .screen:not(.active) .bottom-nav-bar,
@@ -354,10 +406,6 @@
         }
 
         @media (max-width: 640px) {
-            .bottom-nav-bar {
-                padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px) !important;
-            }
-            
             /* Reduce excessive hardcoded top padding and apply safe-area-inset-top */
             #viewport-container .pt-16 {
                 padding-top: calc(env(safe-area-inset-top, 0px) + 1.25rem) !important;
@@ -1046,7 +1094,7 @@
                                     <div class="cursor-pointer relative transition-transform hover:scale-105 active:scale-95" onclick="navigate('screen-profile')" title="Go to profile">
                                         <div class="global-notification-alert hidden absolute top-0 right-0 w-3.5 h-3.5 bg-red-500 border-2 border-[#4A51F5] rounded-full z-10 animate-pulse"></div>
                                         <div class="w-12 h-12 rounded-full border-2 border-white shadow-sm overflow-hidden bg-indigo-50 flex items-center justify-center global-user-avatar-container">
-                                            <i data-lucide="user" class="w-6 h-6 text-[#4226E9]"></i>
+                                            <i data-lucide="user" class="w-5 h-5"></i>
                                         </div>
                                     </div>
                                 </div>
@@ -1216,20 +1264,20 @@
                         </div>
 
                         <!-- Sticky Bottom Navigation Bar -->
-                        <div class="bottom-nav-bar bg-[#070B19] text-white select-none border-t border-slate-900">
-                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="home" class="w-5 h-5"></i>
+                        <div class="bottom-nav-bar">
+                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/home.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/homefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-bold">Dashboard</span>
                             </button>
-                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="calendar" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Routine</span></button>
-                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="calendar-clock" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 transition"><img src="assets/routine.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/routinefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Routine</span></button>
+                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/schedule.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/schedulefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Schedule</span>
                             </button>
-                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="megaphone" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Notices</span></button>
+                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 transition"><img src="assets/notice.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/noticefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Notices</span></button>
 
-                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="user" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/profile.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/profilefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Profile</span>
                             </button>
                         </div>
@@ -1412,20 +1460,20 @@
                             </div>
                         </div>
 
-                        <div class="absolute bottom-0 inset-x-0 h-20 bg-[#070B19] text-white flex items-center justify-around px-2 z-30 select-none border-t border-slate-900">
-                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="home" class="w-5 h-5"></i>
+                        <div class="bottom-nav-bar">
+                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/home.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/homefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-bold">Dashboard</span>
                             </button>
-                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="calendar" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Routine</span></button>
-                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="calendar-clock" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 transition"><img src="assets/routine.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/routinefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Routine</span></button>
+                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/schedule.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/schedulefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Schedule</span>
                             </button>
-                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="megaphone" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Notices</span></button>
+                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 transition"><img src="assets/notice.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/noticefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Notices</span></button>
 
-                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="user" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/profile.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/profilefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Profile</span>
                             </button>
                         </div>
@@ -1457,7 +1505,7 @@
                                         <div class="flex items-center gap-5">
                                             <div class="relative w-20 h-20 shrink-0 global-user-avatar-container">
                                                 <div class="w-full h-full rounded-full ring-4 ring-[#4226E9]/20 overflow-hidden bg-slate-100 flex items-center justify-center">
-                                                    <i data-lucide="user" class="w-8 h-8 text-[#4226E9]"></i>
+                                                    <i data-lucide="user" class="w-5 h-5"></i>
                                                 </div>
                                             </div>
                                             <div class="flex flex-col gap-2 flex-1">
@@ -1646,7 +1694,7 @@
                                     <h3 class="text-[14px] font-black text-slate-900 mb-4 flex items-center gap-2"><i data-lucide="sparkles" class="w-4 h-4 text-amber-500"></i> Key Features</h3>
                                     <div class="space-y-3">
                                         <div class="flex items-start gap-3">
-                                            <div class="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center shrink-0"><i data-lucide="megaphone" class="w-4 h-4 text-blue-600"></i></div>
+                                            <div class="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center shrink-0"><i data-lucide="megaphone" class="w-5.5 h-5.5"></i></div>
                                             <div><p class="text-[13px] font-bold text-slate-800">Smart Notices</p><p class="text-[11px] text-slate-400 mt-0.5">Urgent &amp; general notices with push notifications, file attachments, and course targeting.</p></div>
                                         </div>
                                         <div class="flex items-start gap-3">
@@ -1654,7 +1702,7 @@
                                             <div><p class="text-[13px] font-bold text-slate-800">Schedule Hub</p><p class="text-[11px] text-slate-400 mt-0.5">Class schedules for quizzes, presentations, lab works and more, always up to date.</p></div>
                                         </div>
                                         <div class="flex items-start gap-3">
-                                            <div class="w-8 h-8 bg-fuchsia-50 rounded-xl flex items-center justify-center shrink-0"><i data-lucide="calendar" class="w-4 h-4 text-fuchsia-600"></i></div>
+                                            <div class="w-8 h-8 bg-fuchsia-50 rounded-xl flex items-center justify-center shrink-0"><i data-lucide="calendar" class="w-5 h-5"></i></div>
                                             <div><p class="text-[13px] font-bold text-slate-800">Weekly Routine</p><p class="text-[11px] text-slate-400 mt-0.5">Your complete class routine, day-by-day, with room numbers and assigned teachers.</p></div>
                                         </div>
                                         <div class="flex items-start gap-3">
@@ -1712,7 +1760,7 @@
                                     <div class="cursor-pointer relative transition-transform hover:scale-105 active:scale-95" onclick="navigate('screen-profile')" title="Go to profile">
                                         <div class="global-notification-alert hidden absolute top-0 right-0 w-3.5 h-3.5 bg-red-500 border-2 border-slate-900 rounded-full z-10 animate-pulse"></div>
                                         <div class="w-12 h-12 rounded-full border-2 border-white shadow-sm overflow-hidden bg-indigo-50 flex items-center justify-center global-user-avatar-container">
-                                            <i data-lucide="user" class="w-6 h-6 text-[#4226E9]"></i>
+                                            <i data-lucide="user" class="w-5 h-5"></i>
                                         </div>
                                     </div>
                                 </div>
@@ -1723,7 +1771,7 @@
                                     <div class="flex items-center justify-between">
                                         <h1 id="admin-greeting-text" class="text-[34px] font-extrabold text-slate-900 tracking-tight leading-none">Good Evening</h1>
                                         <button id="cr-swap-btn-admin" class="hidden shrink-0 bg-slate-800 text-white w-10 h-10 rounded-full shadow-md flex items-center justify-center transition-transform hover:scale-105 active:scale-95 border-2 border-white" onclick="toggleCRStudentRole()" title="Swap to Student Dashboard">
-                                            <i data-lucide="user" class="w-4 h-4"></i>
+                                            <i data-lucide="user" class="w-5 h-5"></i>
                                         </button>
                                     </div>
                                     <h1 class="text-[34px] font-extrabold text-[#4226E9] tracking-tight flex items-center gap-1.5 leading-none mt-1">
@@ -1756,7 +1804,7 @@
                                     <div onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="flex flex-col items-center text-center space-y-1 relative cursor-pointer group">
                                         <div class="w-[52px] h-[52px] bg-fuchsia-50 text-fuchsia-600 rounded-2xl flex items-center justify-center shadow-2xs transition-all duration-200 group-hover:scale-110 group-hover:shadow-md group-hover:-translate-y-1 relative">
                                             <div class="absolute -right-1.5 -top-1.5 w-4 h-4 bg-fuchsia-500 rounded-full flex items-center justify-center text-[12px] text-white font-bold z-10 shadow-sm">+</div>
-                                            <i data-lucide="calendar" class="w-5.5 h-5.5"></i>
+                                            <i data-lucide="calendar" class="w-5 h-5"></i>
                                         </div>
                                         <span class="text-[9px] font-bold text-slate-700">Routine</span>
                                     </div>
@@ -1807,7 +1855,7 @@
                                     </div>
                                     <div onclick="navigate('screen-faculty-list')" id="admin-action-faculty" class="hidden flex flex-col items-center text-center space-y-1 relative cursor-pointer group">
                                         <div class="w-[52px] h-[52px] bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center shadow-2xs transition-all duration-200 group-hover:scale-110 group-hover:shadow-md group-hover:-translate-y-1">
-                                            <i data-lucide="user" class="w-5.5 h-5.5"></i>
+                                            <i data-lucide="user" class="w-5 h-5"></i>
                                         </div>
                                         <span class="text-[9px] font-bold text-slate-700">Faculty</span>
                                     </div>
@@ -1868,7 +1916,7 @@
                                     <div class="bg-white p-3 rounded-2xl flex items-center justify-between border border-slate-100 shadow-xs">
                                         <div class="flex items-center gap-3">
                                             <div class="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
-                                                <i data-lucide="megaphone" class="w-4.5 h-4.5"></i>
+                                                <i data-lucide="megaphone" class="w-5.5 h-5.5"></i>
                                             </div>
                                             <div>
                                                 <h5 class="font-bold text-xs text-slate-900 leading-tight">Notices Center</h5>
@@ -1883,7 +1931,7 @@
                                     <div class="bg-white p-3 rounded-2xl flex items-center justify-between border border-slate-100 shadow-xs">
                                         <div class="flex items-center gap-3">
                                             <div class="w-9 h-9 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center">
-                                                <i data-lucide="calendar" class="w-4.5 h-4.5"></i>
+                                                <i data-lucide="calendar" class="w-5 h-5"></i>
                                             </div>
                                             <div>
                                                 <h5 class="font-bold text-xs text-slate-900 leading-tight">Schedule Hub</h5>
@@ -2021,20 +2069,20 @@
 
                         </div>
 
-                        <div class="absolute bottom-0 inset-x-0 h-20 bg-[#070B19] text-white flex items-center justify-around px-2 z-30 select-none border-t border-slate-900">
-                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="home" class="w-5 h-5"></i>
+                        <div class="bottom-nav-bar">
+                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/home.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/homefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-bold">Dashboard</span>
                             </button>
-                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="calendar" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Routine</span></button>
-                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="calendar-clock" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 transition"><img src="assets/routine.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/routinefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Routine</span></button>
+                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/schedule.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/schedulefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Schedule</span>
                             </button>
-                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="megaphone" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Notices</span></button>
+                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 transition"><img src="assets/notice.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/noticefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Notices</span></button>
 
-                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="user" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/profile.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/profilefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Profile</span>
                             </button>
                         </div>
@@ -2058,7 +2106,7 @@
                                 </div>
                                 <button onclick="navigate('screen-profile')" class="relative hover:opacity-80 transition-opacity active:scale-95 shrink-0">
                                     <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 p-[2px] shadow-lg shadow-indigo-500/20 overflow-hidden global-user-avatar-container">
-                                        <i data-lucide="user" class="w-5 h-5 text-indigo-100 flex items-center justify-center h-full w-full mx-auto my-auto"></i>
+                                        <i data-lucide="user" class="w-5 h-5"></i>
                                     </div>
                                     <div class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-[#0F172A] rounded-full"></div>
                                 </button>
@@ -2091,20 +2139,20 @@
                         </div>
 
                         <!-- Nav -->
-                        <div class="absolute bottom-0 inset-x-0 h-20 bg-[#070B19] text-white flex items-center justify-around px-2 z-30 select-none border-t border-slate-900">
-                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="home" class="w-5 h-5"></i>
+                        <div class="bottom-nav-bar">
+                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/home.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/homefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-bold">Dashboard</span>
                             </button>
-                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="calendar" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Routine</span></button>
-                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="calendar-clock" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 transition"><img src="assets/routine.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/routinefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Routine</span></button>
+                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/schedule.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/schedulefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Schedule</span>
                             </button>
-                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="megaphone" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Notices</span></button>
+                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 transition"><img src="assets/notice.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/noticefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Notices</span></button>
 
-                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="user" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/profile.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/profilefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Profile</span>
                             </button>
                         </div>
@@ -2202,7 +2250,7 @@
                                 <div class="relative">
                                     <div class="w-24 h-24 rounded-full ring-4 ring-white/20 overflow-hidden bg-slate-700 flex items-center justify-center shadow-xl">
                                         <img id="details-faculty-image-current" src="" alt="Faculty Photo" class="w-full h-full object-cover hidden">
-                                        <i data-lucide="user" class="w-10 h-10 text-slate-400" id="details-faculty-image-fallback"></i>
+                                        <i data-lucide="user" class="w-5 h-5"></i>
                                     </div>
                                     <!-- Admin edit overlay on image -->
                                     <div id="details-faculty-image-edit-btn" class="hidden absolute bottom-0 right-0 w-7 h-7 bg-[#4226E9] rounded-full flex items-center justify-center shadow-md border-2 border-[#0F172A] cursor-pointer" onclick="document.getElementById('details-faculty-image-input').click()">
@@ -2294,20 +2342,20 @@
                             <!-- Dynamically Renders Courses Here -->
                         </div>
 
-                        <div class="absolute bottom-0 inset-x-0 h-20 bg-[#070B19] text-white flex items-center justify-around px-2 z-30 select-none border-t border-slate-900">
-                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="home" class="w-5 h-5"></i>
+                        <div class="bottom-nav-bar">
+                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/home.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/homefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-bold">Dashboard</span>
                             </button>
-                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="calendar" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Routine</span></button>
-                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="calendar-clock" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 transition"><img src="assets/routine.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/routinefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Routine</span></button>
+                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/schedule.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/schedulefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Schedule</span>
                             </button>
-                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="megaphone" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Notices</span></button>
+                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 transition"><img src="assets/notice.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/noticefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Notices</span></button>
 
-                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="user" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/profile.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/profilefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Profile</span>
                             </button>
                         </div>
@@ -2543,7 +2591,7 @@
                             <div class="absolute top-10 right-6">
                                 <div class="cursor-pointer transition-transform hover:scale-105 active:scale-95" onclick="navigate('screen-profile')" title="View profile">
                                     <div class="w-10 h-10 rounded-full border-2 border-white/20 shadow-sm overflow-hidden bg-indigo-50 flex items-center justify-center global-user-avatar-container">
-                                        <i data-lucide="user" class="w-5 h-5 text-[#4226E9]"></i>
+                                        <i data-lucide="user" class="w-5 h-5"></i>
                                     </div>
                                 </div>
                             </div>
@@ -2564,20 +2612,20 @@
                             </div>
                         </div>
 
-                        <div class="absolute bottom-0 inset-x-0 h-20 bg-[#070B19] text-white flex items-center justify-around px-2 z-30 select-none border-t border-slate-900">
-                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="home" class="w-5 h-5"></i>
+                        <div class="bottom-nav-bar">
+                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/home.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/homefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-bold">Dashboard</span>
                             </button>
-                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="calendar" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Routine</span></button>
-                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="calendar-clock" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 transition"><img src="assets/routine.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/routinefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Routine</span></button>
+                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/schedule.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/schedulefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Schedule</span>
                             </button>
-                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="megaphone" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Notices</span></button>
+                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 transition"><img src="assets/notice.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/noticefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Notices</span></button>
 
-                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="user" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/profile.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/profilefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Profile</span>
                             </button>
                         </div>
@@ -2730,20 +2778,20 @@
                         <div class="flex-1 overflow-y-auto pb-24 px-6 pt-4 scrollbar-hide space-y-3" id="admin-students-list">
                             <!-- JS renders here -->
                         </div>
-                        <div class="absolute bottom-0 inset-x-0 h-20 bg-[#070B19] text-white flex items-center justify-around px-2 z-30 select-none border-t border-slate-900">
-                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="home" class="w-5 h-5"></i>
+                        <div class="bottom-nav-bar">
+                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/home.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/homefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-bold">Dashboard</span>
                             </button>
-                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="calendar" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Routine</span></button>
-                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="calendar-clock" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 transition"><img src="assets/routine.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/routinefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Routine</span></button>
+                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/schedule.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/schedulefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Schedule</span>
                             </button>
-                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="megaphone" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Notices</span></button>
+                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 transition"><img src="assets/notice.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/noticefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Notices</span></button>
 
-                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="user" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/profile.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/profilefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Profile</span>
                             </button>
                         </div>
@@ -2857,20 +2905,20 @@
                             </button>
                         </div>
 
-                        <div class="absolute bottom-0 inset-x-0 h-20 bg-[#070B19] text-white flex items-center justify-around px-2 z-30 select-none border-t border-slate-900">
-                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="home" class="w-5 h-5"></i>
+                        <div class="bottom-nav-bar">
+                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/home.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/homefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-bold">Dashboard</span>
                             </button>
-                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="calendar" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Routine</span></button>
-                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="calendar-clock" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 transition"><img src="assets/routine.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/routinefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Routine</span></button>
+                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/schedule.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/schedulefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Schedule</span>
                             </button>
-                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="megaphone" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Notices</span></button>
+                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 transition"><img src="assets/notice.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/noticefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Notices</span></button>
 
-                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="user" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/profile.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/profilefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Profile</span>
                             </button>
                         </div>
@@ -2928,7 +2976,7 @@
                             <div class="absolute top-10 right-6">
                                 <div class="cursor-pointer transition-transform hover:scale-105 active:scale-95" onclick="navigate('screen-profile')" title="View profile">
                                     <div class="w-10 h-10 rounded-full border-2 border-white/20 shadow-sm overflow-hidden bg-indigo-50 flex items-center justify-center global-user-avatar-container">
-                                        <i data-lucide="user" class="w-5 h-5 text-[#4226E9]"></i>
+                                        <i data-lucide="user" class="w-5 h-5"></i>
                                     </div>
                                 </div>
                             </div>
@@ -2977,20 +3025,20 @@
                             </div>
                         </div>
 
-                        <div class="absolute bottom-0 inset-x-0 h-20 bg-[#070B19] text-white flex items-center justify-around px-2 z-30 select-none border-t border-slate-900">
-                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="home" class="w-5 h-5"></i>
+                        <div class="bottom-nav-bar">
+                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/home.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/homefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-bold">Dashboard</span>
                             </button>
-                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="calendar" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Routine</span></button>
-                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="calendar-clock" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 transition"><img src="assets/routine.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/routinefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Routine</span></button>
+                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/schedule.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/schedulefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Schedule</span>
                             </button>
-                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="megaphone" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Notices</span></button>
+                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 transition"><img src="assets/notice.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/noticefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Notices</span></button>
 
-                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="user" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/profile.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/profilefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Profile</span>
                             </button>
                         </div>
@@ -3262,7 +3310,7 @@
                                     </button>
                                     <button onclick="navigate('screen-profile')" class="relative hover:opacity-80 transition-opacity active:scale-95 shrink-0">
                                         <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 p-[2px] shadow-lg shadow-indigo-500/20 overflow-hidden global-user-avatar-container">
-                                            <i data-lucide="user" class="w-5 h-5 text-indigo-100 flex items-center justify-center h-full w-full mx-auto my-auto"></i>
+                                            <i data-lucide="user" class="w-5 h-5"></i>
                                         </div>
                                         <div class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-[#0F172A] rounded-full"></div>
                                     </button>
@@ -3289,20 +3337,20 @@
                         </div>
 
                         <!-- Sticky Bottom Navigation Bar -->
-                        <div class="bottom-nav-bar bg-[#070B19] text-white select-none border-t border-slate-900">
-                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="home" class="w-5 h-5"></i>
+                        <div class="bottom-nav-bar">
+                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/home.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/homefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-bold">Dashboard</span>
                             </button>
-                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="calendar" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Routine</span></button>
-                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="calendar-clock" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 transition"><img src="assets/routine.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/routinefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Routine</span></button>
+                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/schedule.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/schedulefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Schedule</span>
                             </button>
-                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="megaphone" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Notices</span></button>
+                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 transition"><img src="assets/notice.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/noticefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Notices</span></button>
 
-                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="user" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/profile.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/profilefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Profile</span>
                             </button>
                         </div>
@@ -3426,7 +3474,7 @@
                                     </button>
                                     <button onclick="navigate('screen-profile')" class="relative hover:opacity-80 transition-opacity active:scale-95 shrink-0">
                                         <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 p-[2px] shadow-lg shadow-indigo-500/20 overflow-hidden global-user-avatar-container">
-                                            <i data-lucide="user" class="w-5 h-5 text-indigo-100 flex items-center justify-center h-full w-full mx-auto my-auto"></i>
+                                            <i data-lucide="user" class="w-5 h-5"></i>
                                         </div>
                                         <div class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-[#0F172A] rounded-full"></div>
                                     </button>
@@ -3472,20 +3520,20 @@
                         </div>
 
                         <!-- Sticky Bottom Navigation Bar -->
-                        <div class="bottom-nav-bar bg-[#070B19] text-white select-none border-t border-slate-900">
-                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="home" class="w-5 h-5"></i>
+                        <div class="bottom-nav-bar">
+                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/home.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/homefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-bold">Dashboard</span>
                             </button>
-                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="calendar" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Routine</span></button>
-                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="calendar-clock" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 transition"><img src="assets/routine.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/routinefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Routine</span></button>
+                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/schedule.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/schedulefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Schedule</span>
                             </button>
-                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="megaphone" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Notices</span></button>
+                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 transition"><img src="assets/notice.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/noticefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Notices</span></button>
 
-                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="user" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/profile.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/profilefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Profile</span>
                             </button>
                         </div>
@@ -3670,23 +3718,23 @@
                         </div>
 
                         <!-- Bottom Nav -->
-                        <div class="absolute bottom-0 inset-x-0 h-20 bg-[#070B19] text-white flex items-center justify-around px-2 z-30 select-none border-t border-slate-900">
-                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="home" class="w-5 h-5"></i>
+                        <div class="bottom-nav-bar">
+                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/home.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/homefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-bold">Dashboard</span>
                             </button>
-                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 text-indigo-400">
-                                <i data-lucide="calendar" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/routine.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/routinefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Routine</span>
                             </button>
-                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="calendar-clock" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/schedule.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/schedulefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Schedule</span>
                             </button>
-                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="megaphone" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Notices</span></button>
+                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 transition"><img src="assets/notice.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/noticefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Notices</span></button>
 
-                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="user" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/profile.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/profilefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Profile</span>
                             </button>
                         </div>
@@ -4158,7 +4206,7 @@
                                     </div>
                                     <button onclick="navigate('screen-profile')" class="relative hover:opacity-80 transition-opacity active:scale-95 shrink-0">
                                         <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 p-[2px] shadow-lg shadow-indigo-500/20 overflow-hidden global-user-avatar-container">
-                                            <i data-lucide="user" class="w-5 h-5 text-indigo-100 flex items-center justify-center h-full w-full mx-auto my-auto"></i>
+                                            <i data-lucide="user" class="w-5 h-5"></i>
                                         </div>
                                         <div class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-[#0F172A] rounded-full"></div>
                                     </button>
@@ -4197,13 +4245,13 @@
                         </div>
 
                         <!-- Nav -->
-                        <div class="absolute bottom-0 inset-x-0 h-20 bg-[#070B19] text-white flex items-center justify-around px-2 z-30 select-none border-t border-slate-900">
-                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="home" class="w-5 h-5"></i><span class="text-[9px] font-bold">Dashboard</span></button>
-                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="calendar" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Routine</span></button>
-                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 text-orange-400 transition"><i data-lucide="calendar-clock" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Schedule</span></button>
-                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="megaphone" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Notices</span></button>
+                        <div class="bottom-nav-bar">
+                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 transition"><img src="assets/home.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/homefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-bold">Dashboard</span></button>
+                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 transition"><img src="assets/routine.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/routinefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Routine</span></button>
+                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 transition"><img src="assets/schedule.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/schedulefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Schedule</span></button>
+                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 transition"><img src="assets/notice.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/noticefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Notices</span></button>
 
-                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="user" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Profile</span></button>
+                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 transition"><img src="assets/profile.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/profilefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Profile</span></button>
                         </div>
                     </div>
 
@@ -4400,7 +4448,7 @@
                                     </div>
                                     <div class="flex items-center gap-4 text-[11px] font-bold text-slate-500">
                                         <div class="flex items-center gap-1.5">
-                                            <i data-lucide="calendar" class="w-3.5 h-3.5 text-[#4226E9]"></i>
+                                            <i data-lucide="calendar" class="w-5 h-5"></i>
                                             <span id="sd-date">—</span>
                                         </div>
                                         <div class="flex items-center gap-1.5">
@@ -4450,13 +4498,13 @@
                         </div>
 
                         <!-- Nav -->
-                        <div class="absolute bottom-0 inset-x-0 h-20 bg-[#070B19] text-white flex items-center justify-around px-2 z-30 select-none border-t border-slate-900">
-                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="home" class="w-5 h-5"></i><span class="text-[9px] font-bold">Dashboard</span></button>
-                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="calendar" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Routine</span></button>
-                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 text-orange-400 transition"><i data-lucide="calendar-clock" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Schedule</span></button>
-                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="megaphone" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Notices</span></button>
+                        <div class="bottom-nav-bar">
+                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 transition"><img src="assets/home.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/homefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-bold">Dashboard</span></button>
+                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 transition"><img src="assets/routine.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/routinefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Routine</span></button>
+                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 transition"><img src="assets/schedule.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/schedulefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Schedule</span></button>
+                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 transition"><img src="assets/notice.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/noticefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Notices</span></button>
 
-                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="user" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Profile</span></button>
+                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 transition"><img src="assets/profile.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/profilefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Profile</span></button>
                         </div>
                     </div>
 
@@ -4635,7 +4683,7 @@
                                     </button>
                                     <div class="cursor-pointer transition-transform hover:scale-105 active:scale-95" onclick="navigate('screen-profile')" title="View profile">
                                         <div class="w-10 h-10 rounded-full border-2 border-white/20 shadow-sm overflow-hidden bg-indigo-50 flex items-center justify-center global-user-avatar-container">
-                                            <i data-lucide="user" class="w-5 h-5 text-[#4226E9]"></i>
+                                            <i data-lucide="user" class="w-5 h-5"></i>
                                         </div>
                                     </div>
                                 </div>
@@ -4665,20 +4713,20 @@
                         </div>
 
                         <!-- Sticky Bottom Navigation Bar -->
-                        <div class="bottom-nav-bar bg-[#070B19] text-white select-none border-t border-slate-900">
-                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="home" class="w-5 h-5"></i>
+                        <div class="bottom-nav-bar">
+                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/home.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/homefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-bold">Dashboard</span>
                             </button>
-                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="calendar" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Routine</span></button>
-                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="calendar-clock" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 transition"><img src="assets/routine.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/routinefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Routine</span></button>
+                            <button onclick="navigate('screen-schedule-list'); loadScheduleList();" class="nav-schedule-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/schedule.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/schedulefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Schedule</span>
                             </button>
-                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><i data-lucide="megaphone" class="w-5 h-5"></i><span class="text-[9px] font-semibold">Notices</span></button>
+                            <button onclick="navigate('screen-notices-list'); loadNotices();" class="nav-notices-btn flex flex-col items-center gap-1 transition"><img src="assets/notice.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/noticefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Notices</span></button>
 
-                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
-                                <i data-lucide="user" class="w-5 h-5"></i>
+                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/profile.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/profilefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
                                 <span class="text-[9px] font-semibold">Profile</span>
                             </button>
                         </div>
@@ -5274,7 +5322,7 @@
                                 <p id="urgent-popup-message" class="text-xs text-slate-500 font-medium leading-relaxed text-center line-clamp-3">
                                 </p>
                                 <div id="urgent-popup-date-row" class="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center justify-center gap-2 text-xs font-bold text-slate-700">
-                                    <i data-lucide="calendar" class="w-4 h-4 text-[#4226E9]"></i>
+                                    <i data-lucide="calendar" class="w-5 h-5"></i>
                                     <span id="urgent-popup-datetime"></span>
                                 </div>
                                 <div id="urgent-popup-attachment" class="hidden mt-2">
@@ -6069,7 +6117,7 @@
                                 <span class="bg-indigo-50 text-[#4226E9] text-[10px] font-bold px-2.5 py-1 rounded-md uppercase">${batchName}</span>
                             </div>
                             <div class="flex flex-wrap items-center justify-between text-[11px] text-slate-500 mt-3 pt-3 border-t border-slate-50 gap-y-2">
-                                <span class="flex items-center gap-1.5 font-medium"><i data-lucide="user" class="w-3.5 h-3.5 text-[#4226E9]"></i> ${facName}</span>
+                                <span class="flex items-center gap-1.5 font-medium"><i data-lucide="user" class="w-3.5 h-3.5"></i> ${facName}</span>
                                 <div class="flex gap-2">
                                     <span class="font-bold bg-slate-100 px-2 py-0.5 rounded-full text-slate-600">Sec: ${sectionsStr}</span>
                                     <span class="font-bold bg-slate-100 px-2 py-0.5 rounded-full text-slate-600">${c.total_credit} Cr</span>
@@ -6865,7 +6913,7 @@
                                 <p class="text-[12px] text-slate-500 font-semibold mt-0.5">${window.sanitizeHTML(c.course_code)}</p>
                                 <div class="flex items-center gap-3 mt-1.5 text-[11px] text-slate-400 font-medium truncate">
                                     <span class="flex items-center gap-1"><i data-lucide="plus-square" class="w-3 h-3"></i> ${c.total_credit} Credits</span>
-                                    <span class="flex items-center gap-1 truncate"><i data-lucide="user" class="w-3 h-3"></i> ${facName}</span>
+                                    <span class="flex items-center gap-1 truncate"><i data-lucide="user" class="w-3.5 h-3.5"></i> ${facName}</span>
                                 </div>
                             </div>
                             <div class="shrink-0 flex items-center gap-2" onclick="event.stopPropagation()">
@@ -8457,8 +8505,8 @@
                 const isScheduleNav = ['screen-schedule-list', 'screen-create-schedule', 'screen-schedule-details', 'screen-edit-schedule'].includes(screenId);
                 document.querySelectorAll('.nav-schedule-btn').forEach(btn => {
                     if (btn && btn.classList) {
-                        if (isScheduleNav) { btn.classList.add('text-orange-400'); btn.classList.remove('text-slate-400'); }
-                        else { btn.classList.remove('text-orange-400'); btn.classList.add('text-slate-400'); }
+                        if (isScheduleNav) { btn.classList.add('nav-active'); }
+                        else { btn.classList.remove('nav-active'); }
                     }
                 });
 
@@ -8492,8 +8540,8 @@
                 const isRoutine = ['screen-weekly-routine', 'screen-add-routine', 'screen-routine-details', 'screen-add-exam-schedule', 'screen-edit-exam-schedule'].includes(screenId);
                 document.querySelectorAll('.nav-routine-btn').forEach(btn => {
                     if (btn && btn.classList) {
-                        if (isRoutine) { btn.classList.add('text-indigo-400'); btn.classList.remove('text-slate-400'); }
-                        else { btn.classList.remove('text-indigo-400'); btn.classList.add('text-slate-400'); }
+                        if (isRoutine) { btn.classList.add('nav-active'); }
+                        else { btn.classList.remove('nav-active'); }
                     }
                 });
 
@@ -8501,8 +8549,8 @@
                 const isNotices = ['screen-notices-list'].includes(screenId);
                 document.querySelectorAll('.nav-notices-btn').forEach(btn => {
                     if (btn && btn.classList) {
-                        if (isNotices) { btn.classList.add('text-indigo-400'); btn.classList.remove('text-slate-400'); }
-                        else { btn.classList.remove('text-indigo-400'); btn.classList.add('text-slate-400'); }
+                        if (isNotices) { btn.classList.add('nav-active'); }
+                        else { btn.classList.remove('nav-active'); }
                     }
                 });
 
