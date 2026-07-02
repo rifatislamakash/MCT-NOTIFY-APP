@@ -308,7 +308,7 @@
 
         .bottom-nav-bar {
             position: absolute !important;
-            bottom: calc(env(safe-area-inset-bottom, 0px) + 12px) !important;
+            bottom: calc(env(safe-area-inset-bottom, 0px) * 0.3 + 12px) !important;
             left: 20px !important;
             right: 20px !important;
             box-sizing: border-box !important;
@@ -320,11 +320,11 @@
             justify-content: space-around !important;
             padding: 0 10px !important;
             
-            /* High-Visibility Premium Glass with Subtle Blue Tint */
-            background: linear-gradient(135deg, rgba(240, 244, 255, 0.95), rgba(255, 255, 255, 0.85)) !important;
+            /* High-Visibility Premium Glass */
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.65)) !important;
             backdrop-filter: blur(16px) saturate(180%) !important;
             -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-            border: 1px solid rgba(220, 230, 255, 1) !important;
+            border: 1px solid rgba(255, 255, 255, 1) !important;
             border-bottom: 1px solid rgba(255, 255, 255, 0.5) !important;
             border-radius: 9999px !important;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08) !important;
@@ -372,8 +372,8 @@
         /* Slightly increase Notices and Schedule icons to compensate for their internal padding */
         .bottom-nav-bar .nav-notices-btn img,
         .bottom-nav-bar .nav-schedule-btn img {
-            width: 26px !important;
-            height: 26px !important;
+            width: 25px !important;
+            height: 25px !important;
         }
 
         @keyframes iconPop {
