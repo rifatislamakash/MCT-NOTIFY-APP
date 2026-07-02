@@ -71,7 +71,7 @@ export class ReactionService {
         }
 
         const iconsHtml = displayTypes.map((type, index) => {
-            return `<img src="${REACTION_ICONS[type]}" class="w-[18px] h-[18px] border-2 border-white rounded-full ${index > 0 ? '-ml-1.5' : ''} bg-white shadow-sm" style="z-index: ${3 - index}">`;
+            return `<img src="${REACTION_ICONS[type]}" class="w-[18px] h-[18px] border-2 border-white rounded-full ${index > 0 ? '-ml-1.5' : ''} bg-white dark:bg-dark-card shadow-sm" style="z-index: ${3 - index}">`;
         }).join('');
 
         return `
@@ -81,7 +81,7 @@ export class ReactionService {
                 <div class="flex items-center shrink-0">
                     ${iconsHtml}
                 </div>
-                <span class="text-[11px] font-bold text-slate-500 shrink-0">${reactions.length}</span>
+                <span class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary shrink-0">${reactions.length}</span>
             </div>
         `;
     }
@@ -155,7 +155,7 @@ export class ReactionService {
         const myReaction = reactions.find(r => r.user_id === window.authState?.user?.id);
         
         let actionIcon = `
-            <div class="relative inline-flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors group">
+            <div class="relative inline-flex items-center justify-center text-slate-500 dark:text-dark-textSecondary hover:text-slate-800 transition-colors group">
                 <i data-lucide="smile" class="w-4 h-4"></i>
                 <div class="absolute -bottom-[2px] -right-[3px] bg-[#f3f4f6] group-hover:bg-slate-200 transition-colors rounded-full p-[1px]">
                     <i data-lucide="plus" class="w-2.5 h-2.5 font-bold"></i>
@@ -189,7 +189,7 @@ export class ReactionService {
                     ${actionIcon}
                 </button>
                 
-                <div class="reaction-picker absolute bg-white rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-slate-100 p-1 flex items-center gap-1 opacity-0 pointer-events-none transition-all duration-300 translate-y-3 scale-95 origin-bottom-right whitespace-nowrap scrollbar-hide"
+                <div class="reaction-picker absolute bg-white dark:bg-dark-card rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-slate-100 dark:border-white/5 p-1 flex items-center gap-1 opacity-0 pointer-events-none transition-all duration-300 translate-y-3 scale-95 origin-bottom-right whitespace-nowrap scrollbar-hide"
                      style="position: absolute !important; bottom: calc(100% + 6px) !important; right: -8px !important; max-width: calc(100vw - 24px) !important; overflow-x: auto !important; z-index: 9999 !important;"
                      onclick="event.stopPropagation();" onmouseup="event.stopPropagation();" ontouchend="event.stopPropagation();">
                     ${pickerItems}
@@ -344,11 +344,11 @@ export class ReactionService {
             counts[r.reaction_type] = (counts[r.reaction_type] || 0) + 1;
         });
 
-        let headerHtml = `<div onclick="window.ReactionService.renderModalList('all')" class="px-4 py-2 border-b-2 ${filterType === 'all' ? 'border-[#4226E9] text-[#4226E9]' : 'border-transparent text-slate-500'} font-bold cursor-pointer whitespace-nowrap transition-colors">All ${this.currentModalReactions.length}</div>`;
+        let headerHtml = `<div onclick="window.ReactionService.renderModalList('all')" class="px-4 py-2 border-b-2 ${filterType === 'all' ? 'border-[#4226E9] text-[#4226E9]' : 'border-transparent text-slate-500 dark:text-dark-textSecondary'} font-bold cursor-pointer whitespace-nowrap transition-colors">All ${this.currentModalReactions.length}</div>`;
         
         Object.keys(counts).sort((a,b) => counts[b] - counts[a]).forEach(type => {
             const isActive = filterType === type;
-            headerHtml += `<div onclick="window.ReactionService.renderModalList('${type}')" class="px-4 py-2 border-b-2 ${isActive ? 'border-[#4226E9] text-[#4226E9]' : 'border-transparent text-slate-500'} font-bold flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 whitespace-nowrap transition-colors"><img src="${REACTION_ICONS[type]}" class="w-4 h-4"> ${counts[type]}</div>`;
+            headerHtml += `<div onclick="window.ReactionService.renderModalList('${type}')" class="px-4 py-2 border-b-2 ${isActive ? 'border-[#4226E9] text-[#4226E9]' : 'border-transparent text-slate-500 dark:text-dark-textSecondary'} font-bold flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 whitespace-nowrap transition-colors"><img src="${REACTION_ICONS[type]}" class="w-4 h-4"> ${counts[type]}</div>`;
         });
         header.innerHTML = headerHtml;
 
@@ -363,11 +363,11 @@ export class ReactionService {
             return `
                 <div class="flex items-center justify-between p-3 hover:bg-slate-50 transition-colors">
                     <div class="flex items-center gap-3">
-                        <div class="relative w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center border border-slate-100 shrink-0">
+                        <div class="relative w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center border border-slate-100 dark:border-white/5 shrink-0">
                             ${avatarHtml}
-                            <img src="${REACTION_ICONS[r.reaction_type]}" class="absolute -bottom-1 -right-1 w-4 h-4 border border-white rounded-full bg-white shadow-sm">
+                            <img src="${REACTION_ICONS[r.reaction_type]}" class="absolute -bottom-1 -right-1 w-4 h-4 border border-white rounded-full bg-white dark:bg-dark-card shadow-sm">
                         </div>
-                        <span class="font-bold text-slate-800 text-[14px]">${name}</span>
+                        <span class="font-bold text-slate-800 dark:text-dark-text text-[14px]">${name}</span>
                     </div>
                 </div>
             `;
@@ -399,7 +399,7 @@ export class AuthorService {
         const role = window.sanitizeHTML(pData.role || 'student');
         
         let roleDisplay = 'Student';
-        let roleClass = 'bg-slate-100 text-slate-500 border border-slate-200';
+        let roleClass = 'bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-dark-textSecondary border border-slate-200 dark:border-white/10';
         let roleIcon = '';
         if (role === 'admin') { 
             roleDisplay = 'ADMIN'; 
@@ -412,7 +412,7 @@ export class AuthorService {
         }
 
         const initial = name.charAt(0).toUpperCase();
-        let avatarHtml = `<span class="font-bold text-[12px] text-slate-400 m-0">${initial}</span>`;
+        let avatarHtml = `<span class="font-bold text-[12px] text-slate-400 dark:text-dark-textSecondary m-0">${initial}</span>`;
         if (pData.profile_url) {
             avatarHtml = `<img src="${window.sanitizeUrl(pData.profile_url)}" class="w-full h-full object-cover rounded-full m-0">`;
         }
@@ -420,16 +420,16 @@ export class AuthorService {
         return `
             <div class="flex items-start justify-between w-full mb-[8px] overflow-hidden">
                 <div class="flex items-start gap-2.5 min-w-0 w-full">
-                    <div class="w-[28px] h-[28px] rounded-full bg-slate-200 shrink-0 flex items-center justify-center relative overflow-hidden ring-1 ring-slate-100 m-0">
+                    <div class="w-[28px] h-[28px] rounded-full bg-slate-200 dark:bg-white/10 shrink-0 flex items-center justify-center relative overflow-hidden ring-1 ring-slate-100 m-0">
                         ${avatarHtml}
                     </div>
                     <div class="flex flex-col gap-[4px] min-w-0 flex-1 m-0">
                         <div class="flex justify-between items-center w-full m-0">
                             <div class="flex items-center gap-[6px] min-w-0">
-                                <span class="text-[12px] font-semibold text-gray-800 leading-none tracking-tight shrink-0 m-0">${name}</span>
+                                <span class="text-[12px] font-semibold text-gray-800 dark:text-dark-text leading-none tracking-tight shrink-0 m-0">${name}</span>
                                 <span class="text-[10px] font-bold px-[5px] py-[1.5px] rounded-[4px] leading-[1.2] shrink-0 uppercase tracking-[0.03em] ${roleClass} flex items-center w-auto max-w-full m-0">${roleIcon}${roleDisplay}</span>
                             </div>
-                            ${postedTimeStr ? `<span class="text-[11px] font-normal text-gray-500 shrink-0 m-0">${postedTimeStr}</span>` : ''}
+                            ${postedTimeStr ? `<span class="text-[11px] font-normal text-gray-500 dark:text-dark-textSecondary shrink-0 m-0">${postedTimeStr}</span>` : ''}
                         </div>
                         ${extraBadgesHtml ? `
                         <div class="flex items-center gap-[6px] flex-wrap w-full mt-[4px] m-0">

@@ -200,10 +200,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
             if (!faculties || faculties.length === 0) {
                 listContainer.innerHTML = `
-                        <div class="flex flex-col items-center justify-center py-12 text-center text-slate-400 bg-white rounded-2xl border border-slate-100 p-6">
+                        <div class="flex flex-col items-center justify-center py-12 text-center text-slate-400 dark:text-dark-textSecondary bg-white dark:bg-dark-card rounded-2xl border border-slate-100 dark:border-white/5 p-6">
                             <i data-lucide="users" class="w-10 h-10 mb-2.5 text-slate-300"></i>
-                            <p class="text-sm font-bold text-slate-500">No faculty added yet</p>
-                            <p class="text-[10px] text-slate-400 mt-1">Check back later or add as an administrator.</p>
+                            <p class="text-sm font-bold text-slate-500 dark:text-dark-textSecondary">No faculty added yet</p>
+                            <p class="text-[10px] text-slate-400 dark:text-dark-textSecondary mt-1">Check back later or add as an administrator.</p>
                         </div>
                     `;
                 if (typeof lucide !== 'undefined') {
@@ -244,17 +244,17 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             : `<div class="w-12 h-12 rounded-full bg-indigo-100 text-[#4226E9] flex items-center justify-center shadow-sm font-bold text-lg shrink-0 select-none">${initials}</div>`;
 
                         return `
-                                <div onclick="openFacultyDetails('${fac?.id || ''}')" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-4 cursor-pointer hover:border-[#4226E9]/30 hover:shadow-sm transition-all active:scale-[0.98]">
+                                <div onclick="openFacultyDetails('${fac?.id || ''}')" class="bg-white dark:bg-dark-card p-4 rounded-2xl border border-slate-100 dark:border-white/5 shadow-xs flex items-center gap-4 cursor-pointer hover:border-[#4226E9]/30 hover:shadow-sm transition-all active:scale-[0.98]">
                                     ${avatarHtml}
                                     <div class="flex-1 min-w-0">
-                                        <h4 class="font-bold text-sm text-slate-900 truncate">${name} ${teacherInitial ? `<span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded ml-1">${teacherInitial}</span>` : ''}</h4>
-                                        <p class="text-[10px] text-slate-500 font-semibold mb-1">${designation}</p>
-                                        <div class="flex items-center gap-1.5 text-[10px] text-slate-400">
+                                        <h4 class="font-bold text-sm text-slate-900 dark:text-dark-text truncate">${name} ${teacherInitial ? `<span class="text-[10px] bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-dark-textSecondary px-1.5 py-0.5 rounded ml-1">${teacherInitial}</span>` : ''}</h4>
+                                        <p class="text-[10px] text-slate-500 dark:text-dark-textSecondary font-semibold mb-1">${designation}</p>
+                                        <div class="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-dark-textSecondary">
                                             <i data-lucide="map-pin" class="w-3 h-3 text-indigo-500"></i>
                                             <span>Room ${room}</span>
                                         </div>
                                     </div>
-                                    <button class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center pointer-events-none">
+                                    <button class="w-8 h-8 rounded-full bg-slate-50 dark:bg-dark-bg/50 text-slate-400 dark:text-dark-textSecondary flex items-center justify-center pointer-events-none">
                                         <i data-lucide="chevron-right" class="w-4 h-4"></i>
                                     </button>
                                 </div>

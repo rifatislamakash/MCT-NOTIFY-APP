@@ -258,7 +258,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
         function setNoticeFilter(type) {
             currentNoticeFilter = type;
             document.querySelectorAll('.notice-filter-btn').forEach(btn => {
-                btn.className = "notice-filter-btn px-4 py-1.5 bg-white/10 text-slate-300 border border-white/10 text-[11px] font-bold rounded-full whitespace-nowrap transition-colors";
+                btn.className = "notice-filter-btn px-4 py-1.5 bg-white dark:bg-dark-card/10 text-slate-300 border border-white/10 text-[11px] font-bold rounded-full whitespace-nowrap transition-colors";
                 if (btn.dataset.filter === type) {
                     btn.className = "notice-filter-btn active px-4 py-1.5 bg-indigo-600 text-white border border-transparent text-[11px] font-bold rounded-full whitespace-nowrap transition-colors";
                 }
@@ -277,11 +277,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     if (list) {
                         list.innerHTML = `
                             <div class="flex flex-col items-center justify-center py-16 px-4 text-center">
-                                <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                                    <i data-lucide="layers" class="w-8 h-8 text-slate-400"></i>
+                                <div class="w-16 h-16 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
+                                    <i data-lucide="layers" class="w-8 h-8 text-slate-400 dark:text-dark-textSecondary"></i>
                                 </div>
-                                <h3 class="text-lg font-bold text-slate-700">Please select a batch</h3>
-                                <p class="text-sm text-slate-500 mt-1 max-w-[250px]">Select a batch from the dropdown above to view its notices.</p>
+                                <h3 class="text-lg font-bold text-slate-700 dark:text-dark-textSecondary">Please select a batch</h3>
+                                <p class="text-sm text-slate-500 dark:text-dark-textSecondary mt-1 max-w-[250px]">Select a batch from the dropdown above to view its notices.</p>
                             </div>
                         `;
                         if (window.lucide) window.lucide.createIcons();
@@ -362,10 +362,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (filtered.length === 0) {
                 container.innerHTML = `
                     <div class="flex flex-col items-center justify-center py-12 px-4 text-center">
-                        <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+                        <div class="w-16 h-16 bg-slate-50 dark:bg-dark-bg/50 rounded-full flex items-center justify-center mb-3">
                             <i data-lucide="bell-off" class="w-8 h-8 text-slate-300"></i>
                         </div>
-                        <p class="text-[14px] font-bold text-slate-500">No notices found.</p>
+                        <p class="text-[14px] font-bold text-slate-500 dark:text-dark-textSecondary">No notices found.</p>
                     </div>
                 `;
             } else {
@@ -416,8 +416,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         }
                         bottomEventTagsHtml = `
                             <div class="flex items-center justify-start gap-[8px]">
-                                ${n.notice_date ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600"><i data-lucide="calendar" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${dStr}</span>` : ''}
-                                ${n.notice_time ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600"><i data-lucide="clock" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${tStr}</span>` : ''}
+                                ${n.notice_date ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 dark:bg-dark-bg/50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600 dark:text-dark-textSecondary"><i data-lucide="calendar" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${dStr}</span>` : ''}
+                                ${n.notice_time ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 dark:bg-dark-bg/50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600 dark:text-dark-textSecondary"><i data-lucide="clock" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${tStr}</span>` : ''}
                             </div>
                         `;
                     }
@@ -428,11 +428,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     const isTodayOrTomorrow = n.notice_date === todayStr || n.notice_date === tomorrowStr;
                     let cardClasses = "w-full max-w-full box-border p-3 rounded-[16px] shadow-sm flex flex-col gap-1.5 cursor-pointer transition-all active:scale-[0.98] ";
                     if (isExpired) {
-                        cardClasses += "bg-slate-50 border border-slate-100 opacity-50 grayscale hover:opacity-80";
+                        cardClasses += "bg-slate-50 dark:bg-dark-bg/50 border border-slate-100 dark:border-white/5 opacity-50 grayscale hover:opacity-80";
                     } else if (isTodayOrTomorrow) {
-                        cardClasses += "bg-purple-50/50 border-2 border-purple-400 hover:border-purple-500 shadow-purple-100";
+                        cardClasses += "bg-purple-50/50 dark:bg-purple-900/10 border-2 border-purple-400 dark:border-purple-500/30 hover:border-purple-500 dark:hover:border-purple-500/60 shadow-purple-100 dark:shadow-none";
                     } else {
-                        cardClasses += "bg-white border border-slate-100 hover:border-indigo-200";
+                        cardClasses += "bg-white dark:bg-dark-card border border-slate-100 dark:border-white/5 hover:border-indigo-200";
                     }
 
                     let rightSideHtml = `<div class="flex items-center gap-2">`;
@@ -440,7 +440,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     const isAdminOrCR = ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail));
                     if (isAdminOrCR) {
                         rightSideHtml += `
-                            <button type="button" class="delete-btn text-slate-400 hover:text-red-500 transition-colors p-1 rounded-md hover:bg-red-50" onclick="event.stopPropagation(); window.executeGlobalDelete('notices', '${n.id}', 'notice-card-${n.id}')">
+                            <button type="button" class="delete-btn text-slate-400 dark:text-dark-textSecondary hover:text-red-500 transition-colors p-1 rounded-md hover:bg-red-50" onclick="event.stopPropagation(); window.executeGlobalDelete('notices', '${n.id}', 'notice-card-${n.id}')">
                                 <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </button>
                         `;
@@ -461,8 +461,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             <div id="notice-card-${n.id}" onclick="openNoticeDetails('${window.sanitizeHTML(n.id)}')" class="${cardClasses} relative p-[16px] mt-2">
                                 ${window.AuthorService ? window.AuthorService.renderAuthorBlock(n.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
                                 <div class="mt-1 flex flex-col">
-                                    <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.safeFormatRichText(n.title)}</h4>
-                                    <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.safeFormatRichText(n.message)}</p>
+                                    <h4 class="font-[700] text-[16px] text-[#111827] dark:text-indigo-50 mt-0 truncate leading-tight">${window.safeFormatRichText(n.title)}</h4>
+                                    <p class="text-[14px] text-[#4b5563] dark:text-dark-textSecondary line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.safeFormatRichText(n.message)}</p>
                                 </div>
                                 <div class="w-full mt-[12px] !flex !flex-wrap !justify-between !items-center !gap-[8px]">
                                     <div class="flex-1">${bottomEventTagsHtml}</div>
@@ -521,9 +521,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 // Mount clean animated loading skeleton wireframes immediately
                 recentContainer.innerHTML = `
                     <div class="animate-pulse flex flex-col gap-2.5">
-                        <div class="h-[100px] bg-slate-100/80 rounded-[16px] border border-slate-50 w-full"></div>
-                        <div class="h-[100px] bg-slate-100/80 rounded-[16px] border border-slate-50 w-full"></div>
-                        <div class="h-[100px] bg-slate-100/80 rounded-[16px] border border-slate-50 w-full"></div>
+                        <div class="h-[100px] bg-slate-100 dark:bg-white/5/80 rounded-[16px] border border-slate-50 w-full"></div>
+                        <div class="h-[100px] bg-slate-100 dark:bg-white/5/80 rounded-[16px] border border-slate-50 w-full"></div>
+                        <div class="h-[100px] bg-slate-100 dark:bg-white/5/80 rounded-[16px] border border-slate-50 w-full"></div>
                     </div>`;
 
                 // Collect Notices
@@ -556,7 +556,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     .slice(0, 3);
                 
                 if (combinedUpdates.length === 0) {
-                    recentContainer.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No recent updates</p>`;
+                    recentContainer.innerHTML = `<p class="text-xs text-slate-500 dark:text-dark-textSecondary text-center py-4">No recent updates</p>`;
                 } else {
                     recentContainer.innerHTML = combinedUpdates.map(item => {
                         const now = new Date();
@@ -596,8 +596,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 }
                                 bottomEventTagsHtml = `
                                     <div class="flex items-center justify-start gap-[8px]">
-                                        ${n.notice_date ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600"><i data-lucide="calendar" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${dStr}</span>` : ''}
-                                        ${n.notice_time ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600"><i data-lucide="clock" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${tStr}</span>` : ''}
+                                        ${n.notice_date ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 dark:bg-dark-bg/50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600 dark:text-dark-textSecondary"><i data-lucide="calendar" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${dStr}</span>` : ''}
+                                        ${n.notice_time ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 dark:bg-dark-bg/50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600 dark:text-dark-textSecondary"><i data-lucide="clock" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${tStr}</span>` : ''}
                                     </div>
                                 `;
                             }
@@ -615,11 +615,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             const extraBadgesHtml = `${badgeHtml}${courseTagsHtml}`;
 
                             return `
-                                <div class="flex flex-col w-full max-w-full box-border p-[16px] bg-white rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer" onclick="${clickAction}">
+                                <div class="flex flex-col w-full max-w-full box-border p-[16px] bg-white dark:bg-gradient-to-br dark:from-[#0F1117] dark:to-[#1A1D26] rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 dark:border-white/5 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer" onclick="${clickAction}">
                                     ${window.AuthorService ? window.AuthorService.renderAuthorBlock(n.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
                                     <div class="mt-1 flex flex-col">
-                                        <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.safeFormatRichText(n.title)}</h4>
-                                        <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.safeFormatRichText(n.message)}</p>
+                                        <h4 class="font-[700] text-[16px] text-[#111827] dark:text-indigo-50 mt-0 truncate leading-tight">${window.safeFormatRichText(n.title)}</h4>
+                                        <p class="text-[14px] text-[#4b5563] dark:text-dark-textSecondary line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.safeFormatRichText(n.message)}</p>
                                     </div>
                                     <div class="w-full mt-[12px] !flex !flex-wrap !justify-between !items-center !gap-[8px]">
                                         <div class="flex-1">${bottomEventTagsHtml}</div>
@@ -659,8 +659,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 }
                                 bottomEventTagsHtml = `
                                     <div class="flex items-center justify-start gap-[8px]">
-                                        ${s.schedule_date ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600"><i data-lucide="calendar" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${dStr}</span>` : ''}
-                                        ${s.schedule_time ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600"><i data-lucide="clock" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${tStr}</span>` : ''}
+                                        ${s.schedule_date ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 dark:bg-dark-bg/50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600 dark:text-dark-textSecondary"><i data-lucide="calendar" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${dStr}</span>` : ''}
+                                        ${s.schedule_time ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 dark:bg-dark-bg/50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600 dark:text-dark-textSecondary"><i data-lucide="clock" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${tStr}</span>` : ''}
                                     </div>
                                 `;
                             }
@@ -676,11 +676,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             const extraBadgesHtml = `${badgeHtml}${courseTagsHtml}`;
 
                             return `
-                                <div class="flex flex-col w-full max-w-full box-border p-[16px] bg-white rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer" onclick="openScheduleDetails('${window.sanitizeHTML(s.id)}')">
+                                <div class="flex flex-col w-full max-w-full box-border p-[16px] bg-white dark:bg-gradient-to-br dark:from-[#0F1117] dark:to-[#1A1D26] rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 dark:border-white/5 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer" onclick="openScheduleDetails('${window.sanitizeHTML(s.id)}')">
                                     ${window.AuthorService ? window.AuthorService.renderAuthorBlock(s.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
                                     <div class="mt-1 flex flex-col">
-                                        <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${window.sanitizeHTML(s.title)}</h4>
-                                        <p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.sanitizeHTML(s.message)}</p>
+                                        <h4 class="font-[700] text-[16px] text-[#111827] dark:text-indigo-50 mt-0 truncate leading-tight">${window.sanitizeHTML(s.title)}</h4>
+                                        <p class="text-[14px] text-[#4b5563] dark:text-dark-textSecondary line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.sanitizeHTML(s.message)}</p>
                                     </div>
                                     <div class="w-full mt-[12px] !flex !flex-wrap !justify-between !items-center !gap-[8px]">
                                         <div class="flex-1">${bottomEventTagsHtml}</div>
@@ -738,7 +738,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 let batches = window.adminDirectoryBatches || window.currentBatchesList || [];
                 if (batches.length === 0) {
                     try {
-                        tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4"><span class="inline-block w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>Loading batches...</p>';
+                        tList.innerHTML = '<p class="text-[13px] text-slate-500 dark:text-dark-textSecondary text-center py-4"><span class="inline-block w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>Loading batches...</p>';
                         const { data, error } = await _supabase.from('batches').select('id, batch_name, active').eq('active', true).order('batch_name', { ascending: true });
                         if (!error && data) {
                             batches = data;
@@ -750,24 +750,24 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 }
                 
                 if (batches.length === 0) {
-                    tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4">No batches available.</p>';
+                    tList.innerHTML = '<p class="text-[13px] text-slate-500 dark:text-dark-textSecondary text-center py-4">No batches available.</p>';
                     return;
                 }
                 
                 tList.innerHTML = batches.map(b => `
                     <label class="flex items-center gap-3 p-2.5 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors">
                         <input type="checkbox" value="${b.id}" class="notice-target-cb w-4 h-4 accent-[#4226E9]"${aud === 'batch_crs' ? ` onchange="window.refreshNoticeCRList()"` : ''}>
-                        <span class="text-[13px] text-slate-700 font-semibold">${window.sanitizeHTML(b.batch_name)}</span>
+                        <span class="text-[13px] text-slate-700 dark:text-dark-textSecondary font-semibold">${window.sanitizeHTML(b.batch_name)}</span>
                     </label>
                 `).join('');
                 
                 // For batch_crs, add a CR list container below
                 if (aud === 'batch_crs') {
-                    tList.innerHTML += '<div id="notice-cr-list-container" class="mt-3 border-t border-slate-100 pt-3"><p class="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-2">Select batch(es) above to see CRs</p></div>';
+                    tList.innerHTML += '<div id="notice-cr-list-container" class="mt-3 border-t border-slate-100 dark:border-white/5 pt-3"><p class="text-[11px] text-slate-400 dark:text-dark-textSecondary font-bold uppercase tracking-wider mb-2">Select batch(es) above to see CRs</p></div>';
                 }
             } else if (aud === 'course_students') {
                 tList.classList.remove('hidden');
-                tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4"><span class="inline-block w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>Loading courses...</p>';
+                tList.innerHTML = '<p class="text-[13px] text-slate-500 dark:text-dark-textSecondary text-center py-4"><span class="inline-block w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>Loading courses...</p>';
                 
                 try {
                     let query = _supabase.from('courses').select('*, batches(batch_name)').order('course_name');
@@ -783,7 +783,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     if (error) throw error;
                     
                     if (!crs || crs.length === 0) {
-                        tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4">No courses available.</p>';
+                        tList.innerHTML = '<p class="text-[13px] text-slate-500 dark:text-dark-textSecondary text-center py-4">No courses available.</p>';
                         return;
                     }
                     
@@ -792,7 +792,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     return `
                     <label class="flex items-center gap-3 p-2.5 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors">
                         <input type="checkbox" value="${c.id}" class="notice-target-cb w-4 h-4 accent-[#4226E9]">
-                        <span class="text-[13px] text-slate-700 font-semibold">[Batch ${window.sanitizeHTML(batchName)}] ${window.sanitizeHTML(c.course_name)} (${c.course_code || c.short_name || ''})</span>
+                        <span class="text-[13px] text-slate-700 dark:text-dark-textSecondary font-semibold">[Batch ${window.sanitizeHTML(batchName)}] ${window.sanitizeHTML(c.course_name)} (${c.course_code || c.short_name || ''})</span>
                     </label>
                 `}).join('');
                 } catch (err) {
@@ -804,7 +804,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 let students = window.adminDirectoryProfiles || [];
                 if (students.length === 0) {
                     try {
-                        tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4"><span class="inline-block w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>Loading students...</p>';
+                        tList.innerHTML = '<p class="text-[13px] text-slate-500 dark:text-dark-textSecondary text-center py-4"><span class="inline-block w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>Loading students...</p>';
                         const { data, error } = await _supabase.from('profiles').select('id, full_name, email').order('full_name');
                         if (!error && data) students = data;
                     } catch (e) {
@@ -812,20 +812,20 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     }
                 }
                 if (students.length === 0) {
-                    tList.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-4">No students available.</p>';
+                    tList.innerHTML = '<p class="text-[13px] text-slate-500 dark:text-dark-textSecondary text-center py-4">No students available.</p>';
                     return;
                 }
                 tList.innerHTML = `
                     <div class="mb-2">
-                        <input type="text" id="notice-student-search" oninput="window.filterNoticeStudents()" placeholder="Search students..." class="w-full h-9 px-3 rounded-lg border border-slate-200 text-[12px] outline-none focus:border-[#4226E9]">
+                        <input type="text" id="notice-student-search" oninput="window.filterNoticeStudents()" placeholder="Search students..." class="w-full h-9 px-3 rounded-lg border border-slate-200 dark:border-white/10 text-[12px] outline-none focus:border-[#4226E9]">
                     </div>
                     <div id="notice-student-list" class="space-y-1 max-h-[200px] overflow-y-auto">
                         ${students.map(s => `
                             <label class="notice-student-item flex items-center gap-3 p-2 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors" data-name="${(s.full_name||'').toLowerCase()}">
                                 <input type="checkbox" value="${s.id}" class="notice-target-cb w-4 h-4 accent-[#4226E9]">
                                 <div class="flex flex-col">
-                                    <span class="text-[13px] text-slate-700 font-semibold">${window.sanitizeHTML(s.full_name)}</span>
-                                    <span class="text-[10px] text-slate-400">${window.sanitizeHTML(s.email || '')}</span>
+                                    <span class="text-[13px] text-slate-700 dark:text-dark-textSecondary font-semibold">${window.sanitizeHTML(s.full_name)}</span>
+                                    <span class="text-[10px] text-slate-400 dark:text-dark-textSecondary">${window.sanitizeHTML(s.email || '')}</span>
                                 </div>
                             </label>
                         `).join('')}
@@ -843,11 +843,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
             
             const selectedBatches = Array.from(document.querySelectorAll('.notice-target-cb:checked')).map(cb => cb.value);
             if (selectedBatches.length === 0) {
-                container.innerHTML = '<p class="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-2">Select batch(es) above to see CRs</p>';
+                container.innerHTML = '<p class="text-[11px] text-slate-400 dark:text-dark-textSecondary font-bold uppercase tracking-wider mb-2">Select batch(es) above to see CRs</p>';
                 return;
             }
             
-            container.innerHTML = '<p class="text-[13px] text-slate-500 text-center py-2"><span class="inline-block w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>Loading CRs...</p>';
+            container.innerHTML = '<p class="text-[13px] text-slate-500 dark:text-dark-textSecondary text-center py-2"><span class="inline-block w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>Loading CRs...</p>';
             
             try {
                 const { data: crData, error } = await _supabase
@@ -860,19 +860,19 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 
                 const crs = (crData || []).filter(r => r.profiles);
                 if (crs.length === 0) {
-                    container.innerHTML = '<p class="text-[13px] text-slate-400 text-center py-2">No CRs assigned to selected batch(es).</p>';
+                    container.innerHTML = '<p class="text-[13px] text-slate-400 dark:text-dark-textSecondary text-center py-2">No CRs assigned to selected batch(es).</p>';
                     return;
                 }
                 
                 const batches = window.currentBatchesList || window.adminDirectoryBatches || [];
-                container.innerHTML = '<p class="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-2">CRs in selected batches</p>' +
+                container.innerHTML = '<p class="text-[11px] text-slate-400 dark:text-dark-textSecondary font-bold uppercase tracking-wider mb-2">CRs in selected batches</p>' +
                     crs.map(cr => {
                         const batchName = batches.find(b => b.id === cr.batch_id)?.batch_name || cr.batch_id;
                         return `<div class="flex items-center gap-3 p-2 bg-indigo-50 rounded-lg mb-1">
                             <i data-lucide="shield" class="w-4 h-4 text-indigo-500"></i>
                             <div class="flex flex-col">
-                                <span class="text-[13px] text-slate-700 font-semibold">${window.sanitizeHTML(cr.profiles.full_name)}</span>
-                                <span class="text-[10px] text-slate-400">Batch ${window.sanitizeHTML(String(batchName))}</span>
+                                <span class="text-[13px] text-slate-700 dark:text-dark-textSecondary font-semibold">${window.sanitizeHTML(cr.profiles.full_name)}</span>
+                                <span class="text-[10px] text-slate-400 dark:text-dark-textSecondary">Batch ${window.sanitizeHTML(String(batchName))}</span>
                             </div>
                         </div>`;
                     }).join('');
@@ -1269,11 +1269,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const isImage = /\.(png|jpg|jpeg|gif|webp)(\?|$)/i.test(url);
 
                 if (isImage) {
-                    preview.innerHTML = `<img src="${url}" class="w-full max-h-[300px] object-contain rounded-[12px] bg-slate-100">`;
+                    preview.innerHTML = `<img src="${url}" class="w-full max-h-[300px] object-contain rounded-[12px] bg-slate-100 dark:bg-white/5">`;
                 } else if (isPdf) {
                     preview.innerHTML = `<iframe src="${url}#toolbar=0" class="w-full h-[300px] rounded-[12px]"></iframe>`;
                 } else {
-                    preview.innerHTML = `<div class="p-8 text-center text-slate-500 font-bold"><i data-lucide="file-text" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>Document File</div>`;
+                    preview.innerHTML = `<div class="p-8 text-center text-slate-500 dark:text-dark-textSecondary font-bold"><i data-lucide="file-text" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>Document File</div>`;
                 }
             } else {
                 attCont.classList.add('hidden');
@@ -1411,10 +1411,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         }
                         
                         const rowHTML = `
-                            <div id="${rowId}" class="reminder-row flex flex-col gap-2 p-3 bg-slate-50 rounded-[12px] border border-slate-200 relative group">
+                            <div id="${rowId}" class="reminder-row flex flex-col gap-2 p-3 bg-slate-50 dark:bg-dark-bg/50 rounded-[12px] border border-slate-200 dark:border-white/10 relative group">
                                 <div class="flex items-center gap-3">
                                     <div class="flex-1">
-                                        <select onchange="toggleCustomReminderTime(this)" class="reminder-offset w-full h-[40px] px-3 bg-white text-slate-700 text-[13px] font-bold rounded-[8px] border border-slate-200 focus:border-[#4226E9] outline-none">
+                                        <select onchange="toggleCustomReminderTime(this)" class="reminder-offset w-full h-[40px] px-3 bg-white dark:bg-dark-card text-slate-700 dark:text-dark-textSecondary text-[13px] font-bold rounded-[8px] border border-slate-200 dark:border-white/10 focus:border-[#4226E9] outline-none">
                                             <option value="1440" ${offsetValue === '1440' ? 'selected' : ''}>1 day before</option>
                                             <option value="180" ${offsetValue === '180' ? 'selected' : ''}>3 hours before</option>
                                             <option value="30" ${offsetValue === '30' ? 'selected' : ''}>30 minutes before</option>
@@ -1426,8 +1426,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                     </button>
                                 </div>
                                 <div class="custom-time-container ${offsetValue === 'custom' ? '' : 'hidden'}">
-                                    <label class="text-[10px] font-black uppercase text-slate-400 tracking-wider ml-1">Custom DateTime</label>
-                                    <input type="datetime-local" value="${customDateVal}" class="reminder-custom-time w-full h-[40px] px-3 bg-white text-slate-700 text-[13px] font-bold rounded-[8px] border border-slate-200 focus:border-[#4226E9] outline-none mt-1">
+                                    <label class="text-[10px] font-black uppercase text-slate-400 dark:text-dark-textSecondary tracking-wider ml-1">Custom DateTime</label>
+                                    <input type="datetime-local" value="${customDateVal}" class="reminder-custom-time w-full h-[40px] px-3 bg-white dark:bg-dark-card text-slate-700 dark:text-dark-textSecondary text-[13px] font-bold rounded-[8px] border border-slate-200 dark:border-white/10 focus:border-[#4226E9] outline-none mt-1">
                                 </div>
                             </div>
                         `;

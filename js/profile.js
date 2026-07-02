@@ -29,7 +29,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const idElement = document.getElementById('profile-user-id');
                 if (idElement) {
                     idElement.innerText = studentId;
-                    idElement.className = "text-xs font-bold text-slate-800 whitespace-nowrap overflow-hidden text-ellipsis block max-w-full";
+                    idElement.className = "text-xs font-bold text-slate-800 dark:text-dark-text whitespace-nowrap overflow-hidden text-ellipsis block max-w-full";
                 }
 
                 const roleBadge = document.getElementById('profile-user-role');
@@ -724,7 +724,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const secondaryBatches = window.authState.profile?.secondary_batches || [];
             
             if (secondaryBatches.length === 0) {
-                container.innerHTML = `<span class="text-[11px] font-medium text-slate-400 italic py-1">No secondary batches added.</span>`;
+                container.innerHTML = `<span class="text-[11px] font-medium text-slate-400 dark:text-dark-textSecondary italic py-1">No secondary batches added.</span>`;
                 return;
             }
 
@@ -732,9 +732,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const batch = window.onboardBatchesList ? window.onboardBatchesList.find(b => String(b.id) === String(batchId)) : null;
                 const batchName = batch ? batch.batch_name : `Batch ${batchId}`;
                 return `
-                    <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-100 pl-3 pr-1 py-1 rounded-full group transition-colors hover:border-slate-300">
-                        <span class="text-[11px] font-bold text-slate-700">${window.sanitizeHTML(batchName)}</span>
-                        <button onclick="window.removeSecondaryBatch('${batchId}')" class="w-5 h-5 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center hover:bg-red-100 hover:text-red-500 transition-colors">
+                    <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-dark-bg/50 border border-slate-100 dark:border-white/5 pl-3 pr-1 py-1 rounded-full group transition-colors hover:border-slate-300">
+                        <span class="text-[11px] font-bold text-slate-700 dark:text-dark-textSecondary">${window.sanitizeHTML(batchName)}</span>
+                        <button onclick="window.removeSecondaryBatch('${batchId}')" class="w-5 h-5 rounded-full bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-dark-textSecondary flex items-center justify-center hover:bg-red-100 hover:text-red-500 transition-colors">
                             <i data-lucide="x" class="w-3 h-3"></i>
                         </button>
                     </div>
@@ -874,12 +874,12 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
             const secondaryBatches = window.authState.profile?.secondary_batches || [];
             if (secondaryBatches.length === 0) {
-                container.innerHTML = `<div class="bg-white rounded-2xl p-6 border border-slate-100 flex flex-col items-center justify-center text-center">
-                    <div class="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 mb-3">
+                container.innerHTML = `<div class="bg-white dark:bg-dark-card rounded-2xl p-6 border border-slate-100 dark:border-white/5 flex flex-col items-center justify-center text-center">
+                    <div class="w-12 h-12 rounded-full bg-slate-50 dark:bg-dark-bg/50 flex items-center justify-center text-slate-300 mb-3">
                         <i data-lucide="layers" class="w-6 h-6"></i>
                     </div>
-                    <h3 class="text-[14px] font-bold text-slate-800 mb-1">No Secondary Batches</h3>
-                    <p class="text-[12px] text-slate-500 font-medium">You haven't joined any secondary batches yet.</p>
+                    <h3 class="text-[14px] font-bold text-slate-800 dark:text-dark-text mb-1">No Secondary Batches</h3>
+                    <p class="text-[12px] text-slate-500 dark:text-dark-textSecondary font-medium">You haven't joined any secondary batches yet.</p>
                 </div>`;
                 if (typeof lucide !== 'undefined') lucide.createIcons();
                 return;
@@ -938,15 +938,15 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     const batchCrs = crData?.filter(cr => String(cr.batch_id) === String(batchId)) || [];
                     
                     html += `
-                        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-4">
-                            <div class="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                        <div class="bg-white dark:bg-dark-card rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm overflow-hidden mb-4">
+                            <div class="p-4 bg-slate-50 dark:bg-dark-bg/50 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
                                 <div class="flex items-center gap-2">
                                     <div class="w-8 h-8 rounded-full bg-indigo-100 text-[#4226E9] flex items-center justify-center font-black text-xs">
                                         ${window.sanitizeHTML(batchName).substring(0,2).toUpperCase()}
                                     </div>
-                                    <h3 class="font-black text-[15px] text-slate-800">${window.sanitizeHTML(batchName)}</h3>
+                                    <h3 class="font-black text-[15px] text-slate-800 dark:text-dark-text">${window.sanitizeHTML(batchName)}</h3>
                                 </div>
-                                <button onclick="window.removeSecondaryBatch('${batchId}')" class="w-7 h-7 rounded-full bg-white border border-slate-200 text-slate-400 flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors">
+                                <button onclick="window.removeSecondaryBatch('${batchId}')" class="w-7 h-7 rounded-full bg-white dark:bg-dark-card border border-slate-200 dark:border-white/10 text-slate-400 dark:text-dark-textSecondary flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors">
                                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                 </button>
                             </div>
@@ -954,62 +954,62 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             <div class="p-4 space-y-4">
                                 <!-- Enrolled Courses -->
                                 <div>
-                                    <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Enrolled Courses (${myEnrolledBatchCourses.length})</h4>
+                                    <h4 class="text-[10px] font-bold text-slate-400 dark:text-dark-textSecondary uppercase tracking-wider mb-2">Enrolled Courses (${myEnrolledBatchCourses.length})</h4>
                                     ${myEnrolledBatchCourses.length > 0 ? `
                                         <div class="flex flex-col gap-2">
                                             ${myEnrolledBatchCourses.map(c => {
                                                 const faculty = (window.currentFacultiesList || []).find(f => f.id == c.faculty_id);
                                                 const facultyNames = faculty ? faculty.faculty_name : 'Unassigned';
                                                 return `
-                                                <div class="flex flex-col p-3 border border-slate-100 rounded-xl bg-slate-50/50">
+                                                <div class="flex flex-col p-3 border border-slate-100 dark:border-white/5 rounded-xl bg-slate-50 dark:bg-dark-bg/50/50">
                                                     <div class="flex items-center justify-between">
-                                                        <span class="font-bold text-[13px] text-slate-800">${window.sanitizeHTML(c.course_name)}</span>
+                                                        <span class="font-bold text-[13px] text-slate-800 dark:text-dark-text">${window.sanitizeHTML(c.course_name)}</span>
                                                         <span class="text-[11px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">${window.sanitizeHTML(c.course_code)}</span>
                                                     </div>
                                                     <div class="flex items-center gap-4 mt-2">
                                                         <div class="flex items-center gap-1.5">
-                                                            <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i>
-                                                            <span class="text-[11px] font-medium text-slate-600">${window.sanitizeHTML(facultyNames)}</span>
+                                                            <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400 dark:text-dark-textSecondary"></i>
+                                                            <span class="text-[11px] font-medium text-slate-600 dark:text-dark-textSecondary">${window.sanitizeHTML(facultyNames)}</span>
                                                         </div>
                                                         <div class="flex items-center gap-1.5">
-                                                            <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-slate-400"></i>
-                                                            <span class="text-[11px] font-medium text-slate-600">${c.total_credit || 0} Credits</span>
+                                                            <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-slate-400 dark:text-dark-textSecondary"></i>
+                                                            <span class="text-[11px] font-medium text-slate-600 dark:text-dark-textSecondary">${c.total_credit || 0} Credits</span>
                                                         </div>
                                                     </div>
                                                 </div>
                                             `}).join('')}
                                         </div>
-                                    ` : `<p class="text-[11px] text-slate-500 font-medium italic">No courses enrolled from this batch.</p>`}
+                                    ` : `<p class="text-[11px] text-slate-500 dark:text-dark-textSecondary font-medium italic">No courses enrolled from this batch.</p>`}
                                 </div>
                                 
                                 <!-- CRs -->
                                 <div>
-                                    <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Class Representatives (${batchCrs.length})</h4>
+                                    <h4 class="text-[10px] font-bold text-slate-400 dark:text-dark-textSecondary uppercase tracking-wider mb-2">Class Representatives (${batchCrs.length})</h4>
                                     ${batchCrs.length > 0 ? `
                                         <div class="space-y-2">
                                             ${batchCrs.map(cr => {
                                                 const p = cr.profiles || {};
                                                 const name = window.sanitizeHTML(p.full_name || 'Unknown');
                                                 const initial = name.charAt(0).toUpperCase();
-                                                const avatar = p.profile_url ? `<img src="${window.sanitizeUrl(p.profile_url)}" class="w-7 h-7 rounded-full object-cover border border-slate-100">` : `<div class="w-7 h-7 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-[10px] border border-blue-100">${initial}</div>`;
+                                                const avatar = p.profile_url ? `<img src="${window.sanitizeUrl(p.profile_url)}" class="w-7 h-7 rounded-full object-cover border border-slate-100 dark:border-white/5">` : `<div class="w-7 h-7 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-[10px] border border-blue-100">${initial}</div>`;
                                                 return `
-                                                    <div class="flex items-center justify-between p-2 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors">
+                                                    <div class="flex items-center justify-between p-2 rounded-xl border border-slate-100 dark:border-white/5 hover:bg-slate-50 transition-colors">
                                                         <div class="flex items-center gap-2.5">
                                                             ${avatar}
                                                             <div class="flex flex-col">
-                                                                <span class="text-[12px] font-bold text-slate-800 leading-tight">${name}</span>
-                                                                <span class="text-[9px] font-semibold text-slate-500 mt-0.5">CR</span>
+                                                                <span class="text-[12px] font-bold text-slate-800 dark:text-dark-text leading-tight">${name}</span>
+                                                                <span class="text-[9px] font-semibold text-slate-500 dark:text-dark-textSecondary mt-0.5">CR</span>
                                                             </div>
                                                         </div>
                                                         <div class="flex items-center gap-1.5">
                                                             ${p.phone_number ? `<a href="tel:${window.sanitizeHTML(p.phone_number)}" class="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-100 transition-colors"><i data-lucide="phone" class="w-3.5 h-3.5"></i></a>` : ''}
-                                                            ${p.email ? `<a href="mailto:${window.sanitizeHTML(p.email)}" class="w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200 transition-colors"><i data-lucide="mail" class="w-3.5 h-3.5"></i></a>` : ''}
+                                                            ${p.email ? `<a href="mailto:${window.sanitizeHTML(p.email)}" class="w-7 h-7 rounded-full bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-dark-textSecondary flex items-center justify-center hover:bg-slate-200 transition-colors"><i data-lucide="mail" class="w-3.5 h-3.5"></i></a>` : ''}
                                                         </div>
                                                     </div>
                                                 `;
                                             }).join('')}
                                         </div>
-                                    ` : `<p class="text-[11px] text-slate-500 font-medium italic">No CRs assigned to this batch.</p>`}
+                                    ` : `<p class="text-[11px] text-slate-500 dark:text-dark-textSecondary font-medium italic">No CRs assigned to this batch.</p>`}
                                 </div>
                             </div>
                         </div>

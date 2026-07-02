@@ -43,7 +43,7 @@ import { _supabase } from './supabase-client.js';
                 const typeStr = payload.data.type ? payload.data.type.toUpperCase() : 'UPDATE';
                 
                 let tagsHtml = '<span class="px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wide bg-indigo-100 text-[#4226E9] uppercase">' + window.sanitizeHTML(typeStr) + '</span>';
-                tagsHtml += '<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="calendar" class="w-3 h-3"></i> ' + dateStr + ' ' + timeStr + '</span>';
+                tagsHtml += '<span class="flex items-center gap-1 text-[10px] font-bold tracking-wide bg-slate-50 dark:bg-dark-bg/50 text-slate-500 dark:text-dark-textSecondary border border-slate-200 dark:border-white/10 px-1.5 py-0.5 rounded-[6px]"><i data-lucide="calendar" class="w-3 h-3"></i> ' + dateStr + ' ' + timeStr + '</span>';
                 
                 if (payload.data.course_names) {
                     const courses = payload.data.course_names.split(',');
@@ -70,9 +70,9 @@ import { _supabase } from './supabase-client.js';
                 loaderEl = document.createElement('div');
                 loaderEl.id = 'global-dynamic-loader';
                 loaderEl.className = 'fixed inset-0 bg-slate-900/40 backdrop- z-[9999] flex flex-col items-center justify-center hidden transition-opacity duration-300 opacity-0';
-                loaderEl.innerHTML = `<div class="bg-white px-6 py-5 rounded-2xl shadow-2xl flex flex-col items-center gap-3 border border-slate-100">
+                loaderEl.innerHTML = `<div class="bg-white dark:bg-dark-card px-6 py-5 rounded-2xl shadow-2xl flex flex-col items-center gap-3 border border-slate-100 dark:border-white/5">
                         <div class="w-8 h-8 border-4 border-[#4226E9] border-t-transparent rounded-full animate-spin"></div>
-                        <p class="text-xs font-bold text-slate-600" id="global-dynamic-loader-text">` + text + `</p>
+                        <p class="text-xs font-bold text-slate-600 dark:text-dark-textSecondary" id="global-dynamic-loader-text">` + text + `</p>
                     </div>`;
                 document.body.appendChild(loaderEl);
             }

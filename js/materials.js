@@ -187,9 +187,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
             if (materials.length === 0) {
                 container.innerHTML = `
-                        <div class="flex flex-col items-center justify-center py-12 text-center text-slate-400 bg-white rounded-[16px] border border-slate-100 p-6 shadow-sm">
+                        <div class="flex flex-col items-center justify-center py-12 text-center text-slate-400 dark:text-dark-textSecondary bg-white dark:bg-dark-card rounded-[16px] border border-slate-100 dark:border-white/5 p-6 shadow-sm">
                             <i data-lucide="folder-open" class="w-10 h-10 mb-2.5 text-slate-300"></i>
-                            <p class="text-sm font-bold text-slate-500">No materials available yet</p>
+                            <p class="text-sm font-bold text-slate-500 dark:text-dark-textSecondary">No materials available yet</p>
                         </div>`;
                 if (typeof lucide !== 'undefined') lucide.createIcons();
                 return;
@@ -221,7 +221,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const isAdminOrCR = ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail));
                 if (isAdminOrCR) {
                     rightSideHtml += `
-                        <button type="button" class="delete-btn text-slate-400 hover:text-red-500 transition-colors p-1 rounded-md hover:bg-red-50" onclick="event.stopPropagation(); window.executeGlobalDelete('materials', '${m.id}', 'material-card-${m.id}')">
+                        <button type="button" class="delete-btn text-slate-400 dark:text-dark-textSecondary hover:text-red-500 transition-colors p-1 rounded-md hover:bg-red-50" onclick="event.stopPropagation(); window.executeGlobalDelete('materials', '${m.id}', 'material-card-${m.id}')">
                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                         </button>
                     `;
@@ -250,15 +250,15 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 console.log(`[MATERIAL CARD] Title: ${m.title}`);
 
                 return `
-                        <div id="material-card-${m.id}" class="flex flex-col w-full max-w-full box-border p-[16px] bg-white rounded-[16px] shadow-sm shadow-slate-200/50 border border-slate-100 mb-2.5 transition-all active:scale-[0.98] cursor-pointer hover:border-[#4226E9]/30 hover:shadow-md relative" onclick="openMaterialDetails('${m.id}')">
+                        <div id="material-card-${m.id}" class="flex flex-col w-full max-w-full box-border p-[16px] bg-white dark:bg-dark-card rounded-[16px] shadow-sm shadow-slate-200/50 border border-slate-100 dark:border-white/5 mb-2.5 transition-all active:scale-[0.98] cursor-pointer hover:border-[#4226E9]/30 hover:shadow-md relative" onclick="openMaterialDetails('${m.id}')">
                             ${window.AuthorService ? window.AuthorService.renderAuthorBlock(m.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
                             <div class="mt-1 flex flex-col min-w-0">
-                                <h4 class="font-[700] text-[16px] text-[#111827] mt-0 truncate leading-tight">${safeTitle}</h4>
-                                ${safeDesc ? `<p class="text-[14px] text-[#4b5563] line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${safeDesc}</p>` : ''}
+                                <h4 class="font-[700] text-[16px] text-[#111827] dark:text-dark-text mt-0 truncate leading-tight">${safeTitle}</h4>
+                                ${safeDesc ? `<p class="text-[14px] text-[#4b5563] dark:text-dark-textSecondary line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${safeDesc}</p>` : ''}
                             </div>
                             ${isAdmin ? `
                             <div class="flex items-center justify-end mt-1 pt-1.5 border-t border-slate-50">
-                                <button onclick="event.stopPropagation(); openUpdateMaterial('${m.id}')" class="px-3 py-1 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-[8px] text-[10px] font-bold transition-colors">Edit</button>
+                                <button onclick="event.stopPropagation(); openUpdateMaterial('${m.id}')" class="px-3 py-1 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-dark-textSecondary hover:bg-slate-200 rounded-[8px] text-[10px] font-bold transition-colors">Edit</button>
                             </div>` : ''}
                             <div class="w-full mt-[10px] !flex !flex-wrap !justify-between !items-center !gap-[8px]">
                                 <div class="shrink-0">
@@ -358,13 +358,13 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 }
                 if (material.external_link) {
                     const safeExternal = window.sanitizeUrl(material.external_link);
-                    btns += `<a href="${safeExternal}" target="_blank" class="w-full py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-[12px] font-bold text-[15px] transition-all active:scale-[0.98] flex items-center justify-center gap-2"><i data-lucide="external-link" class="w-4 h-4"></i> Open Link</a>`;
+                    btns += `<a href="${safeExternal}" target="_blank" class="w-full py-3.5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 text-slate-800 dark:text-dark-text rounded-[12px] font-bold text-[15px] transition-all active:scale-[0.98] flex items-center justify-center gap-2"><i data-lucide="external-link" class="w-4 h-4"></i> Open Link</a>`;
                 }
                 // Admin-only: Edit and Delete buttons
                 const isAdmin = ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail));
                 if (isAdmin) {
                     btns += `<div class="flex gap-2 mt-1">
-                            <button onclick="openUpdateMaterial('${material.id}')" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-[12px] font-bold text-[13px] transition-all active:scale-[0.98] flex items-center justify-center gap-2"><i data-lucide="pencil" class="w-4 h-4"></i> Edit</button>
+                            <button onclick="openUpdateMaterial('${material.id}')" class="flex-1 py-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 text-slate-700 dark:text-dark-textSecondary rounded-[12px] font-bold text-[13px] transition-all active:scale-[0.98] flex items-center justify-center gap-2"><i data-lucide="pencil" class="w-4 h-4"></i> Edit</button>
                             <button onclick="deleteMaterialFromDetails('${material.id}')" class="flex-1 py-3 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 rounded-[12px] font-bold text-[13px] transition-all active:scale-[0.98] flex items-center justify-center gap-2"><i data-lucide="trash-2" class="w-4 h-4"></i> Delete</button>
                         </div>`;
                 }

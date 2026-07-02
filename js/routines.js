@@ -194,9 +194,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 
                 if (!exams || exams.length === 0) {
                     if (container) {
-                        container.innerHTML = `<div class="flex flex-col items-center justify-center py-16 text-center text-slate-400 bg-white rounded-3xl border border-slate-100 shadow-sm px-6 mt-2">
+                        container.innerHTML = `<div class="flex flex-col items-center justify-center py-16 text-center text-slate-400 dark:text-dark-textSecondary bg-white dark:bg-dark-card rounded-3xl border border-slate-100 dark:border-white/5 shadow-sm px-6 mt-2">
                             <i data-lucide="calendar-check" class="w-12 h-12 text-indigo-300 mb-4 opacity-50"></i>
-                            <h3 class="text-[16px] font-bold text-slate-700 mb-2">No Exams Scheduled</h3>
+                            <h3 class="text-[16px] font-bold text-slate-700 dark:text-dark-textSecondary mb-2">No Exams Scheduled</h3>
                             <p class="text-[13px] leading-relaxed max-w-[250px]">You have no upcoming or past exams listed for your batch.</p>
                         </div>`;
                     }
@@ -293,30 +293,30 @@ import { ProfileStore } from './stores/ProfileStore.js';
                          }
                      }
 
-                     const facultySub = facultyName ? ` • <span class="text-slate-500 font-semibold text-xs">${window.sanitizeHTML(facultyName)}</span>` : '';
-                     const codeSub = courseCodeText ? `<span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[11px] font-bold">${window.sanitizeHTML(courseCodeText)}</span>` : '';
+                     const facultySub = facultyName ? ` • <span class="text-slate-500 dark:text-dark-textSecondary font-semibold text-xs">${window.sanitizeHTML(facultyName)}</span>` : '';
+                     const codeSub = courseCodeText ? `<span class="bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-dark-textSecondary px-2 py-0.5 rounded text-[11px] font-bold">${window.sanitizeHTML(courseCodeText)}</span>` : '';
                      const subtitleHtml = codeSub || facultySub ? `<div class="flex items-center gap-2 mt-1 flex-wrap">${codeSub}${facultySub}</div>` : '';
                      
-                     html += `<div id="exam-card-${exam.id}" class="bg-gradient-to-br from-indigo-50 to-white rounded-[24px] p-4 shadow-sm border ${isNextUpcoming ? 'border-orange-500 ring-1 ring-orange-500' : 'border-indigo-100'} relative ${isPast ? 'opacity-50' : ''}">
+                     html += `<div id="exam-card-${exam.id}" class="bg-gradient-to-br from-indigo-50 to-white dark:from-[#0F1117] dark:to-[#1A1D26] rounded-[24px] p-4 shadow-sm border ${isNextUpcoming ? 'border-orange-500 ring-1 ring-orange-500 dark:border-orange-500/50 dark:ring-orange-500/50' : 'border-indigo-100 dark:border-white/5'} relative ${isPast ? 'opacity-50' : ''}">
                           ${isAdminOrCR ? `
                           <div class="absolute top-4 right-4 flex items-center gap-2 z-10">
-                              <button onclick="event.stopPropagation(); window.openEditExamSchedule('${exam.id}')" class="w-8 h-8 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-full hover:bg-indigo-100 transition active:scale-95" title="Edit Exam">
+                              <button onclick="event.stopPropagation(); window.openEditExamSchedule('${exam.id}')" class="w-8 h-8 flex items-center justify-center bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-full hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition active:scale-95" title="Edit Exam">
                                   <i data-lucide="edit-2" class="w-4 h-4"></i>
                               </button>
-                              <button onclick="event.stopPropagation(); window.executeGlobalDelete('exam_schedules', '${exam.id}', 'exam-card-${exam.id}')" class="w-8 h-8 flex items-center justify-center bg-red-50 text-red-500 rounded-full hover:bg-red-100 transition active:scale-95" title="Delete Exam">
+                              <button onclick="event.stopPropagation(); window.executeGlobalDelete('exam_schedules', '${exam.id}', 'exam-card-${exam.id}')" class="w-8 h-8 flex items-center justify-center bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 rounded-full hover:bg-red-100 dark:hover:bg-red-500/20 transition active:scale-95" title="Delete Exam">
                                   <i data-lucide="trash-2" class="w-4 h-4"></i>
                               </button>
                           </div>
                           ` : ''}
                           <div class="flex items-start gap-4">
-                              <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border border-indigo-100/40">
+                              <div class="w-12 h-12 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border border-indigo-100/40 dark:border-white/5">
                                   <i data-lucide="graduation-cap" class="w-6 h-6"></i>
                               </div>
                               <div class="flex-1 min-w-0 pr-6">
-                                  <h3 class="text-[17px] font-extrabold text-slate-800 leading-tight">${window.sanitizeHTML(exam.course_name)}</h3>
+                                  <h3 class="text-[17px] font-extrabold text-slate-800 dark:text-dark-text leading-tight">${window.sanitizeHTML(exam.course_name)}</h3>
                                   ${subtitleHtml}
                                   
-                                  <div class="flex items-center gap-1.5 mt-2.5 text-[11px] font-bold text-slate-500 whitespace-nowrap overflow-hidden">
+                                  <div class="flex items-center gap-1.5 mt-2.5 text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary whitespace-nowrap overflow-hidden">
                                       <span class="flex items-center gap-1 text-indigo-600 shrink-0">
                                           <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
                                           ${examDateStr}
@@ -328,7 +328,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                       </span>
                                       ${isPast ? `
                                       <span class="text-slate-300 shrink-0">•</span>
-                                      <span class="text-slate-400 font-extrabold text-[10px] uppercase shrink-0">PAST</span>
+                                      <span class="text-slate-400 dark:text-dark-textSecondary font-extrabold text-[10px] uppercase shrink-0">PAST</span>
                                       ` : ''}
                                   </div>
                               </div>
@@ -337,7 +337,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                           <div class="mt-4 flex items-center justify-between gap-3">
                               <div>
                                   ${exam.syllabus_desc ? `
-                                  <button onclick="event.stopPropagation(); window.toggleExamSyllabus('${exam.id}', this)" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50/50 border border-indigo-100/50 hover:bg-indigo-100/60 text-indigo-700 text-[11px] font-bold rounded-lg transition active:scale-95">
+                                  <button onclick="event.stopPropagation(); window.toggleExamSyllabus('${exam.id}', this)" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 border border-indigo-100/50 dark:border-white/5 hover:bg-indigo-100/60 dark:hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-[11px] font-bold rounded-lg transition active:scale-95">
                                       <i data-lucide="eye" class="w-3.5 h-3.5"></i>
                                       <span>Show Syllabus</span>
                                   </button>
@@ -349,7 +349,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                           </div>
                           
                           ${exam.syllabus_desc ? `
-                          <div id="exam-syllabus-${exam.id}" class="hidden mt-3 bg-white/70 rounded-xl p-4 text-[13px] text-slate-600 border border-slate-100 font-medium rich-text-content transition-all duration-300">
+                          <div id="exam-syllabus-${exam.id}" class="hidden mt-3 bg-white dark:bg-dark-card/70 rounded-xl p-4 text-[13px] text-slate-600 dark:text-dark-textSecondary border border-slate-100 dark:border-white/5 font-medium rich-text-content transition-all duration-300">
                               ${window.safeFormatRichText ? window.safeFormatRichText(exam.syllabus_desc) : window.sanitizeHTML(exam.syllabus_desc)}
                           </div>
                           ` : ''}
@@ -361,7 +361,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             } catch(e) {
                 console.error("[EXAMS FETCH ERROR]", e);
                 if (container) {
-                    container.innerHTML = `<div class="p-8 text-center text-red-500 font-bold bg-white rounded-3xl border border-red-100 shadow-sm mt-2">Failed to load exams. Please try again.</div>`;
+                    container.innerHTML = `<div class="p-8 text-center text-red-500 font-bold bg-white dark:bg-dark-card rounded-3xl border border-red-100 shadow-sm mt-2">Failed to load exams. Please try again.</div>`;
                 }
             } finally {
                 if (typeof window.showLoader === 'function') {
@@ -674,14 +674,14 @@ import { ProfileStore } from './stores/ProfileStore.js';
             // Reset buttons
             const resetBtn = (btn) => {
                 if(btn) {
-                    btn.classList.remove('bg-white', 'text-slate-900');
+                    btn.classList.remove('bg-white', 'dark:bg-dark-card', 'text-slate-900', 'dark:text-dark-text');
                     btn.classList.add('text-slate-300');
                 }
             };
             const activateBtn = (btn) => {
                 if(btn) {
                     btn.classList.remove('text-slate-300');
-                    btn.classList.add('bg-white', 'text-slate-900');
+                    btn.classList.add('bg-white', 'dark:bg-dark-card', 'text-slate-900', 'dark:text-dark-text');
                 }
             };
             
@@ -801,12 +801,12 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     if (batchLabel) batchLabel.textContent = "Select a batch";
                     
                     container.innerHTML = `
-                        <div class="flex flex-col items-center justify-center py-16 px-4 text-center mt-4 bg-white rounded-3xl border border-slate-100 shadow-sm">
-                            <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                                <i data-lucide="layers" class="w-8 h-8 text-slate-400"></i>
+                        <div class="flex flex-col items-center justify-center py-16 px-4 text-center mt-4 bg-white dark:bg-dark-card rounded-3xl border border-slate-100 dark:border-white/5 shadow-sm">
+                            <div class="w-16 h-16 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
+                                <i data-lucide="layers" class="w-8 h-8 text-slate-400 dark:text-dark-textSecondary"></i>
                             </div>
-                            <h3 class="text-lg font-bold text-slate-700">Please select a batch</h3>
-                            <p class="text-sm text-slate-500 mt-1 max-w-[250px]">Select a batch from the dropdown above to view its routine.</p>
+                            <h3 class="text-lg font-bold text-slate-700 dark:text-dark-textSecondary">Please select a batch</h3>
+                            <p class="text-sm text-slate-500 dark:text-dark-textSecondary mt-1 max-w-[250px]">Select a batch from the dropdown above to view its routine.</p>
                         </div>
                     `;
                     if (window.lucide) window.lucide.createIcons();
@@ -828,11 +828,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
             if (!dataArray || dataArray.length === 0) {
                 container.innerHTML = `
-                        <div class="flex flex-col items-center justify-center py-16 text-center text-slate-400 px-8">
+                        <div class="flex flex-col items-center justify-center py-16 text-center text-slate-400 dark:text-dark-textSecondary px-8">
                             <div class="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mb-4">
                                 <i data-lucide="calendar-x" class="w-8 h-8 text-indigo-300"></i>
                             </div>
-                            <h3 class="font-bold text-slate-500 mb-1">No classes found</h3>
+                            <h3 class="font-bold text-slate-500 dark:text-dark-textSecondary mb-1">No classes found</h3>
                             <p class="text-[12px]">There is no weekly routine data available.</p>
                         <button onclick="renderDailyRoutineView()" class="mt-3 text-[11px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full">Retry</button>
                     </div>`;
@@ -887,18 +887,18 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     <table class="border-collapse" style="width:auto;">
                         <thead>
                             <tr>
-                                <th class="bg-slate-100 border border-slate-200 p-2 text-[9px] font-black text-slate-500 text-center" style="min-width:56px;">
-                                    <div class="text-slate-600 font-black text-[8px] uppercase leading-tight">Time</div>
+                                <th class="bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-2 text-[9px] font-black text-slate-500 dark:text-dark-textSecondary text-center" style="min-width:56px;">
+                                    <div class="text-slate-600 dark:text-dark-textSecondary font-black text-[8px] uppercase leading-tight">Time</div>
                                 </th>`;
 
             renderDays.forEach(day => {
                 const isToday = day === todayName;
-                const colors = dayColors[day] || { header: 'bg-slate-500', badge: 'bg-slate-100 text-slate-700', today: 'bg-slate-50' };
+                const colors = dayColors[day] || { header: 'bg-slate-500', badge: 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-dark-textSecondary', today: 'bg-slate-50 dark:bg-dark-bg/50' };
                 html += `
-                                <th class="border border-slate-200 p-0 ${isToday ? 'ring-2 ring-inset ring-[#4226E9]' : ''}" style="${cellW}">
+                                <th class="border border-slate-200 dark:border-white/10 p-0 ${isToday ? 'ring-2 ring-inset ring-[#4226E9]' : ''}" style="${cellW}">
                                     <div class="${colors.header} ${isToday ? 'opacity-100' : 'opacity-80'} py-2 px-2 text-center">
                                         <span class="text-white font-black text-[10px] uppercase tracking-wide">${day.substring(0, 3)}</span>
-                                        ${isToday ? '<div class="w-1.5 h-1.5 bg-white rounded-full mx-auto mt-0.5 animate-pulse"></div>' : ''}
+                                        ${isToday ? '<div class="w-1.5 h-1.5 bg-white dark:bg-dark-card rounded-full mx-auto mt-0.5 animate-pulse"></div>' : ''}
                                     </div>
                                 </th>`;
             });
@@ -919,7 +919,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const timeDisplay = formatRoutineTime(slot.start_time);
 
                 html += `<tr>
-                        <td class="border border-slate-200 bg-amber-50 p-1.5 text-center align-middle" style="min-width:56px;">
+                        <td class="border border-slate-200 dark:border-white/10 bg-amber-50 p-1.5 text-center align-middle" style="min-width:56px;">
                             <div class="text-[11px] font-black text-amber-700 leading-tight">${timeDisplay.split(' ')[0]}</div>
                             <div class="text-[8px] font-bold text-amber-500 uppercase">${timeDisplay.split(' ')[1] || ''}</div>
                         </td>`;
@@ -927,14 +927,14 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 renderDays.forEach(day => {
                     const entries = lookup[day]?.[slotKey] || [];
                     const isToday = day === todayName;
-                    const colors = dayColors[day] || { header: 'bg-slate-500', badge: 'bg-slate-100 text-slate-700', today: 'bg-slate-50' };
+                    const colors = dayColors[day] || { header: 'bg-slate-500', badge: 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-dark-textSecondary', today: 'bg-slate-50 dark:bg-dark-bg/50' };
 
                     if (entries.length > 0) {
-                        html += `<td class="border ${isToday ? 'border-[#4226E9]/30' : 'border-slate-200'} p-1 align-top ${isToday ? colors.today : 'bg-white'}" style="${cellW}">`;
+                        html += `<td class="border ${isToday ? 'border-[#4226E9]/30' : 'border-slate-200 dark:border-white/10'} p-1 align-top ${isToday ? colors.today : 'bg-white dark:bg-dark-card'}" style="${cellW}">`;
                         
                         entries.forEach((entry, idx) => {
                             const isBreakEntry = !entry.course_id && (entry.room_number === 'Break');
-                            if (idx > 0) html += `<div class="w-full border-t border-slate-100 my-1"></div>`;
+                            if (idx > 0) html += `<div class="w-full border-t border-slate-100 dark:border-white/5 my-1"></div>`;
                             
                             const isAdmin = (window.currentUserRole === 'admin' || window.currentUserRole === 'cr');
                             if (isBreakEntry) {
@@ -948,7 +948,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 const initial = window.sanitizeHTML(entry.faculty?.teacher_initial || '??');
                                 const room = window.sanitizeHTML(entry.room_number || '???');
                                 const section = window.sanitizeHTML(entry.section_name || '');
-                                const sectionHtml = section ? `<span class="text-[8px] font-bold text-slate-600 bg-slate-100 px-1.5 rounded-full mb-0.5 border border-slate-200">Sec: ${section}</span>` : '';
+                                const sectionHtml = section ? `<span class="text-[8px] font-bold text-slate-600 dark:text-dark-textSecondary bg-slate-100 dark:bg-white/5 px-1.5 rounded-full mb-0.5 border border-slate-200 dark:border-white/10">Sec: ${section}</span>` : '';
                                 
                                 let batchTagHtml = '';
                                 if (window.currentUserRole === 'student' && entry.batch_id && String(entry.batch_id) !== String(window.authState?.profile?.batch_id)) {
@@ -959,17 +959,17 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 html += `
                                     <div class="flex flex-col gap-0.5 items-center py-0.5 ${isAdmin ? 'cursor-pointer active:scale-95 transition-transform' : ''}" ${isAdmin ? `onclick="openRoutineDetails('${entry.id}')"` : ''}>
                                         ${batchTagHtml}
-                                        <span class="text-[10px] font-black text-slate-900 px-1.5 py-0.5 rounded-md ${colors.badge} leading-tight text-center w-full mb-0.5">${shortName}</span>
+                                        <span class="text-[10px] font-black text-slate-900 dark:text-dark-text px-1.5 py-0.5 rounded-md ${colors.badge} leading-tight text-center w-full mb-0.5">${shortName}</span>
                                         ${sectionHtml}
-                                        <span class="text-[9px] font-bold text-slate-500 px-1.5 py-0.5 rounded bg-white/80 w-full text-center leading-none">${initial}</span>
-                                        <span class="text-[8px] font-medium text-slate-400 leading-none">${room}</span>
+                                        <span class="text-[9px] font-bold text-slate-500 dark:text-dark-textSecondary px-1.5 py-0.5 rounded bg-white dark:bg-dark-card/80 w-full text-center leading-none">${initial}</span>
+                                        <span class="text-[8px] font-medium text-slate-400 dark:text-dark-textSecondary leading-none">${room}</span>
                                     </div>`;
                             }
                         });
                         html += `</td>`;
                     } else {
                         const isAdmin = (window.currentUserRole === 'admin' || window.currentUserRole === 'cr');
-                        html += `<td class="border ${isToday ? 'border-[#4226E9]/20' : 'border-slate-200'} p-1 ${isToday ? colors.today : 'bg-white'}" style="${cellW}">
+                        html += `<td class="border ${isToday ? 'border-[#4226E9]/20' : 'border-slate-200 dark:border-white/10'} p-1 ${isToday ? colors.today : 'bg-white dark:bg-dark-card'}" style="${cellW}">
                                 <div class="flex items-center justify-center h-full min-h-[52px] ${isAdmin ? 'cursor-pointer hover:bg-slate-50 transition' : ''}" ${isAdmin ? `onclick="openAddRoutine('${day}', '${slot.start_time}')" title="Add routine for ${day} at ${timeDisplay.split(' ')[0]}"` : ''}>
                                     <span class="text-slate-200 text-[16px]">${isAdmin ? '+' : '-'}</span>
                                 </div>
@@ -987,7 +987,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const colors = dayColors[day] || {};
                 const isToday = day === getTodayRoutineDayName();
                 const isTomorrow = day === getTomorrowRoutineDayName();
-                html += `<span class="flex items-center gap-1 text-[10px] font-bold text-slate-600 bg-white border border-slate-100 px-2 py-1 rounded-full shadow-xs">
+                html += `<span class="flex items-center gap-1 text-[10px] font-bold text-slate-600 dark:text-dark-textSecondary bg-white dark:bg-dark-card border border-slate-100 dark:border-white/5 px-2 py-1 rounded-full shadow-xs">
                         <span class="w-2 h-2 rounded-full ${colors.header || 'bg-slate-400'} inline-block"></span>
                         ${day}${isToday ? ' 📍' : isTomorrow ? ' ⏳' : ''}
                     </span>`;
@@ -1018,12 +1018,12 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     if (batchLabel) batchLabel.textContent = "Select a batch";
 
                     container.innerHTML = `
-                        <div class="flex flex-col items-center justify-center py-16 px-4 text-center bg-white rounded-[20px] border border-slate-100 shadow-sm mt-4">
-                            <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                                <i data-lucide="layers" class="w-8 h-8 text-slate-400"></i>
+                        <div class="flex flex-col items-center justify-center py-16 px-4 text-center bg-white dark:bg-dark-card rounded-[20px] border border-slate-100 dark:border-white/5 shadow-sm mt-4">
+                            <div class="w-16 h-16 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
+                                <i data-lucide="layers" class="w-8 h-8 text-slate-400 dark:text-dark-textSecondary"></i>
                             </div>
-                            <h3 class="text-lg font-bold text-slate-700">Please select a batch</h3>
-                            <p class="text-sm text-slate-500 mt-1 max-w-[250px]">Select a batch from the dropdown above to view its routine.</p>
+                            <h3 class="text-lg font-bold text-slate-700 dark:text-dark-textSecondary">Please select a batch</h3>
+                            <p class="text-sm text-slate-500 dark:text-dark-textSecondary mt-1 max-w-[250px]">Select a batch from the dropdown above to view its routine.</p>
                         </div>`;
                     if (window.lucide) window.lucide.createIcons();
                     return;
@@ -1051,12 +1051,12 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
             if (!targetDay) {
                 container.innerHTML = `
-                        <div class="flex flex-col items-center justify-center py-12 text-center text-slate-400 bg-white rounded-[20px] border border-slate-100 shadow-sm">
-                            <div class="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center mb-3">
+                        <div class="flex flex-col items-center justify-center py-12 text-center text-slate-400 dark:text-dark-textSecondary bg-white dark:bg-dark-card rounded-[20px] border border-slate-100 dark:border-white/5 shadow-sm">
+                            <div class="w-14 h-14 bg-slate-50 dark:bg-dark-bg/50 rounded-2xl flex items-center justify-center mb-3">
                                 <i data-lucide="moon" class="w-7 h-7 text-slate-300"></i>
                             </div>
-                            <p class="text-sm font-bold text-slate-500">No classes ${showingToday ? 'today' : 'tomorrow'}.</p>
-                            <p class="text-[11px] text-slate-400 mt-1">Enjoy your ${showingToday ? 'day' : 'evening'} off! 🎉</p>
+                            <p class="text-sm font-bold text-slate-500 dark:text-dark-textSecondary">No classes ${showingToday ? 'today' : 'tomorrow'}.</p>
+                            <p class="text-[11px] text-slate-400 dark:text-dark-textSecondary mt-1">Enjoy your ${showingToday ? 'day' : 'evening'} off! 🎉</p>
                         </div>`;
                 if (typeof lucide !== 'undefined') lucide.createIcons();
                 return;
@@ -1066,7 +1066,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             container.innerHTML = `
                 <div class="flex flex-col items-center justify-center py-12">
                     <div class="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3"></div>
-                    <p class="text-xs font-semibold text-slate-400">Loading ${showingToday ? 'today' : 'tomorrow'}'s classes...</p>
+                    <p class="text-xs font-semibold text-slate-400 dark:text-dark-textSecondary">Loading ${showingToday ? 'today' : 'tomorrow'}'s classes...</p>
                 </div>`;
 
             // Always fetch fresh from Supabase — most reliable approach
@@ -1124,12 +1124,12 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (todayClasses.length === 0) {
                 const dayLabel2 = showingToday ? targetDay : `tomorrow (${targetDay})`;
                 container.innerHTML = `
-                        <div class="flex flex-col items-center justify-center py-12 text-center text-slate-400 bg-white rounded-[20px] border border-slate-100 shadow-sm">
+                        <div class="flex flex-col items-center justify-center py-12 text-center text-slate-400 dark:text-dark-textSecondary bg-white dark:bg-dark-card rounded-[20px] border border-slate-100 dark:border-white/5 shadow-sm">
                             <div class="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mb-3">
                                 <i data-lucide="calendar-x" class="w-7 h-7 text-indigo-200"></i>
                             </div>
-                            <p class="text-sm font-bold text-slate-500">No classes for ${dayLabel2}.</p>
-                            <p class="text-[11px] text-slate-400 mt-1">The routine has not been set for ${showingToday ? 'today' : 'tomorrow'}.</p>
+                            <p class="text-sm font-bold text-slate-500 dark:text-dark-textSecondary">No classes for ${dayLabel2}.</p>
+                            <p class="text-[11px] text-slate-400 dark:text-dark-textSecondary mt-1">The routine has not been set for ${showingToday ? 'today' : 'tomorrow'}.</p>
                         </div>`;
                 if (typeof lucide !== 'undefined') lucide.createIcons();
                 return;
@@ -1192,13 +1192,13 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     ? `<span class="bg-[#F3E8FF] text-[#8B5CF6] text-[8px] font-black px-2.5 py-1 rounded-full uppercase animate-pulse">Ongoing</span>`
                     : isUpcoming
                         ? `<span class="bg-blue-50 text-blue-600 text-[8px] font-black px-2.5 py-1 rounded-full uppercase">Upcoming</span>`
-                        : `<span class="bg-slate-100 text-slate-500 text-[8px] font-black px-2.5 py-1 rounded-full uppercase">Done</span>`;
+                        : `<span class="bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-dark-textSecondary text-[8px] font-black px-2.5 py-1 rounded-full uppercase">Done</span>`;
 
                 return `
                         <div class="flex gap-2 items-start relative min-w-0 group ${isAdmin ? 'cursor-pointer' : ''}" ${isAdmin ? `onclick="openRoutineDetails('${cls.id}')"` : ''}>
-                            <div class="flex-1 min-w-0 bg-white p-3.5 rounded-[22px] border border-slate-100 shadow-sm flex items-center justify-between gap-2 hover:border-[#4226E9]/20 hover:shadow-md transition-all ${isPast ? 'opacity-60' : ''}">
+                            <div class="flex-1 min-w-0 bg-white dark:bg-dark-card p-3.5 rounded-[22px] border border-slate-100 dark:border-white/5 shadow-sm flex items-center justify-between gap-2 hover:border-[#4226E9]/20 hover:shadow-md transition-all ${isPast ? 'opacity-60' : ''}">
                                 <div class="flex items-center gap-3 min-w-0 flex-1">
-                                    <div class="text-center border-r border-slate-100 pr-3 shrink-0 min-w-[65px] flex flex-col items-center justify-center">
+                                    <div class="text-center border-r border-slate-100 dark:border-white/5 pr-3 shrink-0 min-w-[65px] flex flex-col items-center justify-center">
                                         <p class="text-[10px] font-black text-[#4226E9] leading-none whitespace-nowrap">${timeDisplay}</p>
                                         <p class="text-[9px] font-bold text-slate-200 my-0.5 leading-none">|</p>
                                         <p class="text-[10px] font-black text-[#4226E9] leading-none whitespace-nowrap">${endTimeDisplay}</p>
@@ -1207,12 +1207,12 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                         <div class="flex items-center flex-wrap gap-1.5 mb-0.5">
                                             ${(window.currentUserRole === 'student' && cls.batch_id && String(cls.batch_id) !== String(window.authState?.profile?.batch_id)) ? `<span class="text-[8px] font-black bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded border border-rose-200 whitespace-nowrap">${cls.batches?.batch_name ? window.sanitizeHTML(cls.batches.batch_name) : 'Other'} Batch</span>` : ''}
                                             <span class="text-[9px] font-black bg-indigo-50 text-[#4226E9] px-1.5 py-0.5 rounded">${shortName}</span>
-                                            ${cls.section_name ? `<span class="text-[9px] font-black bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">Sec: ${window.sanitizeHTML(cls.section_name)}</span>` : ''}
-                                            <span class="text-[9px] text-slate-400">\u2022</span>
-                                            <span class="text-[9px] text-slate-400 font-bold">${initial}</span>
+                                            ${cls.section_name ? `<span class="text-[9px] font-black bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-dark-textSecondary px-1.5 py-0.5 rounded border border-slate-200 dark:border-white/10">Sec: ${window.sanitizeHTML(cls.section_name)}</span>` : ''}
+                                            <span class="text-[9px] text-slate-400 dark:text-dark-textSecondary">\u2022</span>
+                                            <span class="text-[9px] text-slate-400 dark:text-dark-textSecondary font-bold">${initial}</span>
                                         </div>
-                                        <h4 class="font-extrabold text-xs text-slate-900 leading-snug truncate">${courseName}</h4>
-                                        <p class="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">Room ${room} \u2014 ${teacherName}</p>
+                                        <h4 class="font-extrabold text-xs text-slate-900 dark:text-dark-text leading-snug truncate">${courseName}</h4>
+                                        <p class="text-[10px] text-slate-500 dark:text-dark-textSecondary font-semibold mt-0.5 truncate">Room ${room} \u2014 ${teacherName}</p>
                                     </div>
                                 </div>
                                 ${statusBadge}
@@ -1956,7 +1956,7 @@ window.switchRoutineView = switchRoutineView;
                         const eventDateTime = getSafariSafeDate(exam.exam_date + 'T' + exam.start_time);
                         reminders.forEach(rem => {
                             const row = document.createElement('div');
-                            row.className = 'reminder-row bg-slate-50 border border-slate-100 rounded-[12px] p-3 flex flex-wrap gap-2 items-center';
+                            row.className = 'reminder-row bg-slate-50 dark:bg-dark-bg/50 border border-slate-100 dark:border-white/5 rounded-[12px] p-3 flex flex-wrap gap-2 items-center';
                             
                             let offsetMinutes = '';
                             let isCustom = false;
@@ -1984,14 +1984,14 @@ window.switchRoutineView = switchRoutineView;
                             
                             row.innerHTML = `
                                 <div class="flex-1 min-w-[140px]">
-                                    <select class="reminder-offset w-full text-[12px] bg-white border border-slate-200 rounded-[8px] px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#4226E9]" onchange="this.nextElementSibling.style.display = (this.value === 'custom') ? 'block' : 'none'">
+                                    <select class="reminder-offset w-full text-[12px] bg-white dark:bg-dark-card border border-slate-200 dark:border-white/10 rounded-[8px] px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#4226E9]" onchange="this.nextElementSibling.style.display = (this.value === 'custom') ? 'block' : 'none'">
                                         <option value="15" ${offsetMinutes === '15' ? 'selected' : ''}>15 minutes before</option>
                                         <option value="30" ${offsetMinutes === '30' ? 'selected' : ''}>30 minutes before</option>
                                         <option value="60" ${offsetMinutes === '60' ? 'selected' : ''}>1 hour before</option>
                                         <option value="1440" ${offsetMinutes === '1440' ? 'selected' : ''}>1 day before</option>
                                         <option value="custom" ${isCustom ? 'selected' : ''}>Custom Time</option>
                                     </select>
-                                    <input type="datetime-local" class="reminder-custom-time w-full text-[12px] bg-white border border-slate-200 rounded-[8px] px-2 py-1.5 mt-2 focus:outline-none focus:ring-1 focus:ring-[#4226E9]" style="display: ${isCustom ? 'block' : 'none'};" value="${customVal}">
+                                    <input type="datetime-local" class="reminder-custom-time w-full text-[12px] bg-white dark:bg-dark-card border border-slate-200 dark:border-white/10 rounded-[8px] px-2 py-1.5 mt-2 focus:outline-none focus:ring-1 focus:ring-[#4226E9]" style="display: ${isCustom ? 'block' : 'none'};" value="${customVal}">
                                 </div>
                                 <button type="button" onclick="removeReminderRow(this)" class="p-1.5 text-red-500 hover:bg-red-50 rounded-[8px] transition-colors shrink-0" title="Remove Reminder">
                                     <i data-lucide="trash-2" class="w-4 h-4"></i>

@@ -259,7 +259,7 @@ const getSafariSafeDate = window.getSafariSafeDate;
                     }
 
                     if (!skipRender) {
-                        dashContainer.innerHTML = `<div class="animate-pulse flex flex-col gap-3"><div class="h-[80px] bg-slate-100 rounded-[22px] border border-slate-50 w-full"></div></div>`;
+                        dashContainer.innerHTML = `<div class="animate-pulse flex flex-col gap-3"><div class="h-[80px] bg-slate-100 dark:bg-white/5 rounded-[22px] border border-slate-50 w-full"></div></div>`;
                     }
                     
                     const d = new Date();
@@ -329,16 +329,16 @@ const getSafariSafeDate = window.getSafariSafeDate;
                         const examDate = examDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
                         
                         dashContainer.innerHTML = `<div class="space-y-3">
-                            <div onclick="window.openDedicatedExamPanel()" class="bg-gradient-to-br from-indigo-50 to-white rounded-[24px] p-4 border border-indigo-100/80 relative cursor-pointer hover:shadow-md transition-all active:scale-[0.98]">
+                            <div onclick="window.openDedicatedExamPanel()" class="bg-gradient-to-br from-indigo-50 to-white dark:from-[#0F1117] dark:to-[#1A1D26] rounded-[24px] p-4 border border-indigo-100/80 dark:border-white/5 relative cursor-pointer hover:shadow-md transition-all active:scale-[0.98]">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0 shadow-sm">
                                         <i data-lucide="graduation-cap" class="w-5 h-5"></i>
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <h3 class="text-[14px] font-extrabold text-slate-800 leading-tight truncate">${window.sanitizeHTML(exam.course_name)}</h3>
-                                        ${facultyName ? `<p class="text-[11px] text-slate-400 font-medium mt-0.5 truncate">${window.sanitizeHTML(facultyName)}</p>` : ''}
+                                        <h3 class="text-[14px] font-extrabold text-slate-800 dark:text-indigo-50 leading-tight truncate">${window.sanitizeHTML(exam.course_name)}</h3>
+                                        ${facultyName ? `<p class="text-[11px] text-slate-400 dark:text-dark-textSecondary font-medium mt-0.5 truncate">${window.sanitizeHTML(facultyName)}</p>` : ''}
                                         
-                                        <div class="flex items-center gap-1.5 mt-2 text-[10px] font-bold text-slate-500 whitespace-nowrap overflow-hidden">
+                                        <div class="flex items-center gap-1.5 mt-2 text-[10px] font-bold text-slate-500 dark:text-dark-textSecondary whitespace-nowrap overflow-hidden">
                                             <span class="flex items-center gap-1 text-indigo-600 shrink-0">
                                                 <i data-lucide="calendar" class="w-3 h-3"></i>
                                                 ${examDate}
@@ -354,9 +354,9 @@ const getSafariSafeDate = window.getSafariSafeDate;
                             </div>
                         </div>`;
                     } else {
-                        dashContainer.innerHTML = `<div class="flex flex-col items-center justify-center py-10 text-center text-slate-400 bg-white rounded-3xl border border-slate-100 shadow-sm px-6">
+                        dashContainer.innerHTML = `<div class="flex flex-col items-center justify-center py-10 text-center text-slate-400 dark:text-dark-textSecondary bg-white dark:bg-dark-card rounded-3xl border border-slate-100 dark:border-white/5 shadow-sm px-6">
                             <i data-lucide="calendar-clock" class="w-8 h-8 text-indigo-300 mb-3 opacity-50"></i>
-                            <h3 class="text-[14px] font-bold text-slate-700 mb-1">No exam info added</h3>
+                            <h3 class="text-[14px] font-bold text-slate-700 dark:text-dark-textSecondary mb-1">No exam info added</h3>
                             <p class="text-[11px] leading-relaxed max-w-[200px]">by class representatives.</p>
                         </div>`;
                     }
@@ -381,8 +381,8 @@ const getSafariSafeDate = window.getSafariSafeDate;
                 if (!skipRender) {
                     dashContainer.innerHTML = `
                         <div class="animate-pulse flex flex-col gap-3">
-                            <div class="h-[72px] bg-slate-100 rounded-[22px] border border-slate-50 w-full"></div>
-                            <div class="h-[72px] bg-slate-100 rounded-[22px] border border-slate-50 w-full"></div>
+                            <div class="h-[72px] bg-slate-100 dark:bg-white/5 rounded-[22px] border border-slate-50 w-full"></div>
+                            <div class="h-[72px] bg-slate-100 dark:bg-white/5 rounded-[22px] border border-slate-50 w-full"></div>
                         </div>`;
                 }
 
@@ -409,9 +409,9 @@ const getSafariSafeDate = window.getSafariSafeDate;
                     if (!window.authState.profile.batch_id) {
                         console.warn("[DASHBOARD] batch_id is missing, falling back to empty routine.");
                         window._dashboardRoutineHTML = `
-                            <div class="bg-white rounded-[22px] border border-slate-100 shadow-2xs p-5 text-center">
+                            <div class="bg-white dark:bg-dark-card rounded-[22px] border border-slate-100 dark:border-white/5 shadow-2xs p-5 text-center">
                                 <i data-lucide="calendar-check" class="w-8 h-8 text-slate-200 mx-auto mb-2"></i>
-                                <p class="text-xs font-bold text-slate-400">Loading your batch details...</p>
+                                <p class="text-xs font-bold text-slate-400 dark:text-dark-textSecondary">Loading your batch details...</p>
                             </div>`;
                         if (!skipRender) window.renderDashboardTodayRoutine();
                         window.setModuleLoading('dashboard', false);
@@ -465,9 +465,9 @@ const getSafariSafeDate = window.getSafariSafeDate;
                 if (todayClasses.length === 0) {
                     const emptyMsg = isToday ? 'No classes scheduled for today.' : `No classes scheduled for tomorrow (${targetDay}).`;
                     window._dashboardRoutineHTML = `
-                            <div class="bg-white rounded-[22px] border border-slate-100 shadow-2xs p-5 text-center">
+                            <div class="bg-white dark:bg-dark-card rounded-[22px] border border-slate-100 dark:border-white/5 shadow-2xs p-5 text-center">
                                 <i data-lucide="calendar-check" class="w-8 h-8 text-slate-200 mx-auto mb-2"></i>
-                                <p class="text-xs font-bold text-slate-400">${emptyMsg}</p>
+                                <p class="text-xs font-bold text-slate-400 dark:text-dark-textSecondary">${emptyMsg}</p>
                             </div>`;
                     if (!skipRender) window.renderDashboardTodayRoutine();
                     return;
@@ -519,12 +519,12 @@ const getSafariSafeDate = window.getSafariSafeDate;
                         let contentHTML = "";
 
                         if (isBreak) {
-                            timeColor = isOngoing ? 'text-amber-700' : isUpcoming ? 'text-amber-600' : 'text-slate-400';
+                            timeColor = isOngoing ? 'text-amber-700' : isUpcoming ? 'text-amber-600' : 'text-slate-400 dark:text-dark-textSecondary';
                             statusBadge = isOngoing
                                 ? `<span class="bg-amber-100 text-amber-750 text-[8.5px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Ongoing Break</span>`
                                 : isUpcoming
                                     ? `<span class="bg-amber-50/50 text-amber-600 text-[8px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Upcoming Break</span>`
-                                    : `<span class="bg-slate-100 text-slate-500 text-[8px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Done</span>`;
+                                    : `<span class="bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-dark-textSecondary text-[8px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Done</span>`;
 
                             contentHTML = `
                                     <div class="flex-1 min-w-0 bg-amber-50/30 p-3.5 rounded-[22px] border border-amber-100/50 shadow-2xs flex items-center justify-between gap-2 hover:border-amber-200/50 hover:shadow-xs transition-all ${isPast ? 'opacity-60' : ''}">
@@ -543,12 +543,12 @@ const getSafariSafeDate = window.getSafariSafeDate;
                                     </div>
                                 `;
                         } else {
-                            timeColor = isOngoing ? 'text-[#4226E9]' : isUpcoming ? 'text-[#3B82F6]' : 'text-slate-400';
+                            timeColor = isOngoing ? 'text-[#4226E9]' : isUpcoming ? 'text-[#3B82F6]' : 'text-slate-400 dark:text-dark-textSecondary';
                             statusBadge = isOngoing
                                 ? `<span class="bg-[#F3E8FF] text-[#8B5CF6] text-[8.5px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Ongoing</span>`
                                 : isUpcoming
                                     ? `<span class="bg-blue-50 text-blue-600 text-[8px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Upcoming</span>`
-                                    : `<span class="bg-slate-100 text-slate-500 text-[8px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Done</span>`;
+                                    : `<span class="bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-dark-textSecondary text-[8px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Done</span>`;
 
                             let sectionHTML = '';
                             if (cls.section_name) {
@@ -556,16 +556,16 @@ const getSafariSafeDate = window.getSafariSafeDate;
                             }
 
                             contentHTML = `
-                                    <div class="flex-1 min-w-0 bg-white p-3.5 rounded-[22px] border border-slate-100 shadow-2xs flex items-center justify-between gap-2 hover:border-[#4226E9]/15 hover:shadow-xs transition-all ${isPast ? 'opacity-60' : ''}">
+                                    <div class="flex-1 min-w-0 bg-white dark:bg-dark-card p-3.5 rounded-[22px] border border-slate-100 dark:border-white/5 shadow-2xs flex items-center justify-between gap-2 hover:border-[#4226E9]/15 hover:shadow-xs transition-all ${isPast ? 'opacity-60' : ''}">
                                         <div class="flex items-center gap-3.5 min-w-0 flex-1">
-                                            <div class="text-center border-r border-slate-100 pr-4 shrink-0 min-w-[70px] flex flex-col items-center justify-center">
+                                            <div class="text-center border-r border-slate-100 dark:border-white/5 pr-4 shrink-0 min-w-[70px] flex flex-col items-center justify-center">
                                                 <p class="text-[11px] font-black ${timeColor} leading-none whitespace-nowrap">${timeDisplay}</p>
                                                 <p class="text-[12px] font-bold text-slate-300 my-1 leading-none">|</p>
                                                 <p class="text-[11px] font-black ${timeColor} leading-none whitespace-nowrap mt-0.5">${endTimeDisplay}</p>
                                             </div>
                                             <div class="min-w-0 flex-1 text-left">
-                                                <h4 class="font-extrabold text-xs text-slate-900 leading-snug break-words flex flex-wrap items-center gap-1">${cls.courses?.course_name || 'Course'}${sectionHTML}</h4>
-                                                <p class="text-[10px] text-slate-500 font-semibold mt-1 break-words">Room ${cls.room_number || 'N/A'} — ${cls.faculty?.faculty_name || 'Faculty'}</p>
+                                                <h4 class="font-extrabold text-xs text-slate-900 dark:text-dark-text leading-snug break-words flex flex-wrap items-center gap-1">${cls.courses?.course_name || 'Course'}${sectionHTML}</h4>
+                                                <p class="text-[10px] text-slate-500 dark:text-dark-textSecondary font-semibold mt-1 break-words">Room ${cls.room_number || 'N/A'} — ${cls.faculty?.faculty_name || 'Faculty'}</p>
                                             </div>
                                         </div>
                                         ${statusBadge}
@@ -707,11 +707,11 @@ function updateQuickAccessPagination() {
     
     dots.forEach((dot, index) => {
         if (index === pageIndex) {
-            dot.classList.remove('bg-slate-200');
+            dot.classList.remove('bg-slate-200', 'dark:bg-white/10');
             dot.classList.add('bg-blue-600');
         } else {
             dot.classList.remove('bg-blue-600');
-            dot.classList.add('bg-slate-200');
+            dot.classList.add('bg-slate-200', 'dark:bg-white/10');
         }
     });
 }
@@ -874,11 +874,11 @@ window.updateTodayAtGlanceCounters = function() {
         items.sort((a, b) => a.priority - b.priority);
 
         container.innerHTML = items.map(item => `
-            <div class="flex items-center justify-center gap-2 px-2 flex-[0_0_33.333%] h-full border-r border-slate-100 last:border-0 cursor-pointer transition-transform active:scale-95" onclick="${item.action}">
+            <div class="flex items-center justify-center gap-2 px-2 flex-[0_0_33.333%] h-full border-r border-slate-100 dark:border-white/5 last:border-0 cursor-pointer transition-transform active:scale-95" onclick="${item.action}">
                 ${item.icon}
                 <div class="flex flex-col items-start leading-none gap-0.5">
-                    <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap overflow-hidden text-ellipsis max-w-full block">${item.label}</span>
-                    <span class="text-[14px] font-extrabold text-slate-800 leading-none">${item.count > 99 ? '99+' : item.count}</span>
+                    <span class="text-[9px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wider whitespace-nowrap overflow-hidden text-ellipsis max-w-full block">${item.label}</span>
+                    <span class="text-[14px] font-extrabold text-slate-800 dark:text-dark-text leading-none">${item.count > 99 ? '99+' : item.count}</span>
                 </div>
             </div>`).join('');
 

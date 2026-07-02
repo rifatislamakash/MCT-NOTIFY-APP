@@ -82,7 +82,7 @@ export class PollService {
             });
 
         if (this.currentPolls.length === 0) {
-            container.innerHTML = `<div class="text-center py-10 text-slate-400 font-medium text-sm">No polls found</div>`;
+            container.innerHTML = `<div class="text-center py-10 text-slate-400 dark:text-dark-textSecondary font-medium text-sm">No polls found</div>`;
             return;
         }
 
@@ -115,23 +115,23 @@ export class PollService {
             let deleteBtnHtml = '';
             if (window.currentUserRole === 'admin' || (window.currentUserRole === 'cr' && poll.created_by === window.authState?.user?.id)) {
                 deleteBtnHtml = `
-                    <button type="button" class="delete-btn p-1 mb-1 text-slate-400 hover:bg-red-50 hover:text-red-500 rounded-md transition-colors flex shrink-0 items-center justify-center" onclick="event.stopPropagation(); window.executeGlobalDelete('poll', '${poll.id}', 'poll-card-${poll.id}')" title="Delete Poll">
+                    <button type="button" class="delete-btn p-1 mb-1 text-slate-400 dark:text-dark-textSecondary hover:bg-red-50 hover:text-red-500 rounded-md transition-colors flex shrink-0 items-center justify-center" onclick="event.stopPropagation(); window.executeGlobalDelete('poll', '${poll.id}', 'poll-card-${poll.id}')" title="Delete Poll">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 `;
             }
 
             return `
-                <div id="poll-card-${poll.id}" class="bg-white p-4 rounded-[20px] shadow-sm border border-slate-100 transition-all hover:shadow-md cursor-pointer" onclick="window.PollService.openPollDetails('${poll.id}')">
+                <div id="poll-card-${poll.id}" class="bg-white dark:bg-dark-card p-4 rounded-[20px] shadow-sm border border-slate-100 dark:border-white/5 transition-all hover:shadow-md cursor-pointer" onclick="window.PollService.openPollDetails('${poll.id}')">
                     <div class="flex items-start justify-between mb-2">
                         <div class="flex items-center gap-2">
                             <div class="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
                                 <i data-lucide="pie-chart" class="w-4 h-4 text-indigo-600"></i>
                             </div>
                             <div>
-                                <h4 class="text-[13px] font-bold text-slate-900 leading-tight">${window.safeFormatRichText(poll.title)}</h4>
+                                <h4 class="text-[13px] font-bold text-slate-900 dark:text-dark-text leading-tight">${window.safeFormatRichText(poll.title)}</h4>
                                 <div class="flex items-center gap-1.5 mt-1">
-                                    <span class="text-[9px] font-semibold text-slate-400"><i data-lucide="calendar" class="w-3 h-3 inline pb-0.5"></i> ${formattedDate}</span>
+                                    <span class="text-[9px] font-semibold text-slate-400 dark:text-dark-textSecondary"><i data-lucide="calendar" class="w-3 h-3 inline pb-0.5"></i> ${formattedDate}</span>
                                 </div>
                             </div>
                         </div>
@@ -143,10 +143,10 @@ export class PollService {
                             ${courseBadge}
                         </div>
                     </div>
-                    <div class="text-[11px] text-slate-600 mt-2 font-medium line-clamp-2">
+                    <div class="text-[11px] text-slate-600 dark:text-dark-textSecondary mt-2 font-medium line-clamp-2">
                         ${window.safeFormatRichText(poll.message)}
                     </div>
-                    <div class="mt-3 flex items-center justify-between text-[10px] font-bold text-slate-400">
+                    <div class="mt-3 flex items-center justify-between text-[10px] font-bold text-slate-400 dark:text-dark-textSecondary">
                         <span>${totalVotes} total votes</span>
                         <div class="flex items-center gap-1 text-indigo-600">
                             View <i data-lucide="chevron-right" class="w-3 h-3"></i>
@@ -189,11 +189,11 @@ export class PollService {
                 const isMyVote = myVotes.some(v => v.reaction_type === opt);
                 
                 return `
-                    <div class="relative w-full bg-slate-50 border ${isMyVote ? 'border-[#4226E9]' : 'border-slate-200'} rounded-xl p-3 mb-2 overflow-hidden">
+                    <div class="relative w-full bg-slate-50 dark:bg-dark-bg/50 border ${isMyVote ? 'border-[#4226E9]' : 'border-slate-200 dark:border-white/10'} rounded-xl p-3 mb-2 overflow-hidden">
                         <div class="absolute inset-y-0 left-0 bg-indigo-100/50 transition-all duration-500" style="width: ${releaseResults || hasVoted ? percent : 0}%"></div>
                         <div class="relative z-10 flex items-center justify-between">
-                            <span class="text-[13px] font-semibold ${isMyVote ? 'text-[#4226E9]' : 'text-slate-700'}">${window.sanitizeHTML(opt)}</span>
-                            ${(releaseResults || hasVoted) ? `<span class="text-[12px] font-bold text-slate-500">${percent}%</span>` : ''}
+                            <span class="text-[13px] font-semibold ${isMyVote ? 'text-[#4226E9]' : 'text-slate-700 dark:text-dark-textSecondary'}">${window.sanitizeHTML(opt)}</span>
+                            ${(releaseResults || hasVoted) ? `<span class="text-[12px] font-bold text-slate-500 dark:text-dark-textSecondary">${percent}%</span>` : ''}
                         </div>
                     </div>
                 `;
@@ -202,9 +202,9 @@ export class PollService {
             // Show voting form
             const inputType = allowMultiple ? 'checkbox' : 'radio';
             optionsHtml = options.map((opt, i) => `
-                <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition mb-2">
+                <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-white/10 cursor-pointer hover:bg-slate-50 transition mb-2">
                     <input type="${inputType}" name="poll_option" value="${window.sanitizeHTML(opt)}" class="w-4 h-4 text-[#4226E9] focus:ring-[#4226E9] ${allowMultiple ? 'rounded' : ''}">
-                    <span class="text-[13px] font-semibold text-slate-700">${window.sanitizeHTML(opt)}</span>
+                    <span class="text-[13px] font-semibold text-slate-700 dark:text-dark-textSecondary">${window.sanitizeHTML(opt)}</span>
                 </label>
             `).join('');
             
@@ -217,7 +217,7 @@ export class PollService {
         let releaseButtonHtml = '';
         if ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') && !releaseResults) {
             releaseButtonHtml = `
-                <button onclick="window.PollService.releasePollResults('${poll.id}')" class="w-full py-3 mt-3 bg-white border border-emerald-500 text-emerald-600 rounded-xl font-bold hover:bg-emerald-50 active:scale-[0.98] transition">Release Results</button>
+                <button onclick="window.PollService.releasePollResults('${poll.id}')" class="w-full py-3 mt-3 bg-white dark:bg-dark-card border border-emerald-500 text-emerald-600 rounded-xl font-bold hover:bg-emerald-50 active:scale-[0.98] transition">Release Results</button>
             `;
         }
 
@@ -246,7 +246,7 @@ export class PollService {
         const html = `
             <div class="mb-4">
                 <div class="flex justify-between items-start mb-2">
-                    <h3 class="text-[16px] font-black text-slate-900 leading-tight">${window.safeFormatRichText(poll.title)}</h3>
+                    <h3 class="text-[16px] font-black text-slate-900 dark:text-dark-text leading-tight">${window.safeFormatRichText(poll.title)}</h3>
                     <div class="flex items-center gap-1 shrink-0 ml-2">
                         ${deleteBtnHtml}
                         <div class="flex flex-col items-end gap-1">
@@ -256,11 +256,11 @@ export class PollService {
                     </div>
                 </div>
                 <div class="flex items-center gap-2 mb-2">
-                    <span class="text-[10px] font-semibold text-slate-400"><i data-lucide="calendar" class="w-3 h-3 inline pb-0.5"></i> ${formattedDate}</span>
+                    <span class="text-[10px] font-semibold text-slate-400 dark:text-dark-textSecondary"><i data-lucide="calendar" class="w-3 h-3 inline pb-0.5"></i> ${formattedDate}</span>
                     <div class="w-1 h-1 bg-slate-300 rounded-full"></div>
                     <span class="text-[10px] font-bold text-indigo-600 uppercase tracking-wide">${allowMultiple ? 'Multiple Choice' : 'Single Choice'}</span>
                 </div>
-                <p class="text-[12px] text-slate-500 mt-2 bg-slate-50 p-3 rounded-lg border border-slate-100">${window.safeFormatRichText(poll.message)}</p>
+                <p class="text-[12px] text-slate-500 dark:text-dark-textSecondary mt-2 bg-slate-50 dark:bg-dark-bg/50 p-3 rounded-lg border border-slate-100 dark:border-white/5">${window.safeFormatRichText(poll.message)}</p>
             </div>
             <div>${optionsHtml}</div>
             ${releaseButtonHtml}
@@ -360,7 +360,7 @@ export class PollService {
         const div = document.createElement('div');
         div.className = "flex items-center gap-2";
         div.innerHTML = `
-            <input type="text" required class="poll-option-input flex-1 px-3 py-2 rounded-[8px] border border-slate-200 bg-slate-50 text-[13px] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4226E9]" placeholder="Option ${count + 1}">
+            <input type="text" required class="poll-option-input flex-1 px-3 py-2 rounded-[8px] border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-dark-bg/50 text-[13px] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4226E9]" placeholder="Option ${count + 1}">
             <button type="button" onclick="this.parentElement.remove()" class="w-8 h-8 rounded-md bg-red-50 text-red-500 flex items-center justify-center shrink-0">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
             </button>

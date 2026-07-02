@@ -562,7 +562,7 @@
             if (notificationCenterNotices.length === 0) {
                 container.innerHTML = `<div class="py-10 flex flex-col items-center justify-center text-center">
                     <i data-lucide="bell-off" class="w-10 h-10 text-slate-300 mb-3"></i>
-                    <p class="text-slate-500 font-medium text-[13px]">No notifications yet</p>
+                    <p class="text-slate-500 dark:text-dark-textSecondary font-medium text-[13px]">No notifications yet</p>
                 </div>`;
                 return;
             }
@@ -570,11 +570,11 @@
             container.innerHTML = notificationCenterNotices.map(n => {
                 const isUnread = !globalUserNoticeReads.has(n.id);
                 return `
-                    <div class="relative bg-white rounded-xl p-4 shadow-sm border ${isUnread ? 'border-indigo-200 cursor-pointer hover:border-indigo-400' : 'border-slate-100 opacity-70'} transition-colors" onclick="markNoticeAsRead('${n.id}')">
+                    <div class="relative bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border ${isUnread ? 'border-indigo-200 cursor-pointer hover:border-indigo-400' : 'border-slate-100 dark:border-white/5 opacity-70'} transition-colors" onclick="markNoticeAsRead('${n.id}')">
                         ${isUnread ? '<div class="absolute top-4 right-4 w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>' : ''}
-                        <h4 class="font-bold text-[13px] text-slate-900 pr-4 leading-tight">${n.title}</h4>
-                        <p class="text-[11px] text-slate-500 mt-1 line-clamp-2">${n.message}</p>
-                        <p class="text-[9px] font-bold text-slate-400 mt-2 uppercase tracking-wide">${new Date(n.created_at).toLocaleDateString()} &bull; ${new Date(n.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                        <h4 class="font-bold text-[13px] text-slate-900 dark:text-dark-text pr-4 leading-tight">${n.title}</h4>
+                        <p class="text-[11px] text-slate-500 dark:text-dark-textSecondary mt-1 line-clamp-2">${n.message}</p>
+                        <p class="text-[9px] font-bold text-slate-400 dark:text-dark-textSecondary mt-2 uppercase tracking-wide">${new Date(n.created_at).toLocaleDateString()} &bull; ${new Date(n.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
                     </div>
                 `;
             }).join('');

@@ -19,23 +19,23 @@ export class ReportService {
             if (error) throw error;
 
             if (!data || data.length === 0) {
-                container.innerHTML = `<div class="text-center py-4 text-slate-400 text-xs">No reports submitted yet.</div>`;
+                container.innerHTML = `<div class="text-center py-4 text-slate-400 dark:text-dark-textSecondary text-xs">No reports submitted yet.</div>`;
                 return;
             }
 
             container.innerHTML = data.map(r => {
                 const isResolved = r.status === 'resolved';
                 return `
-                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div class="bg-slate-50 dark:bg-dark-bg/50 p-4 rounded-xl border border-slate-200 dark:border-white/10">
                         <div class="flex items-center justify-between mb-1.5">
-                            <h4 class="text-[13px] font-bold text-slate-900">${window.sanitizeHTML(r.title)}</h4>
+                            <h4 class="text-[13px] font-bold text-slate-900 dark:text-dark-text">${window.sanitizeHTML(r.title)}</h4>
                             <span class="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md ${isResolved ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}">${isResolved ? 'Resolved' : 'Pending'}</span>
                         </div>
-                        <p class="text-[11px] text-slate-600 mb-2">${window.sanitizeHTML(r.details)}</p>
+                        <p class="text-[11px] text-slate-600 dark:text-dark-textSecondary mb-2">${window.sanitizeHTML(r.details)}</p>
                         ${r.admin_reply ? `
-                            <div class="mt-3 pt-3 border-t border-slate-200">
+                            <div class="mt-3 pt-3 border-t border-slate-200 dark:border-white/10">
                                 <span class="text-[10px] font-bold text-indigo-600 uppercase tracking-wide">Admin Reply</span>
-                                <p class="text-[11px] font-medium text-slate-800 mt-0.5">${window.sanitizeHTML(r.admin_reply)}</p>
+                                <p class="text-[11px] font-medium text-slate-800 dark:text-dark-text mt-0.5">${window.sanitizeHTML(r.admin_reply)}</p>
                             </div>
                         ` : ''}
                     </div>
@@ -119,7 +119,7 @@ export class ReportService {
             this.currentReports = data || [];
 
             if (this.currentReports.length === 0) {
-                container.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs">No reports found.</div>`;
+                container.innerHTML = `<div class="text-center py-8 text-slate-400 dark:text-dark-textSecondary text-xs">No reports found.</div>`;
                 return;
             }
 
@@ -144,8 +144,8 @@ export class ReportService {
                 html += `
                     <div class="mb-6">
                         <div class="flex items-center gap-2 mb-3 px-1">
-                            <i data-lucide="folder" class="w-4 h-4 text-slate-400"></i>
-                            <h3 class="text-[13px] font-black text-slate-700 tracking-tight">Batch: ${window.sanitizeHTML(batchName)} <span class="text-[10px] text-slate-400 font-bold ml-1">(${reports.length})</span></h3>
+                            <i data-lucide="folder" class="w-4 h-4 text-slate-400 dark:text-dark-textSecondary"></i>
+                            <h3 class="text-[13px] font-black text-slate-700 dark:text-dark-textSecondary tracking-tight">Batch: ${window.sanitizeHTML(batchName)} <span class="text-[10px] text-slate-400 dark:text-dark-textSecondary font-bold ml-1">(${reports.length})</span></h3>
                         </div>
                         <div class="space-y-3">
                 `;
@@ -154,32 +154,32 @@ export class ReportService {
                     const isResolved = r.status === 'resolved';
 
                     html += `
-                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="bg-white dark:bg-dark-card p-4 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
                             <div class="flex items-center justify-between mb-2">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-8 h-8 rounded-full bg-slate-100 overflow-hidden">
-                                        ${r.profiles?.profile_url ? `<img src="${r.profiles.profile_url}" class="w-full h-full object-cover">` : `<i data-lucide="user" class="w-4 h-4 m-2 text-slate-400"></i>`}
+                                    <div class="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 overflow-hidden">
+                                        ${r.profiles?.profile_url ? `<img src="${r.profiles.profile_url}" class="w-full h-full object-cover">` : `<i data-lucide="user" class="w-4 h-4 m-2 text-slate-400 dark:text-dark-textSecondary"></i>`}
                                     </div>
                                     <div>
-                                        <h5 class="text-[12px] font-bold text-slate-900 leading-tight">${window.sanitizeHTML(authorName)}</h5>
-                                        <span class="text-[9px] font-medium text-slate-500">${new Date(r.created_at).toLocaleDateString()}</span>
+                                        <h5 class="text-[12px] font-bold text-slate-900 dark:text-dark-text leading-tight">${window.sanitizeHTML(authorName)}</h5>
+                                        <span class="text-[9px] font-medium text-slate-500 dark:text-dark-textSecondary">${new Date(r.created_at).toLocaleDateString()}</span>
                                     </div>
                                 </div>
                                 <span class="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md ${isResolved ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}">${isResolved ? 'Resolved' : 'Pending'}</span>
                             </div>
                             <div class="mb-3">
-                                <h4 class="text-[13px] font-bold text-slate-800">${window.sanitizeHTML(r.title)} <span class="text-[10px] text-slate-400 uppercase tracking-wide ml-1">(${r.category})</span></h4>
-                                <p class="text-[11px] text-slate-600 mt-1">${window.sanitizeHTML(r.details)}</p>
+                                <h4 class="text-[13px] font-bold text-slate-800 dark:text-dark-text">${window.sanitizeHTML(r.title)} <span class="text-[10px] text-slate-400 dark:text-dark-textSecondary uppercase tracking-wide ml-1">(${r.category})</span></h4>
+                                <p class="text-[11px] text-slate-600 dark:text-dark-textSecondary mt-1">${window.sanitizeHTML(r.details)}</p>
                             </div>
                             
                             ${isResolved ? `
-                                <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                <div class="bg-slate-50 dark:bg-dark-bg/50 p-3 rounded-lg border border-slate-100 dark:border-white/5">
                                     <span class="text-[10px] font-bold text-indigo-600 uppercase tracking-wide block mb-1">Admin Reply</span>
-                                    <p class="text-[11px] font-medium text-slate-800">${window.sanitizeHTML(r.admin_reply)}</p>
+                                    <p class="text-[11px] font-medium text-slate-800 dark:text-dark-text">${window.sanitizeHTML(r.admin_reply)}</p>
                                 </div>
                             ` : (window.currentUserRole === 'admin' ? `
                                 <div class="flex items-start gap-2">
-                                    <input type="text" id="reply-input-${r.id}" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:border-indigo-500" placeholder="Type a reply...">
+                                    <input type="text" id="reply-input-${r.id}" class="flex-1 px-3 py-2 bg-slate-50 dark:bg-dark-bg/50 border border-slate-200 dark:border-white/10 rounded-lg text-[12px] focus:outline-none focus:border-indigo-500" placeholder="Type a reply...">
                                     <button onclick="window.ReportService.sendReply('${r.id}')" class="px-3 py-2 bg-[#4226E9] hover:bg-[#341BC5] text-white text-[11px] font-bold rounded-lg transition-colors shrink-0">Send Reply</button>
                                 </div>
                             ` : '')}

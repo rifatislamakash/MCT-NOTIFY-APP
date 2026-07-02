@@ -101,34 +101,34 @@ window.loadSystemMonitor = async function() {
 
         if (dbContainer) {
             dbContainer.innerHTML = dbMetrics.map(m => `
-                <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 cursor-pointer hover:shadow-md transition-shadow">
-                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">${m}</p>
-                    <div class="h-8 w-16 bg-slate-200 rounded animate-pulse mt-2"></div>
-                    <div class="h-3 w-24 bg-slate-100 rounded animate-pulse mt-2"></div>
+                <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5 cursor-pointer hover:shadow-md transition-shadow">
+                    <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">${m}</p>
+                    <div class="h-8 w-16 bg-slate-200 dark:bg-white/10 rounded animate-pulse mt-2"></div>
+                    <div class="h-3 w-24 bg-slate-100 dark:bg-white/5 rounded animate-pulse mt-2"></div>
                 </div>
             `).join('');
         }
 
         if (storageContainer) {
             storageContainer.innerHTML = storageBuckets.map(b => `
-                <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 cursor-pointer hover:shadow-md transition-shadow">
-                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide truncate">${b}</p>
-                    <div class="h-8 w-24 bg-slate-200 rounded animate-pulse mt-2"></div>
-                    <div class="h-4 w-full bg-slate-100 rounded animate-pulse mt-4"></div>
+                <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5 cursor-pointer hover:shadow-md transition-shadow">
+                    <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide truncate">${b}</p>
+                    <div class="h-8 w-24 bg-slate-200 dark:bg-white/10 rounded animate-pulse mt-2"></div>
+                    <div class="h-4 w-full bg-slate-100 dark:bg-white/5 rounded animate-pulse mt-4"></div>
                 </div>
             `).join('');
         }
 
         if (storageProgressContainer) {
             storageProgressContainer.innerHTML = `
-                <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+                <div class="bg-white dark:bg-dark-card rounded-xl p-5 shadow-sm border border-slate-100 dark:border-white/5">
                     <div class="flex items-center justify-between mb-2">
-                        <div class="h-4 w-24 bg-slate-200 rounded animate-pulse"></div>
-                        <div class="h-4 w-10 bg-slate-200 rounded animate-pulse"></div>
+                        <div class="h-4 w-24 bg-slate-200 dark:bg-white/10 rounded animate-pulse"></div>
+                        <div class="h-4 w-10 bg-slate-200 dark:bg-white/10 rounded animate-pulse"></div>
                     </div>
-                    <div class="w-full bg-slate-100 rounded-full h-2.5 mb-2"></div>
+                    <div class="w-full bg-slate-100 dark:bg-white/5 rounded-full h-2.5 mb-2"></div>
                     <div class="flex justify-end">
-                        <div class="h-3 w-20 bg-slate-100 rounded animate-pulse"></div>
+                        <div class="h-3 w-20 bg-slate-100 dark:bg-white/5 rounded animate-pulse"></div>
                     </div>
                 </div>
             `;
@@ -136,10 +136,10 @@ window.loadSystemMonitor = async function() {
 
         if (dbStorageContainer) {
             dbStorageContainer.innerHTML = `
-                <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
-                    <div class="h-4 w-32 bg-slate-200 rounded animate-pulse mb-4"></div>
-                    <div class="w-full bg-slate-100 rounded-full h-2.5 mb-2"></div>
-                    <div class="h-3 w-40 bg-slate-100 rounded animate-pulse float-right"></div>
+                <div class="bg-white dark:bg-dark-card rounded-xl p-5 shadow-sm border border-slate-100 dark:border-white/5">
+                    <div class="h-4 w-32 bg-slate-200 dark:bg-white/10 rounded animate-pulse mb-4"></div>
+                    <div class="w-full bg-slate-100 dark:bg-white/5 rounded-full h-2.5 mb-2"></div>
+                    <div class="h-3 w-40 bg-slate-100 dark:bg-white/5 rounded animate-pulse float-right"></div>
                     <div class="clear-both"></div>
                 </div>
             `;
@@ -147,12 +147,12 @@ window.loadSystemMonitor = async function() {
         
         if (dbTablesContainer) {
             dbTablesContainer.innerHTML = `
-                <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 mt-3">
-                    <div class="h-4 w-24 bg-slate-200 rounded animate-pulse mb-4"></div>
+                <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5 mt-3">
+                    <div class="h-4 w-24 bg-slate-200 dark:bg-white/10 rounded animate-pulse mb-4"></div>
                     <div class="space-y-3">
-                        <div class="h-3 w-full bg-slate-100 rounded animate-pulse"></div>
-                        <div class="h-3 w-5/6 bg-slate-100 rounded animate-pulse"></div>
-                        <div class="h-3 w-4/6 bg-slate-100 rounded animate-pulse"></div>
+                        <div class="h-3 w-full bg-slate-100 dark:bg-white/5 rounded animate-pulse"></div>
+                        <div class="h-3 w-5/6 bg-slate-100 dark:bg-white/5 rounded animate-pulse"></div>
+                        <div class="h-3 w-4/6 bg-slate-100 dark:bg-white/5 rounded animate-pulse"></div>
                     </div>
                 </div>
             `;
@@ -163,24 +163,24 @@ window.loadSystemMonitor = async function() {
             const userEmail = (window.authState && window.authState.session) ? window.authState.session.user.email : 'Unknown';
             
             healthContainer.innerHTML = `
-                <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
-                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Database</p>
-                    <p class="text-[14px] font-bold text-slate-800 mt-1">🟢 Connected</p>
+                <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5">
+                    <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">Database</p>
+                    <p class="text-[14px] font-bold text-slate-800 dark:text-dark-text mt-1">🟢 Connected</p>
                 </div>
-                <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
-                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Storage</p>
-                    <p class="text-[14px] font-bold text-slate-800 mt-1">🟢 Connected</p>
+                <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5">
+                    <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">Storage</p>
+                    <p class="text-[14px] font-bold text-slate-800 dark:text-dark-text mt-1">🟢 Connected</p>
                 </div>
-                <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
-                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Authentication</p>
-                    <p class="text-[14px] font-bold text-slate-800 mt-1">🟢 ${authHealth}</p>
+                <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5">
+                    <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">Authentication</p>
+                    <p class="text-[14px] font-bold text-slate-800 dark:text-dark-text mt-1">🟢 ${authHealth}</p>
                 </div>
-                <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
-                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Notifications</p>
-                    <p class="text-[14px] font-bold text-slate-800 mt-1">🟢 Available</p>
+                <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5">
+                    <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">Notifications</p>
+                    <p class="text-[14px] font-bold text-slate-800 dark:text-dark-text mt-1">🟢 Available</p>
                 </div>
-                <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 col-span-2 md:col-span-4">
-                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Current Admin Session</p>
+                <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5 col-span-2 md:col-span-4">
+                    <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">Current Admin Session</p>
                     <p class="text-[14px] font-bold text-indigo-600 mt-1 break-all">${userEmail}</p>
                 </div>
             `;
@@ -287,10 +287,10 @@ window.loadSystemMonitor = async function() {
                 if (data.type === 'db') {
                     const countDisplay = typeof data.count === 'number' ? data.count.toLocaleString() : data.count;
                     dbHtml += `
-                        <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 cursor-pointer hover:shadow-md transition-shadow">
-                            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide truncate">${data.displayName}</p>
-                            <p class="text-[24px] font-extrabold text-slate-800 leading-none mt-2">${countDisplay}</p>
-                            <p class="text-[10px] font-medium text-slate-400 mt-2">Loaded in ${data.ms} ms</p>
+                        <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5 cursor-pointer hover:shadow-md transition-shadow">
+                            <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide truncate">${data.displayName}</p>
+                            <p class="text-[24px] font-extrabold text-slate-800 dark:text-dark-text leading-none mt-2">${countDisplay}</p>
+                            <p class="text-[10px] font-medium text-slate-400 dark:text-dark-textSecondary mt-2">Loaded in ${data.ms} ms</p>
                         </div>
                     `;
                     // Accumulate today's snapshot stats if possible
@@ -329,13 +329,13 @@ window.loadSystemMonitor = async function() {
             }
 
             storageHtml += `
-                <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 cursor-pointer hover:shadow-md transition-shadow flex flex-col justify-between">
+                <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5 cursor-pointer hover:shadow-md transition-shadow flex flex-col justify-between">
                     <div>
-                        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide truncate">${data.bucket}</p>
-                        <p class="text-[24px] font-extrabold text-slate-800 leading-none mt-2">${bytesDisplay}</p>
+                        <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide truncate">${data.bucket}</p>
+                        <p class="text-[24px] font-extrabold text-slate-800 dark:text-dark-text leading-none mt-2">${bytesDisplay}</p>
                     </div>
                     <div class="mt-4 flex items-center justify-between">
-                        <p class="text-[11px] font-bold text-slate-500">${countDisplay}</p>
+                        <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary">${countDisplay}</p>
                         <p class="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">${pctDisplay}</p>
                     </div>
                 </div>
@@ -349,16 +349,16 @@ window.loadSystemMonitor = async function() {
         
         if (storageProgressContainer) {
             storageProgressContainer.innerHTML = `
-                <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+                <div class="bg-white dark:bg-dark-card rounded-xl p-5 shadow-sm border border-slate-100 dark:border-white/5">
                     <div class="flex items-center justify-between mb-2">
-                        <h4 class="text-[13px] font-extrabold text-slate-800">Storage Used</h4>
+                        <h4 class="text-[13px] font-extrabold text-slate-800 dark:text-dark-text">Storage Used</h4>
                         <span class="text-[13px] font-extrabold text-indigo-600">${overallStoragePctDisplay}%</span>
                     </div>
-                    <div class="w-full bg-slate-100 rounded-full h-2.5 mb-2 overflow-hidden">
+                    <div class="w-full bg-slate-100 dark:bg-white/5 rounded-full h-2.5 mb-2 overflow-hidden">
                         <div class="bg-gradient-to-r from-indigo-500 to-purple-500 h-2.5 rounded-full transition-all duration-1000 ease-out" style="width: ${overallStoragePctDisplay}%"></div>
                     </div>
                     <div class="text-right">
-                        <span class="text-[10px] font-bold text-slate-400">${formatBytes(totalStorageUsed)} / ${formatBytes(STORAGE_LIMIT_BYTES)}</span>
+                        <span class="text-[10px] font-bold text-slate-400 dark:text-dark-textSecondary">${formatBytes(totalStorageUsed)} / ${formatBytes(STORAGE_LIMIT_BYTES)}</span>
                     </div>
                 </div>
             `;
@@ -378,26 +378,26 @@ window.loadSystemMonitor = async function() {
 
             let dbStorageHtml = `
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-                    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 col-span-1">
-                        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Used</p>
-                        <p class="text-[20px] font-extrabold text-slate-800 mt-1">${formatBytes(database_used_bytes)}</p>
+                    <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5 col-span-1">
+                        <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">Used</p>
+                        <p class="text-[20px] font-extrabold text-slate-800 dark:text-dark-text mt-1">${formatBytes(database_used_bytes)}</p>
                     </div>
-                    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 col-span-1">
-                        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Remaining</p>
-                        <p class="text-[20px] font-extrabold text-slate-800 mt-1">${formatBytes(dbRemaining)}</p>
+                    <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5 col-span-1">
+                        <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">Remaining</p>
+                        <p class="text-[20px] font-extrabold text-slate-800 dark:text-dark-text mt-1">${formatBytes(dbRemaining)}</p>
                     </div>
-                    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 col-span-1">
-                        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Limit</p>
-                        <p class="text-[20px] font-extrabold text-slate-800 mt-1">${formatBytes(DATABASE_LIMIT_BYTES)}</p>
+                    <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5 col-span-1">
+                        <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">Limit</p>
+                        <p class="text-[20px] font-extrabold text-slate-800 dark:text-dark-text mt-1">${formatBytes(DATABASE_LIMIT_BYTES)}</p>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+                <div class="bg-white dark:bg-dark-card rounded-xl p-5 shadow-sm border border-slate-100 dark:border-white/5">
                     <div class="flex items-center justify-between mb-2">
-                        <h4 class="text-[13px] font-extrabold text-slate-800">Database Storage</h4>
+                        <h4 class="text-[13px] font-extrabold text-slate-800 dark:text-dark-text">Database Storage</h4>
                         <span class="text-[13px] font-extrabold text-indigo-600">${dbOverallPctDisplay}%</span>
                     </div>
-                    <div class="w-full bg-slate-100 rounded-full h-2.5 mb-2 overflow-hidden">
+                    <div class="w-full bg-slate-100 dark:bg-white/5 rounded-full h-2.5 mb-2 overflow-hidden">
                         <div class="bg-gradient-to-r from-indigo-500 to-purple-500 h-2.5 rounded-full transition-all duration-1000 ease-out" style="width: ${dbOverallPctDisplay}%"></div>
                     </div>
                 </div>
@@ -405,18 +405,18 @@ window.loadSystemMonitor = async function() {
 
             let dbTablesHtml = `
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 mt-3">
-                    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
-                        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Total Rows</p>
-                        <p class="text-[20px] font-extrabold text-slate-800 mt-1">${(total_rows || 0).toLocaleString()}</p>
+                    <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5">
+                        <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">Total Rows</p>
+                        <p class="text-[20px] font-extrabold text-slate-800 dark:text-dark-text mt-1">${(total_rows || 0).toLocaleString()}</p>
                     </div>
-                    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
-                        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Avg Row Size</p>
-                        <p class="text-[20px] font-extrabold text-slate-800 mt-1">≈${formatBytes(avgRowSize)}</p>
+                    <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5">
+                        <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">Avg Row Size</p>
+                        <p class="text-[20px] font-extrabold text-slate-800 dark:text-dark-text mt-1">≈${formatBytes(avgRowSize)}</p>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
-                    <h4 class="text-[13px] font-extrabold text-slate-800 mb-4 uppercase tracking-wide">Largest Tables</h4>
+                <div class="bg-white dark:bg-dark-card rounded-xl p-5 shadow-sm border border-slate-100 dark:border-white/5">
+                    <h4 class="text-[13px] font-extrabold text-slate-800 dark:text-dark-text mb-4 uppercase tracking-wide">Largest Tables</h4>
                     <div class="space-y-4">
             `;
 
@@ -427,17 +427,17 @@ window.loadSystemMonitor = async function() {
                     dbTablesHtml += `
                         <div>
                             <div class="flex items-center justify-between text-[12px] mb-1">
-                                <span class="font-bold text-slate-600">${tableName}</span>
-                                <span class="font-bold text-slate-900">${formatBytes(t.bytes)}</span>
+                                <span class="font-bold text-slate-600 dark:text-dark-textSecondary">${tableName}</span>
+                                <span class="font-bold text-slate-900 dark:text-dark-text">${formatBytes(t.bytes)}</span>
                             </div>
-                            <div class="w-full bg-slate-50 rounded-full h-1.5 overflow-hidden">
+                            <div class="w-full bg-slate-50 dark:bg-dark-bg/50 rounded-full h-1.5 overflow-hidden">
                                 <div class="bg-slate-300 h-1.5 rounded-full" style="width: ${tablePct}%"></div>
                             </div>
                         </div>
                     `;
                 });
             } else {
-                dbTablesHtml += `<p class="text-[12px] text-slate-500 font-medium">No table data available.</p>`;
+                dbTablesHtml += `<p class="text-[12px] text-slate-500 dark:text-dark-textSecondary font-medium">No table data available.</p>`;
             }
             dbTablesHtml += `</div></div>`;
 
@@ -457,32 +457,32 @@ window.loadSystemMonitor = async function() {
                 }
 
                 healthContainer.innerHTML = `
-                    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 col-span-2 md:col-span-1">
-                        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Database Health</p>
-                        <p class="text-[14px] font-bold text-slate-800 mt-1">${dbHealthStatus}</p>
+                    <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5 col-span-2 md:col-span-1">
+                        <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">Database Health</p>
+                        <p class="text-[14px] font-bold text-slate-800 dark:text-dark-text mt-1">${dbHealthStatus}</p>
                         <div class="mt-3">
-                            <p class="text-[10px] font-bold text-slate-400">Storage Usage</p>
+                            <p class="text-[10px] font-bold text-slate-400 dark:text-dark-textSecondary">Storage Usage</p>
                             <p class="text-[12px] font-extrabold ${dbOverallPct > 80 ? 'text-orange-600' : 'text-indigo-600'}">${dbOverallPctDisplay}%</p>
                         </div>
                         <div class="mt-2">
-                            <p class="text-[10px] font-bold text-slate-400">Recommendation</p>
-                            <p class="text-[11px] font-bold text-slate-600">${dbHealthRec}</p>
+                            <p class="text-[10px] font-bold text-slate-400 dark:text-dark-textSecondary">Recommendation</p>
+                            <p class="text-[11px] font-bold text-slate-600 dark:text-dark-textSecondary">${dbHealthRec}</p>
                         </div>
                     </div>
-                    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
-                        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Storage</p>
-                        <p class="text-[14px] font-bold text-slate-800 mt-1">🟢 Connected</p>
+                    <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5">
+                        <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">Storage</p>
+                        <p class="text-[14px] font-bold text-slate-800 dark:text-dark-text mt-1">🟢 Connected</p>
                     </div>
-                    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
-                        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Authentication</p>
-                        <p class="text-[14px] font-bold text-slate-800 mt-1">🟢 ${authHealth}</p>
+                    <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5">
+                        <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">Authentication</p>
+                        <p class="text-[14px] font-bold text-slate-800 dark:text-dark-text mt-1">🟢 ${authHealth}</p>
                     </div>
-                    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
-                        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Notifications</p>
-                        <p class="text-[14px] font-bold text-slate-800 mt-1">🟢 Available</p>
+                    <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5">
+                        <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">Notifications</p>
+                        <p class="text-[14px] font-bold text-slate-800 dark:text-dark-text mt-1">🟢 Available</p>
                     </div>
-                    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 col-span-2 md:col-span-4">
-                        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Current Admin Session</p>
+                    <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5 col-span-2 md:col-span-4">
+                        <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">Current Admin Session</p>
                         <p class="text-[14px] font-bold text-indigo-600 mt-1 break-all">${userEmail}</p>
                     </div>
                 `;
