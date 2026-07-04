@@ -46,9 +46,16 @@ export class PollService {
         
         // Find first poll that I haven't voted on
         const unvotedPoll = this.currentPolls.find(poll => {
+            const pollData = JSON.parse(poll.attachment_url || "{}");
+            const pollEndDatetime = pollData.pollEndDatetime;
+            let isEnded = false;
+            if (pollEndDatetime) {
+                isEnded = new Date() > new Date(pollEndDatetime);
+            }
+
             const votes = window.ReactionService?.cache[poll.id] || [];
             const myVotes = votes.filter(v => v.user_id === window.authState?.user?.id);
-            return myVotes.length === 0;
+            return myVotes.length === 0 && !isEnded;
         });
 
         if (unvotedPoll) {
@@ -66,8 +73,17 @@ export class PollService {
             this.currentPolls.sort((a, b) => {
                 if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
 
-                const dateA = new Date((a.notice_date || toDateStr(now)) + 'T' + (a.notice_time || '23:59:00'));
-                const dateB = new Date((b.notice_date || toDateStr(now)) + 'T' + (b.notice_time || '23:59:00'));
+                const getEndDatetime = (poll) => {
+                    try {
+                        const data = JSON.parse(poll.attachment_url || "{}");
+                        return data.pollEndDatetime ? new Date(data.pollEndDatetime) : new Date(8640000000000000);
+                    } catch(e) {
+                        return new Date(8640000000000000);
+                    }
+                };
+
+                const dateA = getEndDatetime(a);
+                const dateB = getEndDatetime(b);
                 const aIsExpired = dateA < now;
                 const bIsExpired = dateB < now;
                 
@@ -75,9 +91,9 @@ export class PollService {
                     return aIsExpired ? 1 : -1; // Active first, expired last
                 }
                 if (!aIsExpired) {
-                    return dateA - dateB; // Upcoming: closest first
+                    return dateA - dateB; // Upcoming: closest deadline first
                 } else {
-                    return dateB - dateA; // Expired: most recent past first
+                    return dateB - dateA; // Expired: most recently expired first
                 }
             });
 
@@ -92,15 +108,26 @@ export class PollService {
             const allowMultiple = pollData.allowMultiple || false;
             const releaseResults = pollData.releaseResults || false;
 
+            const pollEndDatetime = pollData.pollEndDatetime;
+            let isEnded = false;
+            if (pollEndDatetime) {
+                isEnded = new Date() > new Date(pollEndDatetime);
+            }
+
             // Get votes
             const votes = window.ReactionService?.cache[poll.id] || [];
             const totalVotes = votes.length;
             const myVotes = votes.filter(v => v.user_id === window.authState?.user?.id);
             const hasVoted = myVotes.length > 0;
 
-            let statusBadge = hasVoted ? 
-                `<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider">Voted</span>` :
-                `<span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider">Active</span>`;
+            let statusBadge = '';
+            if (isEnded) {
+                statusBadge = `<span class="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border border-slate-200 dark:border-white/10 dark:bg-dark-bg">Ended</span>`;
+            } else if (hasVoted) {
+                statusBadge = `<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider">Voted</span>`;
+            } else {
+                statusBadge = `<span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider">Active</span>`;
+            }
 
             let courseBadge = '';
             if (poll.course_id && window.currentCoursesList) {
@@ -111,6 +138,12 @@ export class PollService {
             }
 
             const formattedDate = new Date(poll.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+            let deadlineHtml = '';
+            if (pollEndDatetime) {
+                const deadlineDate = new Date(pollEndDatetime);
+                const formattedDeadline = deadlineDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                deadlineHtml = `&bull; <span class="${isEnded ? 'text-red-500 dark:text-red-400' : ''}">End: ${formattedDeadline}</span>`;
+            }
 
             let deleteBtnHtml = '';
             if (window.currentUserRole === 'admin' || (window.currentUserRole === 'cr' && poll.created_by === window.authState?.user?.id)) {
@@ -122,7 +155,7 @@ export class PollService {
             }
 
             return `
-                <div id="poll-card-${poll.id}" class="bg-white dark:bg-dark-card p-4 rounded-[20px] shadow-sm border border-slate-100 dark:border-white/5 transition-all hover:shadow-md cursor-pointer" onclick="window.PollService.openPollDetails('${poll.id}')">
+                <div id="poll-card-${poll.id}" class="bg-white dark:bg-dark-card p-4 rounded-[20px] shadow-sm border border-slate-100 dark:border-white/5 transition-all hover:shadow-md cursor-pointer ${isEnded ? 'opacity-60 grayscale-[0.2]' : ''}" onclick="window.PollService.openPollDetails('${poll.id}')">
                     <div class="flex items-start justify-between mb-2">
                         <div class="flex items-center gap-2">
                             <div class="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
@@ -130,8 +163,9 @@ export class PollService {
                             </div>
                             <div>
                                 <h4 class="text-[13px] font-bold text-slate-900 dark:text-dark-text leading-tight">${window.safeFormatRichText(poll.title)}</h4>
-                                <div class="flex items-center gap-1.5 mt-1">
-                                    <span class="text-[9px] font-semibold text-slate-400 dark:text-dark-textSecondary"><i data-lucide="calendar" class="w-3 h-3 inline pb-0.5"></i> ${formattedDate}</span>
+                                <div class="flex items-center gap-1.5 mt-1 text-[9px] font-semibold text-slate-500 dark:text-dark-textSecondary flex-wrap">
+                                    <span><i data-lucide="calendar" class="w-3 h-3 inline pb-0.5"></i> Pub: ${formattedDate}</span>
+                                    ${deadlineHtml}
                                 </div>
                             </div>
                         </div>
@@ -168,6 +202,12 @@ export class PollService {
         const allowMultiple = pollData.allowMultiple || false;
         const releaseResults = pollData.releaseResults || false;
 
+        const pollEndDatetime = pollData.pollEndDatetime;
+        let isEnded = false;
+        if (pollEndDatetime) {
+            isEnded = new Date() > new Date(pollEndDatetime);
+        }
+
         const votes = window.ReactionService?.cache[poll.id] || [];
         const totalVotes = votes.length;
         const myVotes = votes.filter(v => v.user_id === window.authState?.user?.id);
@@ -175,7 +215,7 @@ export class PollService {
 
         let optionsHtml = '';
         
-        if (hasVoted || releaseResults) {
+        if (hasVoted || releaseResults || isEnded) {
             // Show results
             const counts = {};
             options.forEach(o => counts[o] = 0);
@@ -188,12 +228,32 @@ export class PollService {
                 const percent = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
                 const isMyVote = myVotes.some(v => v.reaction_type === opt);
                 
+                const optionVoters = votes.filter(v => v.reaction_type === opt);
+                let votersHtml = '';
+                if (optionVoters.length > 0 && (releaseResults || hasVoted || isEnded)) {
+                    const namesHtml = optionVoters.map(v => window.sanitizeHTML(v.profiles?.full_name || 'Unknown')).join(', ');
+                    votersHtml = `
+                        <details class="mt-2 group relative z-20">
+                            <summary class="text-[10px] font-bold text-slate-500 dark:text-dark-textSecondary cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition list-none flex items-center gap-1 w-max">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                View Voters (${optionVoters.length})
+                            </summary>
+                            <div class="mt-1.5 text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed max-h-24 overflow-y-auto overscroll-contain pr-1">
+                                ${namesHtml}
+                            </div>
+                        </details>
+                    `;
+                }
+
                 return `
                     <div class="relative w-full bg-slate-50 dark:bg-dark-bg/50 border ${isMyVote ? 'border-[#4226E9]' : 'border-slate-200 dark:border-white/10'} rounded-xl p-3 mb-2 overflow-hidden">
-                        <div class="absolute inset-y-0 left-0 bg-indigo-100/50 transition-all duration-500" style="width: ${releaseResults || hasVoted ? percent : 0}%"></div>
-                        <div class="relative z-10 flex items-center justify-between">
-                            <span class="text-[13px] font-semibold ${isMyVote ? 'text-[#4226E9]' : 'text-slate-700 dark:text-dark-textSecondary'}">${window.sanitizeHTML(opt)}</span>
-                            ${(releaseResults || hasVoted) ? `<span class="text-[12px] font-bold text-slate-500 dark:text-dark-textSecondary">${percent}%</span>` : ''}
+                        <div class="absolute inset-y-0 left-0 bg-indigo-100/50 transition-all duration-500" style="width: ${releaseResults || hasVoted || isEnded ? percent : 0}%"></div>
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[13px] font-semibold ${isMyVote ? 'text-[#4226E9]' : 'text-slate-700 dark:text-dark-textSecondary'}">${window.sanitizeHTML(opt)}</span>
+                                ${(releaseResults || hasVoted || isEnded) ? `<span class="text-[12px] font-bold text-slate-500 dark:text-dark-textSecondary">${percent}%</span>` : ''}
+                            </div>
+                            ${votersHtml}
                         </div>
                     </div>
                 `;
@@ -230,9 +290,21 @@ export class PollService {
         }
 
         const formattedDate = new Date(poll.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-        let statusBadge = hasVoted ? 
-            `<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider">Voted</span>` :
-            `<span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider">Active</span>`;
+        let deadlineHtml = '';
+        if (pollEndDatetime) {
+            const deadlineDate = new Date(pollEndDatetime);
+            const formattedDeadline = deadlineDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+            deadlineHtml = `<div class="w-1 h-1 bg-slate-300 rounded-full"></div><span class="text-[10px] font-semibold ${isEnded ? 'text-red-500 dark:text-red-400' : 'text-slate-400 dark:text-dark-textSecondary'}">End: ${formattedDeadline}</span>`;
+        }
+
+        let statusBadge = '';
+        if (isEnded) {
+            statusBadge = `<span class="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border border-slate-200 dark:border-white/10 dark:bg-dark-bg">Ended</span>`;
+        } else if (hasVoted) {
+            statusBadge = `<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider">Voted</span>`;
+        } else {
+            statusBadge = `<span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider">Active</span>`;
+        }
 
         let deleteBtnHtml = '';
         if (window.currentUserRole === 'admin' || (window.currentUserRole === 'cr' && poll.created_by === window.authState.user.id)) {
@@ -255,8 +327,9 @@ export class PollService {
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center gap-2 mb-2">
-                    <span class="text-[10px] font-semibold text-slate-400 dark:text-dark-textSecondary"><i data-lucide="calendar" class="w-3 h-3 inline pb-0.5"></i> ${formattedDate}</span>
+                <div class="flex items-center gap-2 mb-2 flex-wrap">
+                    <span class="text-[10px] font-semibold text-slate-400 dark:text-dark-textSecondary"><i data-lucide="calendar" class="w-3 h-3 inline pb-0.5"></i> Pub: ${formattedDate}</span>
+                    ${deadlineHtml}
                     <div class="w-1 h-1 bg-slate-300 rounded-full"></div>
                     <span class="text-[10px] font-bold text-indigo-600 uppercase tracking-wide">${allowMultiple ? 'Multiple Choice' : 'Single Choice'}</span>
                 </div>
@@ -373,7 +446,13 @@ export class PollService {
         const desc = document.getElementById('poll-description').value;
         const allowMultiple = document.getElementById('poll-allow-multiple').checked;
         const releaseResults = document.getElementById('poll-result-released').checked;
+        const endDatetimeEl = document.getElementById('poll-end-datetime');
+        const pollEndDatetime = endDatetimeEl ? endDatetimeEl.value : null;
         
+        if (!pollEndDatetime) {
+            showGlobalToast("Invalid", "Please provide a Poll End Time.");
+            return;
+        }
         const optionInputs = document.querySelectorAll('.poll-option-input');
         const options = Array.from(optionInputs).map(inp => inp.value.trim()).filter(v => v);
 
@@ -407,7 +486,8 @@ export class PollService {
                 attachment_url: JSON.stringify({
                     options,
                     allowMultiple,
-                    releaseResults
+                    releaseResults,
+                    pollEndDatetime
                 })
             };
 
