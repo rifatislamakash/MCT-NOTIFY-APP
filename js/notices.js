@@ -624,7 +624,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                     <div class="w-full mt-[12px] !flex !flex-wrap !justify-between !items-center !gap-[8px]">
                                         <div class="flex-1">${bottomEventTagsHtml}</div>
                                         <div class="shrink-0 ml-3">
-                                            ${window.ReactionService ? window.ReactionService.renderReactionBlock(isPoll ? 'poll' : 'notice', n.id) : ''}
+                                            ${(window.ReactionService && !isPoll) ? window.ReactionService.renderReactionBlock('notice', n.id) : ''}
                                         </div>
                                     </div>
                                 </div>

@@ -29,7 +29,7 @@ export class PollService {
             // Load votes (reactions) for these polls
             const pollIds = this.currentPolls.map(p => p.id);
             if (window.ReactionService && pollIds.length > 0) {
-                await window.ReactionService.fetchReactionsForContent('poll', pollIds);
+                await window.ReactionService.fetchReactionsForContent('notice', pollIds);
             }
 
             this.renderPollsList();
@@ -394,7 +394,7 @@ export class PollService {
         try {
             const inserts = selectedOptions.map(opt => ({
                 content_id: pollId,
-                content_type: 'poll',
+                content_type: 'notice',
                 user_id: window.authState.user.id,
                 reaction_type: opt
             }));
@@ -407,7 +407,7 @@ export class PollService {
             await this.loadPolls();
         } catch (err) {
             console.error("Vote error:", err);
-            showGlobalToast("Error", "Could not submit vote.");
+            showGlobalToast("Error", err.message || "Could not submit vote.");
         } finally {
             showLoader(false);
         }
@@ -528,6 +528,23 @@ export class PollService {
 
             const { data, error } = await _supabase.from('notices').insert(inserts).select();
             if (error) throw error;
+
+            if (data && data.length > 0) {
+                try {
+                    await _supabase.from('polls').insert([{
+                        id: data[0].id,
+                        title: title,
+                        description: desc,
+                        created_by: window.authState.user.id,
+                        batch_id: batch === 'global' ? null : batch,
+                        course_id: course || null,
+                        options: options,
+                        result_released: releaseResults
+                    }]);
+                } catch (pollsErr) {
+                    console.error("Failed to mirror poll to polls table:", pollsErr);
+                }
+            }
 
             if (batch !== 'global' && data && data.length > 0) {
                 const targets = data.map(n => ({
@@ -680,8 +697,10 @@ export class PollService {
         showLoader(true, "Deleting poll...");
         try {
             await _supabase.from('content_targets').delete().eq('content_id', pollId).eq('content_type', 'notice');
-            await _supabase.from('content_reactions').delete().eq('content_id', pollId).eq('content_type', 'poll');
+            await _supabase.from('content_reactions').delete().eq('content_id', pollId).eq('content_type', 'notice');
             await _supabase.from('notification_reminders').delete().eq('parent_id', pollId).eq('parent_type', 'notice');
+            
+            try { await _supabase.from('polls').delete().eq('id', pollId); } catch(e) {}
             
             const { error } = await _supabase.from('notices').delete().eq('id', pollId);
             if (error) throw error;
