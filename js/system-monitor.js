@@ -39,7 +39,7 @@ window.loadSystemMonitor = async function() {
             const healthContainer = document.getElementById('sys-health-container');
             if (healthContainer) {
                 healthContainer.innerHTML = `
-                    <div class="bg-red-50 text-red-600 p-4 rounded-xl border border-red-100 col-span-2 md:col-span-4 text-center text-[13px] font-bold">
+                    <div class="bg-red-50 text-red-600 p-4 rounded-xl border border-red-100 col-span-2 text-center text-[13px] font-bold">
                         Platform Monitor is not ready.<br>Please try again.
                     </div>
                 `;
@@ -163,7 +163,7 @@ window.loadSystemMonitor = async function() {
             const userEmail = (window.authState && window.authState.session) ? window.authState.session.user.email : 'Unknown';
             
             healthContainer.innerHTML = `
-                <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5">
+                <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5 col-span-2">
                     <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">Database</p>
                     <p class="text-[14px] font-bold text-slate-800 dark:text-dark-text mt-1">🟢 Connected</p>
                 </div>
@@ -457,7 +457,7 @@ window.loadSystemMonitor = async function() {
                 }
 
                 healthContainer.innerHTML = `
-                    <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5 col-span-2 md:col-span-1">
+                    <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5 col-span-2">
                         <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">Database Health</p>
                         <p class="text-[14px] font-bold text-slate-800 dark:text-dark-text mt-1">${dbHealthStatus}</p>
                         <div class="mt-3">
@@ -469,19 +469,19 @@ window.loadSystemMonitor = async function() {
                             <p class="text-[11px] font-bold text-slate-600 dark:text-dark-textSecondary">${dbHealthRec}</p>
                         </div>
                     </div>
-                    <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5">
+                    <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5 col-span-1">
                         <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">Storage</p>
                         <p class="text-[14px] font-bold text-slate-800 dark:text-dark-text mt-1">🟢 Connected</p>
                     </div>
-                    <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5">
+                    <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5 col-span-1">
                         <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">Authentication</p>
                         <p class="text-[14px] font-bold text-slate-800 dark:text-dark-text mt-1">🟢 ${authHealth}</p>
                     </div>
-                    <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5">
+                    <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5 col-span-1">
                         <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">Notifications</p>
                         <p class="text-[14px] font-bold text-slate-800 dark:text-dark-text mt-1">🟢 Available</p>
                     </div>
-                    <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5 col-span-2 md:col-span-4">
+                    <div class="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-slate-100 dark:border-white/5 col-span-2">
                         <p class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wide">Current Admin Session</p>
                         <p class="text-[14px] font-bold text-indigo-600 mt-1 break-all">${userEmail}</p>
                     </div>
@@ -506,21 +506,21 @@ window.loadSystemMonitor = async function() {
         const snapshotContainer = document.getElementById('sys-snapshot-container');
         if (snapshotContainer) {
             snapshotContainer.innerHTML = `
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div class="bg-[#4226E9]/5 border border-[#4226E9]/10 rounded-xl p-3">
-                        <p class="text-[11px] font-bold text-[#4226E9]/70 uppercase">Students</p>
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div class="bg-[#4226E9]/5 border border-[#4226E9]/10 rounded-xl p-3 overflow-hidden">
+                        <p class="text-[11px] font-bold text-[#4226E9]/70 uppercase tracking-tight truncate">Students</p>
                         <p class="text-[20px] font-extrabold text-[#4226E9]">${typeof todayStudents === 'number' ? todayStudents : '-'}</p>
                     </div>
-                    <div class="bg-orange-50 border border-orange-100 rounded-xl p-3">
-                        <p class="text-[11px] font-bold text-orange-600/70 uppercase">Faculty</p>
+                    <div class="bg-orange-50 border border-orange-100 rounded-xl p-3 overflow-hidden">
+                        <p class="text-[11px] font-bold text-orange-600/70 uppercase tracking-tight truncate">Faculty</p>
                         <p class="text-[20px] font-extrabold text-orange-600">${typeof todayFaculty === 'number' ? todayFaculty : '-'}</p>
                     </div>
-                    <div class="bg-fuchsia-50 border border-fuchsia-100 rounded-xl p-3">
-                        <p class="text-[11px] font-bold text-fuchsia-600/70 uppercase">Courses</p>
+                    <div class="bg-fuchsia-50 border border-fuchsia-100 rounded-xl p-3 overflow-hidden">
+                        <p class="text-[11px] font-bold text-fuchsia-600/70 uppercase tracking-tight truncate">Courses</p>
                         <p class="text-[20px] font-extrabold text-fuchsia-600">${typeof todayCourses === 'number' ? todayCourses : '-'}</p>
                     </div>
-                    <div class="bg-cyan-50 border border-cyan-100 rounded-xl p-3">
-                        <p class="text-[11px] font-bold text-cyan-600/70 uppercase">Notices</p>
+                    <div class="bg-cyan-50 border border-cyan-100 rounded-xl p-3 overflow-hidden">
+                        <p class="text-[11px] font-bold text-cyan-600/70 uppercase tracking-tight truncate">Notices</p>
                         <p class="text-[20px] font-extrabold text-cyan-600">${typeof todayNotices === 'number' ? todayNotices : '-'}</p>
                     </div>
                 </div>

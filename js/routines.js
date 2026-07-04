@@ -2028,7 +2028,7 @@ window.switchRoutineView = switchRoutineView;
             const role = String(window.currentUserRole || '').toLowerCase();
             if (role !== 'admin' && role !== 'cr') return;
 
-            const examId = document.getElementById('edit-exam-id').value;
+            const examId = document.getElementById('edit-exam-id').value.trim();
             const courseName = document.getElementById('edit-exam-course-name').value.trim();
             const courseCode = document.getElementById('edit-exam-course-code').value.trim();
             const examDate = document.getElementById('edit-exam-date').value;
@@ -2044,7 +2044,7 @@ window.switchRoutineView = switchRoutineView;
 
             window.showLoader(true, 'Updating exam...');
             try {
-                const { error } = await _supabase
+                const { data: updatedRows, error } = await _supabase
                     .from('exam_schedules')
                     .update({
                         course_name: courseName,
@@ -2055,9 +2055,14 @@ window.switchRoutineView = switchRoutineView;
                         syllabus_desc: syllabusDesc,
                         target_batch: targetBatch
                     })
-                    .eq('id', examId);
+                    .eq('id', examId)
+                    .select();
 
                 if (error) throw error;
+                if (!updatedRows || updatedRows.length === 0) {
+                    console.error("Exam update failed: 0 rows affected. RLS or ID mismatch.");
+                    throw new Error("Update failed. You may not have permission to edit this exam.");
+                }
                 
                 const { error: delRemError } = await _supabase
                     .from('notification_reminders')

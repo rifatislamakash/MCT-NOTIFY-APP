@@ -137,7 +137,8 @@ export class PollService {
             if (poll.course_id && window.currentCoursesList) {
                 const course = window.currentCoursesList.find(c => String(c.id) === String(poll.course_id));
                 if (course) {
-                    courseBadge = `<span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border border-indigo-100">${window.sanitizeHTML(course.course_code)}</span>`;
+                    const displayName = course.short_name || course.course_code;
+                    courseBadge = `<span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border border-indigo-100">${window.sanitizeHTML(displayName)}</span>`;
                 }
             }
 
@@ -151,10 +152,22 @@ export class PollService {
 
             let deleteBtnHtml = '';
             let endBtnHtml = '';
+            let editBtnHtml = '';
+            let notifyBtnHtml = '';
             if (window.currentUserRole === 'admin' || (window.currentUserRole === 'cr' && poll.created_by === window.authState?.user?.id)) {
                 deleteBtnHtml = `
                     <button type="button" class="delete-btn p-1 mb-1 text-slate-400 dark:text-dark-textSecondary hover:bg-red-50 hover:text-red-500 rounded-md transition-colors flex shrink-0 items-center justify-center" onclick="event.stopPropagation(); window.executeGlobalDelete('poll', '${poll.id}', 'poll-card-${poll.id}')" title="Delete Poll">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                `;
+                editBtnHtml = `
+                    <button type="button" class="p-1 mb-1 text-slate-400 dark:text-dark-textSecondary hover:bg-blue-50 hover:text-blue-500 rounded-md transition-colors flex shrink-0 items-center justify-center" onclick="event.stopPropagation(); window.PollService.openEditDeadlineModal('${poll.id}')" title="Edit Deadline">
+                        <i data-lucide="pencil" class="w-4 h-4"></i>
+                    </button>
+                `;
+                notifyBtnHtml = `
+                    <button type="button" class="p-1 mb-1 text-slate-400 dark:text-dark-textSecondary hover:bg-indigo-50 hover:text-indigo-500 rounded-md transition-colors flex shrink-0 items-center justify-center" onclick="event.stopPropagation(); window.PollService.notifyPoll('${poll.id}')" title="Send Push Notification Reminder">
+                        <i data-lucide="bell-ring" class="w-4 h-4"></i>
                     </button>
                 `;
                 if (!isEnded) {
@@ -182,11 +195,13 @@ export class PollService {
                             </div>
                         </div>
                         <div class="flex flex-col items-end gap-1 shrink-0">
-                            <div class="flex items-center gap-2">
+                            ${statusBadge}
+                            <div class="flex items-center gap-1">
+                                ${notifyBtnHtml}
+                                ${editBtnHtml}
                                 ${endBtnHtml}
                                 ${deleteBtnHtml}
                             </div>
-                            ${statusBadge}
                             ${courseBadge}
                         </div>
                     </div>
@@ -304,7 +319,8 @@ export class PollService {
         if (poll.course_id && window.currentCoursesList) {
             const course = window.currentCoursesList.find(c => String(c.id) === String(poll.course_id));
             if (course) {
-                courseBadge = `<span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border border-indigo-100">${window.sanitizeHTML(course.course_code)}</span>`;
+                const displayName = course.short_name || course.course_code;
+                courseBadge = `<span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border border-indigo-100">${window.sanitizeHTML(displayName)}</span>`;
             }
         }
 
@@ -313,7 +329,7 @@ export class PollService {
         if (pollEndDatetime) {
             const deadlineDate = new Date(pollEndDatetime);
             const formattedDeadline = deadlineDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-            deadlineHtml = `<div class="w-1 h-1 bg-slate-300 rounded-full"></div><span class="text-[10px] font-semibold ${isEnded ? 'text-red-500 dark:text-red-400' : 'text-slate-400 dark:text-dark-textSecondary'}">End: ${formattedDeadline}</span>`;
+            deadlineHtml = `<div class="w-1 h-1 bg-slate-300 rounded-full"></div><span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 ${isEnded ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : ''}">End: ${formattedDeadline}</span>`;
         }
 
         let statusBadge = '';
@@ -327,10 +343,22 @@ export class PollService {
 
         let deleteBtnHtml = '';
         let endBtnHtml = '';
+        let editBtnHtml = '';
+        let notifyBtnHtml = '';
         if (window.currentUserRole === 'admin' || (window.currentUserRole === 'cr' && poll.created_by === window.authState.user.id)) {
             deleteBtnHtml = `
                 <button onclick="window.PollService.deletePoll('${poll.id}')" class="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors flex shrink-0 items-center justify-center" title="Delete Poll">
                     <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+            `;
+            editBtnHtml = `
+                <button onclick="window.PollService.openEditDeadlineModal('${poll.id}')" class="p-2 text-blue-500 hover:bg-blue-50 rounded-full transition-colors flex shrink-0 items-center justify-center" title="Edit Deadline">
+                    <i data-lucide="pencil" class="w-4 h-4"></i>
+                </button>
+            `;
+            notifyBtnHtml = `
+                <button onclick="window.PollService.notifyPoll('${poll.id}')" class="p-2 text-indigo-500 hover:bg-indigo-50 rounded-full transition-colors flex shrink-0 items-center justify-center" title="Send Push Notification Reminder">
+                    <i data-lucide="bell-ring" class="w-4 h-4"></i>
                 </button>
             `;
             if (!isEnded) {
@@ -344,17 +372,19 @@ export class PollService {
 
         const html = `
             <div class="mb-4">
-                <div class="flex justify-between items-start mb-2">
-                    <h3 class="text-[16px] font-black text-slate-900 dark:text-dark-text leading-tight">${window.safeFormatRichText(poll.title)}</h3>
-                    <div class="flex items-center gap-1 shrink-0 ml-2">
+                <div class="flex justify-between items-center mb-3">
+                    <div class="flex items-center gap-2">
+                        ${statusBadge}
+                        ${courseBadge}
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        ${notifyBtnHtml}
+                        ${editBtnHtml}
                         ${endBtnHtml}
                         ${deleteBtnHtml}
-                        <div class="flex flex-col items-end gap-1">
-                            ${statusBadge}
-                            ${courseBadge}
-                        </div>
                     </div>
                 </div>
+                <h3 class="text-[18px] font-black text-slate-900 dark:text-dark-text leading-tight mb-2">${window.safeFormatRichText(poll.title)}</h3>
                 <div class="flex items-center gap-2 mb-2 flex-wrap">
                     <span class="text-[10px] font-semibold text-slate-400 dark:text-dark-textSecondary"><i data-lucide="calendar" class="w-3 h-3 inline pb-0.5"></i> Pub: ${formattedDate}</span>
                     ${deadlineHtml}
@@ -750,6 +780,133 @@ export class PollService {
             showGlobalToast("Error", "Could not delete poll.");
         } finally {
             showLoader(false);
+        }
+    }
+
+    static async openEditDeadlineModal(pollId) {
+        // Fetch poll details
+        if (typeof window.showLoader === 'function') window.showLoader(true);
+        try {
+            const { data, error } = await _supabase.from('notices').select('*').eq('id', pollId).single();
+            if (error) throw error;
+            let pollEndDatetime = '';
+            if (data.attachment_url) {
+                try {
+                    const parsed = JSON.parse(data.attachment_url);
+                    if (parsed.pollEndDatetime) {
+                        pollEndDatetime = parsed.pollEndDatetime;
+                    }
+                } catch(e) {}
+            }
+            
+            document.getElementById('edit-poll-id').value = pollId;
+            document.getElementById('edit-poll-end-datetime').value = pollEndDatetime ? new Date(pollEndDatetime - new Date().getTimezoneOffset() * 60000).toISOString().slice(0,16) : '';
+            
+            const modal = document.getElementById('poll-edit-modal');
+            modal.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+            modal.classList.add('opacity-100', 'pointer-events-auto');
+            modal.querySelector('div').classList.remove('scale-95');
+            modal.querySelector('div').classList.add('scale-100');
+        } catch(err) {
+            console.error("Error opening edit modal", err);
+            if (typeof window.showGlobalToast === 'function') window.showGlobalToast("Error", "Could not load poll data");
+        } finally {
+            if (typeof window.showLoader === 'function') window.showLoader(false);
+        }
+    }
+
+    static closeEditDeadlineModal() {
+        const modal = document.getElementById('poll-edit-modal');
+        if(!modal) return;
+        modal.classList.remove('opacity-100', 'pointer-events-auto');
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        modal.querySelector('div').classList.remove('scale-100');
+        modal.querySelector('div').classList.add('scale-95');
+    }
+
+    static async savePollDeadline() {
+        const pollId = document.getElementById('edit-poll-id').value;
+        const endDatetimeEl = document.getElementById('edit-poll-end-datetime');
+        const pollEndDatetime = endDatetimeEl ? endDatetimeEl.value : null;
+
+        if (!pollId) return;
+
+        if (typeof window.showLoader === 'function') window.showLoader(true, "Updating deadline...");
+        try {
+            const { data, error } = await _supabase.from('notices').select('attachment_url').eq('id', pollId).single();
+            if (error) throw error;
+            
+            let meta = { options: [], allowMultiple: false, releaseResults: true };
+            if (data.attachment_url) {
+                try { meta = JSON.parse(data.attachment_url); } catch(e) {}
+            }
+            
+            if (pollEndDatetime) {
+                const dateObj = new Date(pollEndDatetime);
+                meta.pollEndDatetime = dateObj.toISOString();
+            } else {
+                delete meta.pollEndDatetime;
+            }
+            
+            const { error: updateErr } = await _supabase.from('notices')
+                .update({ attachment_url: JSON.stringify(meta) })
+                .eq('id', pollId);
+                
+            if (updateErr) throw updateErr;
+            
+            if (typeof window.showGlobalToast === 'function') window.showGlobalToast("Success", "Poll deadline updated successfully.");
+            this.closeEditDeadlineModal();
+            this.closePollPopup(); // Close details if open
+            this.loadPolls();
+        } catch (err) {
+            console.error("Save deadline error", err);
+            if (typeof window.showGlobalToast === 'function') window.showGlobalToast("Error", "Could not update deadline.");
+        } finally {
+            if (typeof window.showLoader === 'function') window.showLoader(false);
+        }
+    }
+
+    static async notifyPoll(pollId) {
+        if (!confirm("Send push notification reminder for this poll?")) return;
+        
+        if (typeof window.showLoader === 'function') window.showLoader(true, "Sending reminder...");
+        try {
+            const { data: poll, error } = await _supabase.from('notices').select('*').eq('id', pollId).single();
+            if (error) throw error;
+
+            let courses = window.currentCoursesList || [];
+            if (courses.length === 0 && typeof window.CourseStore !== 'undefined') {
+                 courses = await window.CourseStore.getCourses();
+            }
+
+            let topic = "all_devices";
+            if (poll.target_batch && poll.target_batch !== 'all') {
+                topic = `batch_${poll.target_batch}`;
+            }
+            if (poll.target_course && poll.target_course !== 'all') {
+                const course = courses.find(c => c.id === poll.target_course);
+                if (course) {
+                    topic = `course_${course.course_code.replace(/[^a-zA-Z0-9]/g, '')}`;
+                }
+            }
+
+            const queueRes = await _supabase.from('notification_queue').insert({
+                title: '📊 Poll Reminder',
+                body: `Please cast your vote: ${poll.title}`,
+                topic: topic,
+                data_payload: { type: 'poll', id: pollId },
+                scheduled_at: new Date().toISOString(),
+                created_by: window.authState.user.id
+            });
+
+            if (queueRes.error) throw queueRes.error;
+
+            if (typeof window.showGlobalToast === 'function') window.showGlobalToast("Success", "Reminder sent successfully.");
+        } catch(err) {
+            console.error("Notify error", err);
+            if (typeof window.showGlobalToast === 'function') window.showGlobalToast("Error", "Could not send notification.");
+        } finally {
+            if (typeof window.showLoader === 'function') window.showLoader(false);
         }
     }
 }

@@ -274,30 +274,44 @@ const getSafariSafeDate = window.getSafariSafeDate;
                     window._currentExamsData = exams || [];
                     
                     let nextExam = null;
+                    let isNextExamPast = false;
                     if (!error && exams && exams.length > 0) {
                         const now = new Date();
                         const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
 
                         for (let ex of exams) {
                             if (ex.exam_date > todayStr) {
-                                nextExam = ex;
+                                if (!nextExam || isNextExamPast) {
+                                    nextExam = ex;
+                                    isNextExamPast = false;
+                                }
                                 break;
                             } else if (ex.exam_date === todayStr) {
                                 let isPast = false;
-                                if (ex.end_time) {
-                                    const [h, m] = ex.end_time.split(':').map(Number);
-                                    if ((h * 60 + m) <= currentTotalMinutes) {
-                                        isPast = true;
+                                let timeStr = ex.end_time || ex.start_time;
+                                if (timeStr) {
+                                    let h = 0, m = 0;
+                                    if (timeStr.toLowerCase().includes('am') || timeStr.toLowerCase().includes('pm')) {
+                                        const isPM = timeStr.toLowerCase().includes('pm');
+                                        const cleanTime = timeStr.replace(/[a-zA-Z\s]/g, '').trim();
+                                        const parts = cleanTime.split(':');
+                                        h = parseInt(parts[0], 10) || 0;
+                                        m = parts[1] ? parseInt(parts[1], 10) : 0;
+                                        if (isPM && h < 12) h += 12;
+                                        if (!isPM && h === 12) h = 0;
+                                    } else {
+                                        const parts = timeStr.split(':').map(Number);
+                                        h = parts[0] || 0;
+                                        m = parts[1] || 0;
                                     }
-                                } else if (ex.start_time) {
-                                    const [h, m] = ex.start_time.split(':').map(Number);
                                     if ((h * 60 + m) <= currentTotalMinutes) {
                                         isPast = true;
                                     }
                                 }
                                 
+                                nextExam = ex;
+                                isNextExamPast = isPast;
                                 if (!isPast) {
-                                    nextExam = ex;
                                     break;
                                 }
                             }
@@ -329,13 +343,16 @@ const getSafariSafeDate = window.getSafariSafeDate;
                         const examDate = examDateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
                         
                         dashContainer.innerHTML = `<div class="space-y-3">
-                            <div onclick="window.openDedicatedExamPanel()" class="bg-gradient-to-br from-indigo-50 to-white dark:from-[#0F1117] dark:to-[#1A1D26] rounded-[24px] p-4 border border-indigo-100/80 dark:border-white/5 relative cursor-pointer hover:shadow-md transition-all active:scale-[0.98]">
+                            <div onclick="window.openDedicatedExamPanel()" class="bg-gradient-to-br from-indigo-50 to-white dark:from-[#0F1117] dark:to-[#1A1D26] rounded-[24px] p-4 border border-indigo-100/80 dark:border-white/5 relative cursor-pointer hover:shadow-md transition-all active:scale-[0.98] ${isNextExamPast ? 'opacity-60 grayscale-[0.5]' : ''}">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0 shadow-sm">
                                         <i data-lucide="graduation-cap" class="w-5 h-5"></i>
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <h3 class="text-[14px] font-extrabold text-slate-800 dark:text-indigo-50 leading-tight truncate">${window.sanitizeHTML(exam.course_name)}</h3>
+                                        <div class="flex items-center gap-2">
+                                            <h3 class="text-[14px] font-extrabold text-slate-800 dark:text-indigo-50 leading-tight truncate">${window.sanitizeHTML(exam.course_name)}</h3>
+                                            ${isNextExamPast ? '<span class="bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase">PAST</span>' : ''}
+                                        </div>
                                         ${facultyName ? `<p class="text-[11px] text-slate-400 dark:text-dark-textSecondary font-medium mt-0.5 truncate">${window.sanitizeHTML(facultyName)}</p>` : ''}
                                         
                                         <div class="flex items-center gap-1.5 mt-2 text-[10px] font-bold text-slate-500 dark:text-dark-textSecondary whitespace-nowrap overflow-hidden">
