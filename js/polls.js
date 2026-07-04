@@ -272,8 +272,8 @@ export class PollService {
             // Show voting form
             const inputType = allowMultiple ? 'checkbox' : 'radio';
             optionsHtml = options.map((opt, i) => `
-                <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-white/10 cursor-pointer hover:bg-slate-50 transition mb-2">
-                    <input type="${inputType}" name="poll_option" value="${window.sanitizeHTML(opt)}" class="w-4 h-4 text-[#4226E9] focus:ring-[#4226E9] ${allowMultiple ? 'rounded' : ''}">
+                <label for="poll_opt_${poll.id}_${i}" class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-white/10 cursor-pointer hover:bg-slate-50 transition mb-2">
+                    <input type="${inputType}" id="poll_opt_${poll.id}_${i}" name="poll_option" value="${window.sanitizeHTML(opt)}" class="w-4 h-4 text-[#4226E9] focus:ring-[#4226E9] ${allowMultiple ? 'rounded' : ''}">
                     <span class="text-[13px] font-semibold text-slate-700 dark:text-dark-textSecondary">${window.sanitizeHTML(opt)}</span>
                 </label>
             `).join('');
