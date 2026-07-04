@@ -146,12 +146,20 @@ export class PollService {
             }
 
             let deleteBtnHtml = '';
+            let endBtnHtml = '';
             if (window.currentUserRole === 'admin' || (window.currentUserRole === 'cr' && poll.created_by === window.authState?.user?.id)) {
                 deleteBtnHtml = `
                     <button type="button" class="delete-btn p-1 mb-1 text-slate-400 dark:text-dark-textSecondary hover:bg-red-50 hover:text-red-500 rounded-md transition-colors flex shrink-0 items-center justify-center" onclick="event.stopPropagation(); window.executeGlobalDelete('poll', '${poll.id}', 'poll-card-${poll.id}')" title="Delete Poll">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 `;
+                if (!isEnded) {
+                    endBtnHtml = `
+                        <button type="button" class="p-1 mb-1 text-slate-400 dark:text-dark-textSecondary hover:bg-orange-50 hover:text-orange-500 rounded-md transition-colors flex shrink-0 items-center justify-center" onclick="event.stopPropagation(); window.PollService.endPollEarly('${poll.id}')" title="End Poll Early">
+                            <i data-lucide="power-off" class="w-4 h-4"></i>
+                        </button>
+                    `;
+                }
             }
 
             return `
@@ -171,6 +179,7 @@ export class PollService {
                         </div>
                         <div class="flex flex-col items-end gap-1 shrink-0">
                             <div class="flex items-center gap-2">
+                                ${endBtnHtml}
                                 ${deleteBtnHtml}
                             </div>
                             ${statusBadge}
@@ -307,12 +316,20 @@ export class PollService {
         }
 
         let deleteBtnHtml = '';
+        let endBtnHtml = '';
         if (window.currentUserRole === 'admin' || (window.currentUserRole === 'cr' && poll.created_by === window.authState.user.id)) {
             deleteBtnHtml = `
                 <button onclick="window.PollService.deletePoll('${poll.id}')" class="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors flex shrink-0 items-center justify-center" title="Delete Poll">
                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
             `;
+            if (!isEnded) {
+                endBtnHtml = `
+                    <button onclick="window.PollService.endPollEarly('${poll.id}')" class="p-2 text-orange-500 hover:bg-orange-50 rounded-full transition-colors flex shrink-0 items-center justify-center" title="End Poll Early">
+                        <i data-lucide="power-off" class="w-4 h-4"></i>
+                    </button>
+                `;
+            }
         }
 
         const html = `
@@ -320,6 +337,7 @@ export class PollService {
                 <div class="flex justify-between items-start mb-2">
                     <h3 class="text-[16px] font-black text-slate-900 dark:text-dark-text leading-tight">${window.safeFormatRichText(poll.title)}</h3>
                     <div class="flex items-center gap-1 shrink-0 ml-2">
+                        ${endBtnHtml}
                         ${deleteBtnHtml}
                         <div class="flex flex-col items-end gap-1">
                             ${statusBadge}
@@ -449,10 +467,7 @@ export class PollService {
         const endDatetimeEl = document.getElementById('poll-end-datetime');
         const pollEndDatetime = endDatetimeEl ? endDatetimeEl.value : null;
         
-        if (!pollEndDatetime) {
-            showGlobalToast("Invalid", "Please provide a Poll End Time.");
-            return;
-        }
+        // Poll End Time is optional
         const optionInputs = document.querySelectorAll('.poll-option-input');
         const options = Array.from(optionInputs).map(inp => inp.value.trim()).filter(v => v);
 
@@ -565,20 +580,76 @@ export class PollService {
             }
         } else {
             if (batchWrap) batchWrap.style.display = 'block';
-            if (courseSelect && window.currentCoursesList) {
-                let courseHtml = '<option value="">All Courses</option>';
-                window.currentCoursesList.forEach(c => {
-                    courseHtml += `<option value="${c.id}">${window.sanitizeHTML(c.course_name)} (${window.sanitizeHTML(c.course_code)})</option>`;
-                });
-                courseSelect.innerHTML = courseHtml;
-            }
+            
+            const renderCoursesForBatch = (selectedBatch) => {
+                if (courseSelect && window.currentCoursesList) {
+                    let batchCourses = window.currentCoursesList;
+                    if (selectedBatch && selectedBatch !== 'global') {
+                        batchCourses = window.currentCoursesList.filter(c => c.batch_id === selectedBatch || c.batch_id === 'global');
+                    }
+                    
+                    let courseHtml = '<option value="">All Courses</option>';
+                    batchCourses.forEach(c => {
+                        courseHtml += `<option value="${c.id}">${window.sanitizeHTML(c.course_name)} (${window.sanitizeHTML(c.course_code)})</option>`;
+                    });
+                    courseSelect.innerHTML = courseHtml;
+                }
+            };
+
             if (batchSelect && window.currentBatchesList) {
                 let batchHtml = '<option value="global">Global (All Batches)</option>';
                 window.currentBatchesList.forEach(b => {
                     batchHtml += `<option value="${b.id}">${window.sanitizeHTML(b.batch_name)}</option>`;
                 });
                 batchSelect.innerHTML = batchHtml;
+                
+                batchSelect.onchange = (e) => {
+                    renderCoursesForBatch(e.target.value);
+                };
             }
+            
+            // Initial render (global)
+            renderCoursesForBatch(batchSelect ? batchSelect.value : 'global');
+        }
+    }
+
+    static async endPollEarly(pollId) {
+        const confirmEnd = confirm("Are you sure you want to end this poll immediately? Users will not be able to vote anymore.");
+        if (!confirmEnd) return;
+
+        const poll = this.currentPolls.find(p => p.id === pollId);
+        if (!poll) return;
+
+        window.showLoader(true, "Ending poll...");
+        try {
+            const pollData = JSON.parse(poll.attachment_url || "{}");
+            pollData.pollEndDatetime = new Date().toISOString();
+
+            const { error } = await _supabase
+                .from('notices')
+                .update({ attachment_url: JSON.stringify(pollData) })
+                .eq('id', pollId);
+
+            if (error) throw error;
+            
+            window.showGlobalToast("Success", "Poll ended successfully");
+            
+            // Refresh
+            if (window.NoticeSystem && window.NoticeSystem.loadNotices) {
+                await window.NoticeSystem.loadNotices();
+            } else if (typeof window.loadNotices === 'function') {
+                await window.loadNotices();
+            }
+            
+            const modal = document.getElementById('poll-popup-modal');
+            if (modal && !modal.classList.contains('opacity-0')) {
+                this.closePollPopup();
+            }
+        } catch (err) {
+            console.error("End Poll Error:", err);
+            window.showGlobalToast("Error", "Failed to end poll");
+        } finally {
+            window.showLoader(false);
         }
     }
 

@@ -5080,8 +5080,8 @@
                                 </div>
                                 
                                 <div>
-                                    <label class="block text-[13px] font-bold text-slate-900 dark:text-dark-text mb-1.5">Poll End Time <span class="text-red-500">*</span></label>
-                                    <input type="datetime-local" id="poll-end-datetime" required class="w-full px-4 py-3 rounded-[12px] border border-slate-200 dark:border-white/10 bg-white dark:bg-dark-card text-[14px] font-semibold text-slate-900 dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-[#4226E9] shadow-xs">
+                                    <label class="block text-[13px] font-bold text-slate-900 dark:text-dark-text mb-1.5">Poll End Time <span class="text-xs text-slate-400 dark:text-dark-textSecondary font-medium">(Optional)</span></label>
+                                    <input type="datetime-local" id="poll-end-datetime" class="w-full px-4 py-3 rounded-[12px] border border-slate-200 dark:border-white/10 bg-white dark:bg-dark-card text-[14px] font-semibold text-slate-900 dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-[#4226E9] shadow-xs">
                                 </div>
                                 
                                 <div class="bg-white dark:bg-dark-card p-4 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xs">
@@ -5750,8 +5750,8 @@
                 const label = el.querySelector('span');
                 if (enabled) {
                     el.classList.remove('hidden', 'opacity-50', 'grayscale', 'pointer-events-none');
-                    if (iconBox) iconBox.classList.remove('!bg-slate-100 dark:bg-white/5', '!text-slate-400 dark:text-dark-textSecondary');
-                    if (label) label.classList.remove('!text-slate-400 dark:text-dark-textSecondary');
+                    if (iconBox) iconBox.classList.remove('!bg-slate-100', 'dark:bg-white/5', '!text-slate-400', 'dark:text-dark-textSecondary');
+                    if (label) label.classList.remove('!text-slate-400', 'dark:text-dark-textSecondary');
                 } else {
                     if (el.classList.contains('hide-on-disable')) {
                         el.classList.add('hidden');
