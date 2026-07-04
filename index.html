@@ -5540,6 +5540,10 @@
 
 
         function triggerUrgentPopupModal() {
+            if (typeof window.currentActiveScreen !== 'undefined' && window.currentActiveScreen !== 'screen-student-dashboard' && window.currentActiveScreen !== 'screen-admin-dashboard') {
+                return;
+            }
+            
             const modal = document.getElementById('urgent-notice-modal');
             const notice = window._urgentNoticeForPopup;
             

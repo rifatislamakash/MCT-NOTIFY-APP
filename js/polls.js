@@ -43,6 +43,9 @@ export class PollService {
 
     static checkAndShowPopup() {
         if (window.currentUserRole === 'admin') return;
+        if (typeof window.currentActiveScreen !== 'undefined' && window.currentActiveScreen !== 'screen-student-dashboard' && window.currentActiveScreen !== 'screen-admin-dashboard') {
+            return;
+        }
         if (!this.currentPolls || this.currentPolls.length === 0) return;
         
         // Find first poll that I haven't voted on

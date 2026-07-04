@@ -342,20 +342,33 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const now = new Date();
             const toDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             filtered.sort((a, b) => {
-                if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
+                const aPinned = !!a.is_pinned;
+                const bPinned = !!b.is_pinned;
+                if (aPinned !== bPinned) return aPinned ? -1 : 1;
 
-                const dateA = new Date((a.notice_date || toDateStr(now)) + 'T' + (a.notice_time || '23:59:00'));
-                const dateB = new Date((b.notice_date || toDateStr(now)) + 'T' + (b.notice_time || '23:59:00'));
+                const getSortDate = (n) => {
+                    const dateStr = n.notice_date || (n.created_at ? n.created_at.split('T')[0] : '');
+                    const timeStr = n.notice_time || '23:59:00';
+                    let d = new Date(`${dateStr}T${timeStr}`);
+                    if (isNaN(d.getTime())) {
+                        d = new Date(n.created_at || now);
+                    }
+                    return d;
+                };
+
+                const dateA = getSortDate(a);
+                const dateB = getSortDate(b);
                 const aIsExpired = dateA < now;
                 const bIsExpired = dateB < now;
                 
                 if (aIsExpired !== bIsExpired) {
                     return aIsExpired ? 1 : -1; // Active first, expired last
                 }
+                
                 if (!aIsExpired) {
-                    return dateA - dateB; // Upcoming: closest first
+                    return dateA.getTime() - dateB.getTime(); // Upcoming: closest first
                 } else {
-                    return dateB - dateA; // Expired: most recent past first
+                    return dateB.getTime() - dateA.getTime(); // Expired: most recent past first
                 }
             });
 
