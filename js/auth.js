@@ -147,7 +147,7 @@ let isRegistering = false;
                     if (typeof window.loadScheduleList === 'function') tasks.push(window.loadScheduleList(true).catch(console.warn));
                     if (window.PollService && typeof window.PollService.loadPolls === 'function') {
                         tasks.push(window.PollService.loadPolls().then(() => {
-                            if (window.currentUserRole === 'student' && typeof window.PollService?.checkAndShowPopup === 'function') {
+                            if (typeof window.PollService?.checkAndShowPopup === 'function') {
                                 window.PollService.checkAndShowPopup();
                             }
                         }).catch(console.warn));

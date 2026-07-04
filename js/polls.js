@@ -42,6 +42,7 @@ export class PollService {
     }
 
     static checkAndShowPopup() {
+        if (window.currentUserRole === 'admin') return;
         if (!this.currentPolls || this.currentPolls.length === 0) return;
         
         // Find first poll that I haven't voted on
@@ -220,7 +221,7 @@ export class PollService {
         const votes = window.ReactionService?.cache[poll.id] || [];
         const totalVotes = votes.length;
         const myVotes = votes.filter(v => v.user_id === window.authState?.user?.id);
-        const hasVoted = myVotes.length > 0;
+        const hasVoted = myVotes.length > 0 || window.currentUserRole === 'admin';
 
         let optionsHtml = '';
         
@@ -488,6 +489,7 @@ export class PollService {
         }
 
         const notifyAudience = document.getElementById('notify-audience-poll') ? document.getElementById('notify-audience-poll').checked : true;
+        const publishGeneral = document.getElementById('publish-general-notice-poll') ? document.getElementById('publish-general-notice-poll').checked : false;
 
         showLoader(true, "Creating Poll...");
         try {
@@ -506,23 +508,42 @@ export class PollService {
                 })
             };
 
-            const { data, error } = await _supabase.from('notices').insert([pollData]).select();
+            const inserts = [pollData];
+            if (publishGeneral) {
+                let generalMessage = desc;
+                if (pollEndDatetime) {
+                    const formattedEnd = new Date(pollEndDatetime).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    generalMessage += `\n\n**Poll Ends:** ${formattedEnd}`;
+                }
+                inserts.push({
+                    title: title,
+                    message: generalMessage,
+                    notice_type: 'general',
+                    audience_type: batch === 'global' ? 'all' : 'specific',
+                    course_id: course || null,
+                    created_by: window.authState.user.id,
+                    attachment_url: null
+                });
+            }
+
+            const { data, error } = await _supabase.from('notices').insert(inserts).select();
             if (error) throw error;
 
             if (batch !== 'global' && data && data.length > 0) {
-                await _supabase.from('content_targets').insert([{
-                    content_id: data[0].id,
+                const targets = data.map(n => ({
+                    content_id: n.id,
                     content_type: 'notice',
                     target_type: 'batch_students',
                     target_id: batch
-                }]);
-
+                }));
+                await _supabase.from('content_targets').insert(targets);
+                
                 // Queue Notification
                 if (notifyAudience) {
                     const { NotificationQueueService } = await import('./services/NotificationQueueService.js');
                     const queueRes = await NotificationQueueService.queueNotification({
                         parentType: 'poll',
-                        parentId: data[0].id,
+                        parentId: data[0].id, // Always notify for the poll ID (first item)
                         isNotifyEnabled: true,
                         audienceType: 'batch_students',
                         createdBy: window.authState.user.id,
