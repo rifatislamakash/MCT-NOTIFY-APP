@@ -272,14 +272,20 @@ export class PollService {
             // Show voting form
             const inputType = allowMultiple ? 'checkbox' : 'radio';
             optionsHtml = options.map((opt, i) => `
-                <label for="poll_opt_${poll.id}_${i}" class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-white/10 cursor-pointer hover:bg-slate-50 transition mb-2">
-                    <input type="${inputType}" id="poll_opt_${poll.id}_${i}" name="poll_option" value="${window.sanitizeHTML(opt)}" class="w-4 h-4 text-[#4226E9] focus:ring-[#4226E9] ${allowMultiple ? 'rounded' : ''}">
-                    <span class="text-[13px] font-semibold text-slate-700 dark:text-dark-textSecondary">${window.sanitizeHTML(opt)}</span>
+                <label for="poll_opt_${poll.id}_${i}" class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-white/10 cursor-pointer hover:bg-slate-50 transition mb-2 group relative">
+                    <input type="${inputType}" id="poll_opt_${poll.id}_${i}" name="poll_option" value="${window.sanitizeHTML(opt)}" class="peer absolute opacity-0 w-0 h-0" onchange="window.PollService.onOptionSelected()">
+                    <div class="w-5 h-5 ${allowMultiple ? 'rounded-[6px]' : 'rounded-full'} border-2 border-slate-300 dark:border-slate-600 peer-checked:border-[#4226E9] peer-checked:bg-[#4226E9] flex items-center justify-center transition-colors shrink-0">
+                        ${allowMultiple ? 
+                            '<svg class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>' 
+                            : '<div class="w-2 h-2 rounded-full bg-white opacity-0 peer-checked:opacity-100 transition-opacity"></div>'
+                        }
+                    </div>
+                    <span class="text-[13px] font-semibold text-slate-700 dark:text-dark-textSecondary peer-checked:text-[#4226E9]">${window.sanitizeHTML(opt)}</span>
                 </label>
             `).join('');
             
             optionsHtml += `
-                <button onclick="window.PollService.submitVote('${poll.id}')" class="w-full py-3.5 mt-4 bg-[#4226E9] text-white rounded-xl font-bold shadow-lg shadow-indigo-600/30 active:scale-[0.98] transition">Submit Vote</button>
+                <button id="poll-submit-btn" onclick="window.PollService.submitVote('${poll.id}')" class="w-full py-3.5 mt-4 bg-[#4226E9] text-white rounded-xl font-bold shadow-lg shadow-indigo-600/30 active:scale-[0.98] transition hidden opacity-0 translate-y-2 duration-300">Submit Vote</button>
             `;
         }
 
@@ -381,6 +387,18 @@ export class PollService {
         }
     }
 
+    static onOptionSelected() {
+        const btn = document.getElementById('poll-submit-btn');
+        if (btn) {
+            btn.classList.remove('hidden');
+            // Give display block a tick to apply before animating opacity
+            setTimeout(() => {
+                btn.classList.remove('opacity-0', 'translate-y-2');
+                btn.classList.add('opacity-100', 'translate-y-0');
+            }, 10);
+        }
+    }
+
     static async submitVote(pollId) {
         const inputs = document.querySelectorAll('input[name="poll_option"]:checked');
         if (inputs.length === 0) {
@@ -402,9 +420,24 @@ export class PollService {
             const { error } = await _supabase.from('content_reactions').insert(inserts);
             if (error) throw error;
 
+            // Immediately update local cache so UI reflects the vote instantly without waiting for Realtime
+            if (window.ReactionService && window.ReactionService.cache) {
+                if (!window.ReactionService.cache[pollId]) {
+                    window.ReactionService.cache[pollId] = [];
+                }
+                const userName = window.authState?.user?.user_metadata?.full_name || 'Me';
+                inserts.forEach(insert => {
+                    window.ReactionService.cache[pollId].push({
+                        ...insert,
+                        profiles: { full_name: userName }
+                    });
+                });
+            }
+
             showGlobalToast("Success", "Vote cast successfully!");
             this.closePollPopup();
-            await this.loadPolls();
+            this.loadPolls();
+            if (typeof window.loadNotices === 'function') window.loadNotices();
         } catch (err) {
             console.error("Vote error:", err);
             showGlobalToast("Error", err.message || "Could not submit vote.");
