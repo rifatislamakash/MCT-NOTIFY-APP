@@ -225,7 +225,7 @@ export class PollService {
 
         let optionsHtml = '';
         
-        if (hasVoted || releaseResults || isEnded) {
+        if (hasVoted || isEnded) {
             // Show results
             const counts = {};
             options.forEach(o => counts[o] = 0);
