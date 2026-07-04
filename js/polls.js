@@ -146,7 +146,7 @@ export class PollService {
             let deadlineHtml = '';
             if (pollEndDatetime) {
                 const deadlineDate = new Date(pollEndDatetime);
-                const formattedDeadline = deadlineDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                const formattedDeadline = deadlineDate.toLocaleString('en-US', { timeZone: 'Asia/Dhaka', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
                 deadlineHtml = `&bull; <span class="${isEnded ? 'text-red-500 dark:text-red-400' : ''}">End: ${formattedDeadline}</span>`;
             }
 
@@ -328,7 +328,7 @@ export class PollService {
         let deadlineHtml = '';
         if (pollEndDatetime) {
             const deadlineDate = new Date(pollEndDatetime);
-            const formattedDeadline = deadlineDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+            const formattedDeadline = deadlineDate.toLocaleString('en-US', { timeZone: 'Asia/Dhaka', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
             deadlineHtml = `<div class="w-1 h-1 bg-slate-300 rounded-full"></div><span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 ${isEnded ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : ''}">End: ${formattedDeadline}</span>`;
         }
 
@@ -578,7 +578,7 @@ export class PollService {
             if (publishGeneral) {
                 let generalMessage = desc;
                 if (pollEndDatetime) {
-                    const formattedEnd = new Date(pollEndDatetime).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    const formattedEnd = new Date(pollEndDatetime).toLocaleString('en-US', { timeZone: 'Asia/Dhaka', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
                     generalMessage += `\n\n**Poll Ends:** ${formattedEnd}`;
                 }
                 inserts.push({
@@ -800,7 +800,13 @@ export class PollService {
             }
             
             document.getElementById('edit-poll-id').value = pollId;
-            document.getElementById('edit-poll-end-datetime').value = pollEndDatetime ? new Date(pollEndDatetime - new Date().getTimezoneOffset() * 60000).toISOString().slice(0,16) : '';
+            let localDatetimeStr = '';
+            if (pollEndDatetime) {
+                const localDate = new Date(pollEndDatetime);
+                localDate.setMinutes(localDate.getMinutes() - localDate.getTimezoneOffset());
+                localDatetimeStr = localDate.toISOString().slice(0, 16);
+            }
+            document.getElementById('edit-poll-end-datetime').value = localDatetimeStr;
             
             const modal = document.getElementById('poll-edit-modal');
             modal.classList.remove('hidden', 'opacity-0', 'pointer-events-none');

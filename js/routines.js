@@ -2053,7 +2053,8 @@ window.switchRoutineView = switchRoutineView;
                         start_time: startTime,
                         end_time: endTime,
                         syllabus_desc: syllabusDesc,
-                        target_batch: targetBatch
+                        target_batch: targetBatch,
+                        is_global: (targetBatch === 'all')
                     })
                     .eq('id', examId)
                     .select();
