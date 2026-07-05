@@ -29,6 +29,15 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     allCoursesList = await CourseStore.getCourses();
                 }
                 
+                const courseFilterEl = document.getElementById('notices-course-filter');
+                if (courseFilterEl && courseFilterEl.options.length <= 1) {
+                    courseFilterEl.innerHTML = '<option value="all">All Courses</option>' + 
+                        allCoursesList.map(c => {
+                            const batchName = c.batches ? c.batches.batch_name : c.batch_id;
+                            return '<option value="' + c.id + '">[Batch ' + window.sanitizeHTML(batchName) + '] ' + window.sanitizeHTML(c.course_name) + '</option>';
+                        }).join('');
+                }
+                
                 let noticesData;
                 if (crPermissionService.isCR()) {
                     noticesData = await crPermissionService.getVisibleNotices();
@@ -336,7 +345,18 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     matchBatch = matchesBatch;
                 }
 
-                return matchQuery && matchType && matchBatch;
+                                let matchCourse = true;
+                const courseFilterEl = document.getElementById('notices-course-filter');
+                if (courseFilterEl && courseFilterEl.value !== 'all') {
+                    const cVal = courseFilterEl.value;
+                    if (n.notice_courses && n.notice_courses.length > 0) {
+                        matchCourse = n.notice_courses.some(nc => nc.course_id === cVal);
+                    } else {
+                        matchCourse = false;
+                    }
+                }
+
+                return matchQuery && matchType && matchBatch && matchCourse;
             });
 
             // Dynamic Time-Aware Sorting
@@ -1748,4 +1768,6 @@ export const NoticeService = {
     openEditNotice: typeof openEditNotice !== 'undefined' ? openEditNotice : window.openEditNotice,
     deleteNoticeAction: typeof deleteNoticeAction !== 'undefined' ? deleteNoticeAction : window.deleteNoticeAction
 };
+
+
 
