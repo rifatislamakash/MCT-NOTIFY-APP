@@ -25,18 +25,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (typeof window.showLoader !== 'undefined') window.showLoader(true, "Loading materials...");
             console.log("[MATERIALS] Loading materials list...");
             try {
-                let materialsData;                if (!window.currentCoursesList || window.currentCoursesList.length === 0) {
-                    window.currentCoursesList = await window.crPermissionService.getVisibleCourses();
-                }
-
-                const courseFilterEl = document.getElementById('materials-course-filter');
-                if (courseFilterEl && courseFilterEl.options.length <= 1) {
-                    courseFilterEl.innerHTML = '<option value="all">All Courses</option>' + 
-                        window.currentCoursesList.map(c => {
-                            const batchName = c.batches ? c.batches.batch_name : c.batch_id;
-                            return '<option value="' + c.id + '">[Batch ' + window.sanitizeHTML(batchName) + '] ' + window.sanitizeHTML(c.course_name) + '</option>';
-                        }).join('');
-                }
+                let materialsData;
 
                 if (crPermissionService.isCR()) {
                     materialsData = await crPermissionService.getVisibleMaterials();
@@ -160,10 +149,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const filterType = filterSelect ? filterSelect.value : 'all';
 
             const batchFilter = document.getElementById('admin-materials-batch-filter');
-                        const batchFilterVal = (batchFilter && !batchFilter.classList.contains('hidden')) ? batchFilter.value : 'all';
-
-            const courseFilterEl = document.getElementById('materials-course-filter');
-            const courseVal = courseFilterEl ? courseFilterEl.value : 'all';
+            const batchFilterVal = (batchFilter && !batchFilter.classList.contains('hidden')) ? batchFilter.value : 'all';
 
             let filteredList = window.currentMaterialsList.filter(m => {
                 const titleMatch = m.title && m.title.toLowerCase().includes(searchVal);
@@ -173,11 +159,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                 const matchesType = filterType === 'all' || m.material_type === filterType;
                 
-                                const matchesBatch = batchFilterVal === 'all' || (m.courses && m.courses.batch_id === batchFilterVal);
-                
-                const matchesCourse = courseVal === 'all' || m.course_id === courseVal;
+                const matchesBatch = batchFilterVal === 'all' || (m.courses && m.courses.batch_id === batchFilterVal);
 
-                return matchesSearch && matchesType && matchesBatch && matchesCourse;
+                return matchesSearch && matchesType && matchesBatch;
             });
 
             if (typeof window.renderMaterialsList === 'function') window.renderMaterialsList(filteredList);
@@ -952,6 +936,4 @@ export const MaterialsService = {
     deleteMaterialAction: typeof deleteMaterialAction !== 'undefined' ? deleteMaterialAction : window.deleteMaterialAction,
     deleteMaterialFromDetails: typeof deleteMaterialFromDetails !== 'undefined' ? deleteMaterialFromDetails : window.deleteMaterialFromDetails
 };
-
-
 

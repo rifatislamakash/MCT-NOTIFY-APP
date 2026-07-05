@@ -779,7 +779,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     return true;
                 });
             } else if (batchVal !== 'all') {
-                filteredRoutineData = routineData.filter(r => String(r.batch_id) === String(batchVal));
+                filteredRoutineData = routineData.filter(r => r.batch_id === batchVal);
             }
         }
 
@@ -2209,7 +2209,6 @@ window.switchRoutineView = switchRoutineView;
 
         // Removed DOMContentLoaded trigger to prevent "auth load failed" error on login screens.
         // loadWeeklyRoutine is already handled by the router when navigating to the routine screen.
-
 
 
 

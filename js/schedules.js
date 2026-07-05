@@ -83,23 +83,17 @@ import { ProfileStore } from './stores/ProfileStore.js';
             }
 
             // Show spinner
-            container.innerHTML = `<div class="flex flex-col items-center justify-center py-16 text-slate-400 dark:text-dark-textSecondary"><div class="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mb-3"></div><p class="text-xs font-semibold">Loading schedules...</p></div>`;
+            container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-16 text-slate-400 dark:text-dark-textSecondary">
+                        <div class="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+                        <p class="text-xs font-semibold">Loading schedules...</p>
+                    </div>`;
 
             console.log("[SCHEDULE] Fetching schedules list...");
             try {
                 if (allCoursesList.length === 0) {
                     allCoursesList = await window.crPermissionService.getVisibleCourses();
                 }
-
-                const courseFilterEl = document.getElementById('schedules-course-filter');
-                if (courseFilterEl && courseFilterEl.options.length <= 1) {
-                    courseFilterEl.innerHTML = '<option value="all">All Courses</option>' + 
-                        allCoursesList.map(c => {
-                            const batchName = c.batches ? c.batches.batch_name : c.batch_id;
-                            return '<option value="' + c.id + '">[Batch ' + window.sanitizeHTML(batchName) + '] ' + window.sanitizeHTML(c.course_name) + '</option>';
-                        }).join('');
-                }
-
                 const { rawSchedules, scMap, ctMap } = await fetchCachedOrDeduplicated('schedules', async () => {
                     let schedulesData;
                     if (crPermissionService.isCR()) {
@@ -116,6 +110,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             return data || [];
                         }, 2, 1000, 30000, localController.signal);
                     }
+
+                    const targetSpecificTypes = ['specific', 'batch_students', 'batch_crs', 'course_students', 'specific_student'];
+                    const scheduleIds = schedulesData.filter(s => targetSpecificTypes.includes(s.audience_type)).map(s => s.id);
+                    let scMap = {};
+                    let ctMap = {};
                     if (scheduleIds.length > 0) {
                         const scData = await fetchWithRetry(async (subSignal) => {
                             let results = [];
@@ -350,15 +349,13 @@ import { ProfileStore } from './stores/ProfileStore.js';
         window.filterSchedulesUI = function () {
             const searchEl = document.getElementById('schedule-search');
             const sortEl = document.getElementById('schedule-filter-sort');
-                        const audienceEl = document.getElementById('schedule-filter-audience');
+            const audienceEl = document.getElementById('schedule-filter-audience');
             const batchFilterEl = document.getElementById('admin-schedule-batch-filter');
-            const courseFilterEl = document.getElementById('schedules-course-filter');
 
             const searchVal = (searchEl ? searchEl.value : '').toLowerCase().trim();
             const sortVal = sortEl ? sortEl.value : 'newest';
             const audienceVal = audienceEl ? audienceEl.value : 'all';
             const batchVal = (batchFilterEl && !batchFilterEl.classList.contains('hidden')) ? batchFilterEl.value : 'all';
-            const courseVal = courseFilterEl ? courseFilterEl.value : 'all';
 
             if (batchFilterEl && !batchFilterEl.classList.contains('hidden')) {
                 if (!batchVal || batchVal === '') {
@@ -383,22 +380,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 console.log(`[SCHEDULE BATCH] Rendering schedules for batch: ${batchVal}`);
             }
 
-                        let filtered = [...schedulesList];
-
-            // Course filter
-            if (courseVal !== 'all') {
-                filtered = filtered.filter(s => {
-                    const tgt = scheduleCoursesMap[s.id] || [];
-                    if (tgt.length > 0) {
-                        return tgt.includes(courseVal);
-                    }
-                    if (window.scheduleContentTargetsMap) {
-                        const targets = window.scheduleContentTargetsMap[s.id] || [];
-                        return targets.some(ct => ct.target_type === 'course_students' && ct.target_id === courseVal);
-                    }
-                    return false;
-                });
-            }
+            let filtered = [...schedulesList];
 
             // Audience filter
             if (audienceVal !== 'all') {
@@ -1822,9 +1804,4 @@ export const ScheduleService = {
     handleUpdateSchedule: typeof handleUpdateSchedule !== 'undefined' ? handleUpdateSchedule : window.handleUpdateSchedule,
     handleDeleteSchedule: typeof handleDeleteSchedule !== 'undefined' ? handleDeleteSchedule : window.handleDeleteSchedule
 };
-
-
-
-
-
 

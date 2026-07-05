@@ -3058,14 +3058,9 @@
                             </div>
                             <h2 class="text-[28px] font-bold leading-tight mt-10">Materials Center</h2>
 
-                            <div class="mt-4 flex gap-2">
-                                <div class="flex-1 relative">
-                                    <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-dark-textSecondary"></i>
-                                    <input type="text" id="search-materials" onkeyup="filterMaterialsUI()" placeholder="Search Materials..." class="w-full bg-slate-100 dark:bg-[#1E293B] text-slate-900 dark:text-white placeholder-slate-400 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-3 focus:border-[#4226E9] focus:ring-1 focus:ring-[#4226E9] outline-none text-[13px] transition-all">
-                                </div>
-                                <select id="materials-course-filter" onchange="filterMaterialsUI()" class="w-[110px] bg-slate-100 dark:bg-[#1E293B] text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-3 focus:outline-none focus:border-[#4226E9] focus:ring-1 focus:ring-[#4226E9] text-[12px] appearance-none cursor-pointer">
-                                    <option value="all">All Courses</option>
-                                </select>
+                            <div class="mt-4 relative">
+                                <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-dark-textSecondary"></i>
+                                <input type="text" id="search-materials" onkeyup="filterMaterialsUI()" placeholder="Search Materials..." class="w-full bg-[#1E293B] text-white placeholder-slate-400 border border-slate-700 rounded-xl pl-10 pr-4 py-3 focus:border-[#4226E9] focus:ring-1 focus:ring-[#4226E9] outline-none text-[13px] transition-all">
                             </div>
                         </div>
 
@@ -4298,15 +4293,13 @@
                             <div class="mt-4 flex gap-2">
                                 <div class="flex-1 relative">
                                     <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-dark-textSecondary"></i>
-                                    <input type="text" id="schedule-search" oninput="filterSchedulesUI()" placeholder="Search schedules..." class="w-full h-[38px] pl-9 pr-3 rounded-xl bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-[12px] font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 transition">
+                                    <input type="text" id="schedule-search" oninput="filterSchedulesUI()" placeholder="Search schedules..." class="w-full h-[38px] pl-9 pr-3 rounded-xl bg-white/20border border-white/10 text-white placeholder-slate-500 text-[12px] font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white/20transition">
                                 </div>
-                                <select id="schedules-course-filter" onchange="filterSchedulesUI()" class="w-[100px] h-[38px] px-2.5 rounded-xl bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-300 text-[11px] font-semibold focus:outline-none appearance-none cursor-pointer">
-                                    <option value="all">All Courses</option>
+                                <select id="admin-schedule-batch-filter" onchange="filterSchedulesUI()" class="hidden w-[90px] h-[38px] px-2.5 rounded-xl bg-white/20border border-white/10 text-slate-300 text-[11px] font-semibold focus:outline-none appearance-none">
+                                    <option value="all" class="text-black">All Batches</option>
+                                    <!-- Options injected dynamically -->
                                 </select>
-                                <select id="admin-schedule-batch-filter" onchange="filterSchedulesUI()" class="hidden w-[90px] h-[38px] px-2.5 rounded-xl bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-300 text-[11px] font-semibold focus:outline-none appearance-none cursor-pointer">
-                                    <option value="all">All Batches</option>
-                                </select>
-                                <select id="schedule-filter-sort" onchange="filterSchedulesUI()" class="h-[38px] px-2.5 rounded-xl bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-300 text-[11px] font-semibold focus:outline-none appearance-none cursor-pointer">
+                                <select id="schedule-filter-sort" onchange="filterSchedulesUI()" class="h-[38px] px-2.5 rounded-xl bg-white/20border border-white/10 text-slate-300 text-[11px] font-semibold focus:outline-none appearance-none">
                                     <option value="newest" class="text-black">Newest</option>
                                     <option value="oldest" class="text-black">Oldest</option>
                                     <option value="pinned" class="text-black">Pinned</option>
@@ -4773,20 +4766,14 @@
                             </div>
 
                             <div class="mt-4 flex flex-col gap-3">
-                                <div class="flex gap-2">
-                                    <div class="flex-1 relative">
-                                        <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-dark-textSecondary"></i>
-                                        <input type="text" id="notices-search" oninput="filterNotices()" placeholder="Search notices..." class="w-full h-[38px] pl-10 pr-3 rounded-xl bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-[12px] font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 transition">
-                                    </div>
-                                    <select id="notices-course-filter" onchange="filterNotices()" class="w-[110px] h-[38px] px-2.5 rounded-xl bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-300 text-[11px] font-semibold focus:outline-none appearance-none cursor-pointer">
-                                        <option value="all">All Courses</option>
-                                    </select>
+                                <div class="relative">
+                                    <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-dark-textSecondary"></i>
+                                    <input type="text" id="notices-search" oninput="filterNotices()" placeholder="Search notices..." class="w-full h-[38px] pl-10 pr-3 rounded-xl bg-white/20border border-white/10 text-white placeholder-slate-500 text-[12px] font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white/20transition">
                                 </div>
-                                <select id="admin-notices-batch-filter" onchange="filterNotices()" class="hidden w-full h-[38px] px-3 rounded-xl bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-[12px] font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 transition cursor-pointer">
+                                <select id="admin-notices-batch-filter" onchange="filterNotices()" class="hidden w-full h-[38px] px-3 rounded-xl bg-white/20border border-white/10 text-white text-[12px] font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white/20transition">
                                     <option value="all" class="text-black">All Batches</option>
                                     <!-- Options injected dynamically -->
                                 </select>
-                            </div>
                                 <div class="flex gap-2 overflow-x-auto pb-1 hide-scrollbar" id="notices-filter-chips">
                                     <button onclick="setNoticeFilter('all')" class="notice-filter-btn active px-4 py-1.5 bg-indigo-600 text-white text-[11px] font-bold rounded-full whitespace-nowrap transition-colors" data-filter="all">All</button>
                                     <button onclick="setNoticeFilter('urgent')" class="notice-filter-btn px-4 py-1.5 bg-white/20 text-slate-300 border border-white/10 text-[11px] font-bold rounded-full whitespace-nowrap transition-colors" data-filter="urgent">Urgent</button>
