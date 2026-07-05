@@ -1165,7 +1165,7 @@
                                 </div>
                             </div>
 
-                            <div id="dashboard-urgent-notice" class="hidden mx-6 mt-6 py-2.5 px-4 bg-gradient-to-r from-[#4A51F5] to-[#8C4AF5] rounded-[20px] text-white shadow-lg relative flex items-center justify-between hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer">
+                            <div id="dashboard-urgent-notice" class="hidden mx-6 mt-6 py-2.5 px-4 bg-gradient-to-r from-[#4A51F5] to-[#8C4AF5] rounded-[20px] text-white shadow-lg relative items-center justify-between hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer">
                                 <div class="absolute -top-3.5 left-6 bg-white dark:bg-dark-card border border-red-200 text-[#FF3B30] px-3 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
                                     <span class="w-1.5 h-1.5 rounded-full bg-[#FF3B30] animate-ping"></span>
                                     <span class="text-[8.5px] font-black uppercase tracking-wider">Urgent Notice</span>
@@ -1175,8 +1175,8 @@
                                         <i data-lucide="alert-triangle" class="w-5 h-5 text-white"></i>
                                     </div>
                                     <div class="flex-1 min-w-0 flex flex-col justify-center text-left py-0.5 pl-1">
-                                        <h4 id="dash-urgent-title" class="font-extrabold text-[13.5px] leading-tight tracking-tight truncate text-left"></h4>
-                                        <p id="dash-urgent-desc" class="text-[10px] text-white/80 font-medium text-left mt-1 line-clamp-2 whitespace-normal"></p>
+                                        <h4 id="dash-urgent-title" class="font-extrabold text-[13.5px] leading-tight tracking-tight truncate text-left text-white"></h4>
+                                        <p id="dash-urgent-desc" class="text-[10px] text-slate-200 font-medium text-left mt-1 line-clamp-2 whitespace-normal"></p>
                                     </div>
                                     <i data-lucide="chevron-right" class="w-5 h-5 text-white/90 shrink-0 ml-1 self-center"></i>
                                 </div>
@@ -5585,7 +5585,7 @@
                     const imgContainer = document.getElementById('urgent-popup-attachment');
                     
                     if (titleEl) titleEl.innerText = notice.title;
-                    if (msgEl) msgEl.innerText = notice.message;
+                    if (msgEl) msgEl.innerText = window.stripRichText(notice.message);
                     if (dateEl) {
                         let dStr = notice.notice_date ? getSafariSafeDate(notice.notice_date).toLocaleDateString(undefined, {month:'short', day:'numeric'}) : '';
                         if (notice.notice_time) {

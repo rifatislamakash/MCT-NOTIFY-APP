@@ -307,8 +307,14 @@ window.safeFormatRichText = function(text) {
     safeText = safeText.replace(/\*(.*?)\*/gs, '<em>$1</em>');
     safeText = safeText.replace(/__(.*?)__/gs, '<u>$1</u>');
     
-    // Color (allow hex, rgb, rgba)
-    safeText = safeText.replace(/\[color=([^\]]+)\](.*?)\[\/color\]/gs, '<span style="color: $1; font-weight: 600;">$2</span>');
+    // Color (allow hex, rgb, rgba) - handle nested
+    let prevText;
+    do {
+        prevText = safeText;
+        safeText = safeText.replace(/\[color=([^\]]+)\]((?:(?!\[\/?color).)*?)\[\/color\]/gis, '<span style="color: $1; font-weight: 600;">$2</span>');
+    } while (safeText !== prevText);
+    // Cleanup any orphaned tags
+    safeText = safeText.replace(/\[\/?color(?:=[^\]]+)?\]/gi, '');
     
     // Links (Placeholder approach to prevent double parsing and WebKit issues)
     let linkMap = [];
@@ -335,6 +341,10 @@ window.safeFormatRichText = function(text) {
 window.stripRichText = function(text) {
     if (!text) return '';
     let plain = String(text);
+    // Remove color tags
+    plain = plain.replace(/\[\/?color(?:=[^\]]+)?\]/gi, '');
+    // Remove link formats [text](url) -> text
+    plain = plain.replace(/\[(.*?)\]\((https?:\/\/[^\)]+)\)/gs, '$1');
     // Remove formatting tokens but keep the text
     plain = plain.replace(/\*\*(.*?)\*\*/gs, '$1');
     plain = plain.replace(/\*(.*?)\*/gs, '$1');

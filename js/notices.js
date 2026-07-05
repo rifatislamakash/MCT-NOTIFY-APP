@@ -514,15 +514,17 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (urgentCard) {
                 if (latestUrgent) {
                     urgentCard.classList.remove('hidden');
+                    urgentCard.classList.add('flex');
                     const dashTitle = document.getElementById('dash-urgent-title');
                     const dashDesc = document.getElementById('dash-urgent-desc');
                     if (dashTitle) dashTitle.innerText = latestUrgent.title;
                     if (dashDesc) {
                         let text = (latestUrgent.message || '').replace(/\n+/g, ' ').trim();
-                        dashDesc.innerHTML = window.safeFormatRichText(text);
+                        dashDesc.innerText = window.stripRichText(text);
                     }
                     urgentCard.onclick = () => openNoticeDetails(latestUrgent.id);
                 } else {
+                    urgentCard.classList.remove('flex');
                     urgentCard.classList.add('hidden');
                 }
             }
