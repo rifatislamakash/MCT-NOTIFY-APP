@@ -128,17 +128,14 @@ export class SeenService {
         const seen = this.cache[contentId] || [];
         if (seen.length === 0) return;
 
-        // Use the Reaction modal container logic to display a beautiful list
-        const modal = document.getElementById('reaction-details-modal');
-        const overlay = document.getElementById('reaction-details-overlay');
-        const header = document.getElementById('who-reacted-header');
-        const list = document.getElementById('who-reacted-list');
-        const title = document.getElementById('reaction-details-title');
+        // Use the Seen By modal container logic
+        const modal = document.getElementById('seen-by-modal');
+        const countBadge = document.getElementById('seen-by-count');
+        const list = document.getElementById('seen-by-list');
 
-        if (!modal || !header || !list || !title) return;
+        if (!modal || !countBadge || !list) return;
 
-        title.innerText = "Seen By";
-        header.innerHTML = `<div class="px-4 py-3 flex items-center gap-2 border-b-2 border-[#4226E9] text-[#4226E9] font-bold text-[13px]"><i data-lucide="eye" class="w-4 h-4"></i> Viewers (${seen.length})</div>`;
+        countBadge.innerText = seen.length;
         
         list.innerHTML = seen.map(s => `
             <div class="flex items-center gap-3 p-3 border-b border-slate-50 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-dark-bg/50 transition-colors">
@@ -153,25 +150,43 @@ export class SeenService {
         if (window.lucide) window.lucide.createIcons();
 
         // Show modal
-        modal.classList.remove('pointer-events-none', 'opacity-0', 'translate-y-full');
-        modal.classList.add('translate-y-0');
-        overlay.classList.remove('pointer-events-none', 'opacity-0');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modal.querySelector('.transform').classList.remove('translate-y-full');
+        }, 10);
     }
     
     // Setup intersection observer for feed auto-marking
+    static _visibilityTimers = {};
+
     static initScrollTracking() {
         if (!('IntersectionObserver' in window)) return;
         
         this.observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
+                const el = entry.target;
+                const type = el.getAttribute('data-seen-type');
+                const id = el.getAttribute('data-seen-id');
+                const key = `${type}_${id}`;
+
                 if (entry.isIntersecting) {
-                    const el = entry.target;
-                    const type = el.getAttribute('data-seen-type');
-                    const id = el.getAttribute('data-seen-id');
-                    if (id && type) {
-                        this.markAsSeen(id, type);
-                        // Once marked, stop observing to save resources
-                        this.observer.unobserve(el);
+                    // Start timer when element comes into view
+                    if (!this._visibilityTimers[key]) {
+                        this._visibilityTimers[key] = setTimeout(() => {
+                            if (id && type) {
+                                this.markAsSeen(id, type);
+                                // Once marked, stop observing to save resources
+                                this.observer.unobserve(el);
+                            }
+                            delete this._visibilityTimers[key];
+                        }, 3000); // 3 seconds
+                    }
+                } else {
+                    // Cancel timer if element goes out of view before 3 seconds
+                    if (this._visibilityTimers[key]) {
+                        clearTimeout(this._visibilityTimers[key]);
+                        delete this._visibilityTimers[key];
                     }
                 }
             });

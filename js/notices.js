@@ -478,11 +478,17 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                     <h4 class="font-[700] text-[16px] text-[#111827] dark:text-indigo-50 mt-0 truncate leading-tight">${window.safeFormatRichText(n.title)}</h4>
                                     <p class="text-[14px] text-[#4b5563] dark:text-dark-textSecondary line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.safeFormatRichText(n.message)}</p>
                                 </div>
-                                <div class="w-full mt-[12px] !flex !flex-wrap !justify-between !items-center !gap-[8px]">
-                                    <div class="flex-1">${bottomEventTagsHtml}</div>
-                                    <div class="shrink-0 ml-3 flex items-center">
-                                        ${window.SeenService ? window.SeenService.renderSeenBlock('notice', n.id) : ''}
-                                        ${window.ReactionService ? window.ReactionService.renderReactionBlock('notice', n.id) : ''}
+                                <div class="w-full mt-[12px] flex flex-wrap items-center justify-between gap-y-3 gap-x-2">
+                                    <div class="flex items-center justify-center w-full md:w-auto md:justify-start">
+                                        ${bottomEventTagsHtml}
+                                    </div>
+                                    <div class="flex items-center justify-between w-full md:w-auto md:justify-end gap-[4px]">
+                                        <div class="shrink-0 flex items-center">
+                                            ${window.SeenService ? window.SeenService.renderSeenBlock('notice', n.id) : ''}
+                                        </div>
+                                        <div class="shrink-0 flex items-center">
+                                            ${window.ReactionService ? window.ReactionService.renderReactionBlock('notice', n.id) : ''}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -529,13 +535,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 }
             }
             
-            // Trigger popup globally for ALL users (Admins, CRs, and Students)
-            if (typeof window.triggerUrgentPopupModal === 'function') {
-                window._urgentNoticeForPopup = latestUrgent || null;
-                if (latestUrgent) {
-                    triggerUrgentPopupModal();
-                }
-            }
+            // Popup triggering is now handled by triggerUnseenUpdatesPopup in auth.js after all dashboard data loads.
 
             // Recent Updates Feed
             const recentContainer = document.getElementById('dashboard-recent-notices');
@@ -643,11 +643,17 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                         <h4 class="font-[700] text-[16px] text-[#111827] dark:text-indigo-50 mt-0 truncate leading-tight">${window.safeFormatRichText(n.title)}</h4>
                                         <p class="text-[14px] text-[#4b5563] dark:text-dark-textSecondary line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.safeFormatRichText(n.message)}</p>
                                     </div>
-                                    <div class="w-full mt-[12px] !flex !flex-wrap !justify-between !items-center !gap-[8px]">
-                                        <div class="flex-1">${bottomEventTagsHtml}</div>
-                                        <div class="shrink-0 ml-3 flex items-center">
-                                            ${window.SeenService ? window.SeenService.renderSeenBlock('notice', n.id) : ''}
-                                            ${(window.ReactionService && !isPoll) ? window.ReactionService.renderReactionBlock('notice', n.id) : ''}
+                                    <div class="w-full mt-[12px] flex flex-wrap items-center justify-between gap-y-3 gap-x-2">
+                                        <div class="flex items-center justify-center w-full md:w-auto md:justify-start">
+                                            ${bottomEventTagsHtml}
+                                        </div>
+                                        <div class="flex items-center justify-between w-full md:w-auto md:justify-end gap-[4px]">
+                                            <div class="shrink-0 flex items-center">
+                                                ${window.SeenService ? window.SeenService.renderSeenBlock('notice', n.id) : ''}
+                                            </div>
+                                            <div class="shrink-0 flex items-center">
+                                                ${(window.ReactionService && !isPoll) ? window.ReactionService.renderReactionBlock('notice', n.id) : ''}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -701,17 +707,23 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             return `
                                 <div class="flex flex-col w-full max-w-full box-border p-[16px] bg-white dark:bg-gradient-to-br dark:from-[#0F1117] dark:to-[#1A1D26] rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 dark:border-white/5 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer recent-update-card" onclick="openScheduleDetails('${window.sanitizeHTML(s.id)}')" data-seen-type="schedule" data-seen-id="${s.id}">
                                     ${window.AuthorService ? window.AuthorService.renderAuthorBlock(s.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
-                                    <div class="mt-1 flex flex-col">
-                                        <h4 class="font-[700] text-[16px] text-[#111827] dark:text-indigo-50 mt-0 truncate leading-tight">${window.safeFormatRichText(s.title)}</h4>
-                                        <p class="text-[14px] text-[#4b5563] dark:text-dark-textSecondary line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.safeFormatRichText(s.message)}</p>
-                                    </div>
-                                    <div class="w-full mt-[12px] !flex !flex-wrap !justify-between !items-center !gap-[8px]">
-                                        <div class="flex-1">${bottomEventTagsHtml}</div>
-                                        <div class="shrink-0 ml-3 flex items-center">
-                                            ${window.SeenService ? window.SeenService.renderSeenBlock('schedule', s.id) : ''}
-                                            ${window.ReactionService ? window.ReactionService.renderReactionBlock('schedule', s.id) : ''}
-                                        </div>
-                                    </div>
+                                     <div class="mt-1 flex flex-col">
+                                         <h4 class="font-[700] text-[16px] text-[#111827] dark:text-indigo-50 mt-0 truncate leading-tight">${window.safeFormatRichText(s.title)}</h4>
+                                         <p class="text-[14px] text-[#4b5563] dark:text-dark-textSecondary line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.safeFormatRichText(s.message)}</p>
+                                     </div>
+                                     <div class="w-full mt-[12px] flex flex-wrap items-center justify-between gap-y-3 gap-x-2">
+                                         <div class="flex items-center justify-center w-full md:w-auto md:justify-start">
+                                             ${bottomEventTagsHtml}
+                                         </div>
+                                         <div class="flex items-center justify-between w-full md:w-auto md:justify-end gap-[4px]">
+                                             <div class="shrink-0 flex items-center">
+                                                 ${window.SeenService ? window.SeenService.renderSeenBlock('schedule', s.id) : ''}
+                                             </div>
+                                             <div class="shrink-0 flex items-center">
+                                                 ${window.ReactionService ? window.ReactionService.renderReactionBlock('schedule', s.id) : ''}
+                                             </div>
+                                         </div>
+                                     </div>
                                 </div>
                             `;
                         }
@@ -1552,6 +1564,170 @@ import { ProfileStore } from './stores/ProfileStore.js';
         
 
 
+        // ==========================================
+        // UNSEEN UPDATES POPUP LOGIC
+        // ==========================================
+        window.triggerUnseenUpdatesPopup = function() {
+            if (typeof window.currentActiveScreen !== 'undefined' && window.currentActiveScreen !== 'screen-student-dashboard' && window.currentActiveScreen !== 'screen-admin-dashboard') {
+                return;
+            }
+
+            const modal = document.getElementById('unseen-updates-modal');
+            const listContainer = document.getElementById('unseen-updates-list');
+            if (!modal || !listContainer) return;
+
+            const now = new Date();
+            const userId = window.authState?.user?.id;
+            if (!userId) return;
+
+            // Gather active notices & polls
+            const noticesArray = (window.currentNoticesList || []).filter(n => {
+                const noticeD = new Date((n.notice_date || n.created_at.split('T')[0]) + 'T' + (n.notice_time || '23:59:00'));
+                if (noticeD < now) return false; // expired
+                
+                // Check if already seen
+                const seenCache = window.SeenService?.cache[n.id] || [];
+                if (seenCache.some(s => s.user_id === userId)) return false; // seen
+                
+                return true;
+            }).map(n => {
+                const noticeD = new Date((n.notice_date || n.created_at.split('T')[0]) + 'T' + (n.notice_time || '23:59:00'));
+                return { ...n, __type: 'notice', sortDate: noticeD };
+            });
+
+            // Gather active schedules
+            const schedulesArray = (window.currentSchedulesList || []).filter(s => {
+                const schedD = new Date((s.schedule_date || s.created_at.split('T')[0]) + 'T' + (s.schedule_time || '23:59:00'));
+                if (schedD < now) return false; // expired
+
+                // Check if already seen
+                const seenCache = window.SeenService?.cache[s.id] || [];
+                if (seenCache.some(sc => sc.user_id === userId)) return false; // seen
+
+                return true;
+            }).map(s => {
+                const schedD = new Date((s.schedule_date || s.created_at.split('T')[0]) + 'T' + (s.schedule_time || '23:59:00'));
+                return { ...s, __type: 'schedule', sortDate: schedD };
+            });
+
+            const combinedUpdates = [...noticesArray, ...schedulesArray].sort((a, b) => {
+                // Urgent notices always at the top
+                if (a.notice_type === 'urgent' && b.notice_type !== 'urgent') return -1;
+                if (a.notice_type !== 'urgent' && b.notice_type === 'urgent') return 1;
+                // Pinned next
+                if (a.is_pinned && !b.is_pinned) return -1;
+                if (!a.is_pinned && b.is_pinned) return 1;
+                // Then by created date descending
+                return new Date(b.created_at) - new Date(a.created_at);
+            });
+
+            window._currentUnseenItems = combinedUpdates; // Store for mark all
+
+            if (combinedUpdates.length === 0) {
+                // If nothing unseen, ensure modal is closed
+                window.dismissUnseenUpdatesModal();
+                return;
+            }
+
+            listContainer.innerHTML = combinedUpdates.map(item => {
+                const pin = item.is_pinned ? `<i data-lucide="pin" class="w-4 h-4 text-orange-500 fill-orange-500"></i>` : '';
+                let rightSideHtml = `<div class="flex items-center gap-2">
+                    ${pin}
+                    <button onclick="window.markSingleUnseenAsRead('${item.id}', '${item.__type}', this, event)" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-dark-text font-bold text-[11px] rounded-[8px] transition-colors">
+                        Got it
+                    </button>
+                </div>`;
+
+                if (item.__type === 'notice') {
+                    const n = item;
+                    const isPoll = n.notice_type === 'poll';
+                    const isUrgent = n.notice_type === 'urgent';
+                    
+                    let badgeHtml = isPoll 
+                        ? `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] bg-indigo-100 text-[#4226E9] uppercase">POLL</span>` 
+                        : isUrgent 
+                        ? `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] bg-red-100 text-red-600 uppercase">URGENT</span>`
+                        : `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] bg-indigo-100 text-[#4226E9] uppercase">NOTICE</span>`;
+                    
+                    const clickAction = isPoll ? `window.PollService.openPollDetails('${window.sanitizeHTML(n.id)}')` : `openNoticeDetails('${window.sanitizeHTML(n.id)}')`;
+
+                    return `
+                        <div id="unseen-card-${n.id}" class="flex flex-col w-full box-border p-[14px] bg-slate-50 dark:bg-white/5 rounded-[16px] border border-slate-100 dark:border-white/5 transition-all active:scale-[0.98] cursor-pointer" onclick="${clickAction}">
+                            <div class="flex items-start justify-between w-full mb-1">
+                                ${badgeHtml}
+                                ${rightSideHtml}
+                            </div>
+                            <h4 class="font-[700] text-[14px] text-slate-900 dark:text-dark-text mt-1 leading-tight">${window.safeFormatRichText(n.title)}</h4>
+                            <p class="text-[12px] text-slate-500 dark:text-dark-textSecondary line-clamp-2 mt-1 leading-snug">${window.safeFormatRichText(n.message)}</p>
+                        </div>
+                    `;
+                } else {
+                    const s = item;
+                    let badgeHtml = `<span class="px-[5px] py-[1.5px] rounded-[4px] text-[10px] font-bold tracking-[0.03em] bg-emerald-100 text-emerald-600 uppercase">SCHEDULE</span>`;
+                    return `
+                        <div id="unseen-card-${s.id}" class="flex flex-col w-full box-border p-[14px] bg-slate-50 dark:bg-white/5 rounded-[16px] border border-slate-100 dark:border-white/5 transition-all active:scale-[0.98] cursor-pointer" onclick="openScheduleDetails('${window.sanitizeHTML(s.id)}')">
+                            <div class="flex items-start justify-between w-full mb-1">
+                                ${badgeHtml}
+                                ${rightSideHtml}
+                            </div>
+                            <h4 class="font-[700] text-[14px] text-slate-900 dark:text-dark-text mt-1 leading-tight">${window.safeFormatRichText(s.title)}</h4>
+                            <p class="text-[12px] text-slate-500 dark:text-dark-textSecondary line-clamp-2 mt-1 leading-snug">${window.safeFormatRichText(s.message)}</p>
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            const innerCard = modal.querySelector('.scale-90');
+            if (innerCard) innerCard.classList.replace('scale-90', 'scale-100');
+        };
+
+        window.dismissUnseenUpdatesModal = function() {
+            const modal = document.getElementById('unseen-updates-modal');
+            if (modal) {
+                const innerCard = modal.querySelector('.scale-100');
+                if (innerCard) innerCard.classList.replace('scale-100', 'scale-90');
+                modal.classList.add('opacity-0', 'pointer-events-none');
+            }
+        };
+
+        window.markSingleUnseenAsRead = function(id, type, btn, event) {
+            event.stopPropagation();
+            if (window.SeenService) window.SeenService.markAsSeen(id, type);
+            
+            // Animate card removal
+            const card = document.getElementById(`unseen-card-${id}`);
+            if (card) {
+                card.style.height = card.offsetHeight + 'px';
+                card.style.overflow = 'hidden';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    card.style.height = '0px';
+                    card.style.padding = '0px';
+                    card.style.margin = '0px';
+                    card.style.border = 'none';
+                }, 150);
+                setTimeout(() => {
+                    card.remove();
+                    // Check if list is empty now
+                    const listContainer = document.getElementById('unseen-updates-list');
+                    if (listContainer && listContainer.children.length === 0) {
+                        window.dismissUnseenUpdatesModal();
+                    }
+                }, 400); // Wait for transition
+            }
+        };
+
+        window.markAllUnseenAsRead = function() {
+            const items = window._currentUnseenItems || [];
+            items.forEach(item => {
+                if (window.SeenService) window.SeenService.markAsSeen(item.id, item.__type);
+            });
+            window.dismissUnseenUpdatesModal();
+        };
 
 export const NoticeService = {
     _urgentNoticeForPopup: typeof _urgentNoticeForPopup !== 'undefined' ? _urgentNoticeForPopup : window._urgentNoticeForPopup,

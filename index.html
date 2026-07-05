@@ -5409,43 +5409,39 @@
                     </div>
 
                     <!-- ========================================== -->
-                    <!-- DYNAMIC URGENT NOTICE POPUP MODAL          -->
+                    <!-- UNSEEN UPDATES POPUP MODAL                 -->
                     <!-- ========================================== -->
-                    <div id="urgent-notice-modal" class="absolute inset-0 bg-black/60  z-50 flex items-center justify-center p-6 opacity-0 pointer-events-none transition-all duration-350">
-                        <div class="bg-white dark:bg-dark-card rounded-[32px] p-6 w-full max-w-[290px] shadow-2xl relative overflow-hidden transform scale-90 transition-transform duration-350">
+                    <div id="unseen-updates-modal" class="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 sm:p-6 opacity-0 pointer-events-none transition-all duration-350">
+                        <div class="bg-white dark:bg-dark-card rounded-[24px] sm:rounded-[32px] w-full max-w-md shadow-2xl relative overflow-hidden transform scale-90 transition-transform duration-350 flex flex-col max-h-[85vh]">
                             <!-- Background accents -->
-                            <div class="absolute -right-10 -top-10 w-28 h-28 bg-[#4226E9]/5 rounded-full blur-xl"></div>
-                            <div class="absolute -left-10 -bottom-10 w-28 h-28 bg-[#8B5CF6]/5 rounded-full blur-xl"></div>
+                            <div class="absolute -right-10 -top-10 w-28 h-28 bg-[#4226E9]/5 rounded-full blur-xl pointer-events-none"></div>
+                            <div class="absolute -left-10 -bottom-10 w-28 h-28 bg-[#8B5CF6]/5 rounded-full blur-xl pointer-events-none"></div>
 
-                            <!-- Ringing Bell Icon -->
-                            <div class="w-14 h-14 bg-[#4226E9]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                                <i data-lucide="bell-ring" class="w-7 h-7 text-[#4226E9] animate-bounce"></i>
-                            </div>
-
-                            <div class="text-center space-y-2">
-                                <span class="inline-block text-[9px] font-black uppercase bg-red-50 text-red-500 px-3 py-1 rounded-full">
-                                    🚨 Urgent Announcement
-                                </span>
-                                <h3 id="urgent-popup-title" class="font-extrabold text-[15px] text-slate-900 dark:text-dark-text leading-snug text-center">
-                                    Loading...
-                                </h3>
-                                <p id="urgent-popup-message" class="text-xs text-slate-500 dark:text-dark-textSecondary font-medium leading-relaxed text-center line-clamp-3">
-                                </p>
-                                <div id="urgent-popup-date-row" class="bg-slate-50 dark:bg-dark-bg/50 p-2.5 rounded-xl border border-slate-100 dark:border-white/5 flex items-center justify-center gap-2 text-xs font-bold text-slate-700 dark:text-dark-textSecondary">
-                                    <i data-lucide="calendar" class="w-5 h-5"></i>
-                                    <span id="urgent-popup-datetime"></span>
+                            <!-- Header -->
+                            <div class="p-4 sm:p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between shrink-0 relative z-10">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-[#4226E9]/10 rounded-xl flex items-center justify-center">
+                                        <i data-lucide="bell-ring" class="w-5 h-5 text-[#4226E9] animate-bounce"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-extrabold text-[16px] sm:text-[18px] text-slate-900 dark:text-dark-text leading-tight">Unseen Updates</h3>
+                                        <p class="text-[11px] sm:text-[12px] text-slate-500 dark:text-dark-textSecondary font-medium">Catch up on what you missed</p>
+                                    </div>
                                 </div>
-                                <div id="urgent-popup-attachment" class="hidden mt-2">
-                                    <img id="urgent-popup-att-img" class="w-full max-h-[120px] object-contain rounded-xl" src="">
-                                </div>
-                            </div>
-
-                            <div class="mt-5 flex flex-col gap-2">
-                                <button id="urgent-popup-view-btn" onclick="viewUrgentNoticeDetails()" class="w-full py-3 bg-[#4226E9] hover:bg-[#341BC5] text-white font-extrabold rounded-full text-xs shadow-md shadow-indigo-600/10 transition-all active:scale-95">
-                                    View Details
+                                <button onclick="dismissUnseenUpdatesModal()" class="w-8 h-8 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-full flex items-center justify-center text-slate-500 dark:text-dark-textSecondary transition-colors">
+                                    <i data-lucide="x" class="w-4 h-4"></i>
                                 </button>
-                                <button onclick="dismissUrgentModal()" class="w-full py-2.5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-dark-textSecondary font-bold rounded-full text-xs transition-all active:scale-95">
-                                    Dismiss
+                            </div>
+
+                            <!-- Content List -->
+                            <div id="unseen-updates-list" class="p-4 sm:p-6 overflow-y-auto flex-1 space-y-3 sm:space-y-4 no-scrollbar relative z-10">
+                                <!-- Cards will be injected here via JS -->
+                            </div>
+
+                            <!-- Footer -->
+                            <div class="p-4 sm:p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-dark-bg/20 shrink-0 relative z-10">
+                                <button onclick="markAllUnseenAsRead()" class="w-full py-3 bg-[#4226E9] hover:bg-[#341BC5] text-white font-extrabold rounded-full text-[13px] shadow-md shadow-indigo-600/10 transition-all active:scale-95 flex items-center justify-center gap-2">
+                                    <i data-lucide="check-check" class="w-4 h-4"></i> Mark all as read
                                 </button>
                             </div>
                         </div>
@@ -5564,84 +5560,7 @@
 
 
 
-        function triggerUrgentPopupModal() {
-            if (typeof window.currentActiveScreen !== 'undefined' && window.currentActiveScreen !== 'screen-student-dashboard' && window.currentActiveScreen !== 'screen-admin-dashboard') {
-                return;
-            }
-            
-            const modal = document.getElementById('urgent-notice-modal');
-            const notice = window._urgentNoticeForPopup;
-            
-            if (modal && notice) {
-                let seenNotices = [];
-                try { seenNotices = JSON.parse(localStorage.getItem('seenUrgentNotices')) || []; } catch(e){}
-                
-                if (!seenNotices.includes(notice.id)) {
-                    // Populate data
-                    const titleEl = document.getElementById('urgent-popup-title');
-                    const msgEl = document.getElementById('urgent-popup-message');
-                    const dateEl = document.getElementById('urgent-popup-datetime');
-                    const imgEl = document.getElementById('urgent-popup-att-img');
-                    const imgContainer = document.getElementById('urgent-popup-attachment');
-                    
-                    if (titleEl) titleEl.innerText = notice.title;
-                    if (msgEl) msgEl.innerText = window.stripRichText(notice.message);
-                    if (dateEl) {
-                        let dStr = notice.notice_date ? getSafariSafeDate(notice.notice_date).toLocaleDateString(undefined, {month:'short', day:'numeric'}) : '';
-                        if (notice.notice_time) {
-                            const [h,m] = notice.notice_time.split(':');
-                            const ampm = +h>=12?'PM':'AM';
-                            const h12 = +h%12||12;
-                            dStr += (dStr?' • ':'') + `${h12}:${m} ${ampm}`;
-                        }
-                        if (!dStr) dStr = getSafariSafeDate(notice.created_at).toLocaleDateString(undefined, {month:'short', day:'numeric'});
-                        dateEl.innerText = dStr;
-                    }
-
-                    if (notice.attachment_url) {
-                        imgContainer.classList.remove('hidden');
-                        imgEl.src = notice.attachment_url;
-                    } else {
-                        imgContainer.classList.add('hidden');
-                    }
-                    
-                    modal.classList.remove('opacity-0', 'pointer-events-none');
-                    const innerCard = modal.querySelector('.scale-90');
-                    if (innerCard) innerCard.classList.replace('scale-90', 'scale-100');
-                }
-            }
-        }
-        
-        window.markUrgentNoticeAsSeen = function() {
-            if (window._urgentNoticeForPopup) {
-                if (window.SeenService) window.SeenService.markAsSeen(window._urgentNoticeForPopup.id, 'notice');
-                let seenNotices = [];
-                try { seenNotices = JSON.parse(localStorage.getItem('seenUrgentNotices')) || []; } catch(e){}
-                if (!seenNotices.includes(window._urgentNoticeForPopup.id)) {
-                    seenNotices.push(window._urgentNoticeForPopup.id);
-                    localStorage.setItem('seenUrgentNotices', JSON.stringify(seenNotices));
-                }
-            }
-        };
-
-        window.dismissUrgentModal = function() {
-            window.markUrgentNoticeAsSeen();
-            const modal = document.getElementById('urgent-notice-modal');
-            if (modal) {
-                const innerCard = modal.querySelector('.scale-100');
-                if (innerCard) innerCard.classList.replace('scale-100', 'scale-90');
-                modal.classList.add('opacity-0', 'pointer-events-none');
-            }
-        };
-
-        window.viewUrgentNoticeDetails = function() {
-            window.markUrgentNoticeAsSeen();
-            const modal = document.getElementById('urgent-notice-modal');
-            if (modal) modal.classList.add('opacity-0', 'pointer-events-none');
-            if (window._urgentNoticeForPopup) {
-                openNoticeDetails(window._urgentNoticeForPopup.id);
-            }
-        };
+        // Old urgent modal functions removed. Replaced by triggerUnseenUpdatesPopup in notices.js
 
 
 
@@ -6835,7 +6754,7 @@
 
                 showGlobalToast("Onboarding Completed", "Almost there!");
                 navigate('screen-notification-permission');
-                if (typeof triggerUrgentPopupModal === 'function') triggerUrgentPopupModal();
+                if (typeof window.triggerUnseenUpdatesPopup === 'function') window.triggerUnseenUpdatesPopup();
                 if (typeof loadNotices === 'function') loadNotices();
                 // Redundant loadDashboardTodayRoutine removed: handled safely by navigation triggers and auth.js
 
@@ -6900,7 +6819,7 @@
                 showLoader(false);
             }
         }
-        window.triggerUrgentPopupModal = triggerUrgentPopupModal;
+        // triggerUrgentPopupModal assignment removed
 
         function renderStudentAvailableCoursesList(containerId, courses) {
             const container = document.getElementById(containerId);

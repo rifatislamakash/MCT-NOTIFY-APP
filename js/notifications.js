@@ -448,7 +448,7 @@
                 window.navigate('screen-student-dashboard');
             }
             if (typeof window.loadDashboardDataAsync === 'function') window.loadDashboardDataAsync();
-            if (typeof window.triggerUrgentPopupModal === 'function') window.triggerUrgentPopupModal();
+            if (typeof window.triggerUnseenUpdatesPopup === 'function') window.triggerUnseenUpdatesPopup();
             updateNotificationStatusUI();
         }
 

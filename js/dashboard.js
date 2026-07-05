@@ -511,7 +511,29 @@ const getSafariSafeDate = window.getSafariSafeDate;
                     }
                 }
 
-                const mergedClasses = todayClasses.map(c => ({...c, isMerged: false, durationHrs: 1.5}));
+                let mergedClasses = [];
+                for (let i = 0; i < todayClasses.length; i++) {
+                    let currentClass = { ...todayClasses[i], isMerged: false, durationHrs: 1.5 };
+                    let isBreak = !currentClass.course_id || currentClass.room_number === 'Break';
+                    
+                    if (mergedClasses.length > 0 && !isBreak) {
+                        let lastClass = mergedClasses[mergedClasses.length - 1];
+                        let lastIsBreak = !lastClass.course_id || lastClass.room_number === 'Break';
+                        
+                        // Check if same course and faculty
+                        if (!lastIsBreak && lastClass.course_id === currentClass.course_id && lastClass.faculty_id === currentClass.faculty_id) {
+                            // Check if contiguous time
+                            const endTimeLastStr = getEndTime(lastClass.start_time, lastClass.durationHrs);
+                            const currentStartStr = currentClass.start_time ? currentClass.start_time.split(':').slice(0, 2).join(':') : '';
+                            if (endTimeLastStr === currentStartStr) {
+                                lastClass.durationHrs += 1.5;
+                                lastClass.isMerged = true;
+                                continue;
+                            }
+                        }
+                    }
+                    mergedClasses.push(currentClass);
+                }
                 const now = new Date();
                 const nowMins = isToday ? (now.getHours() * 60 + now.getMinutes()) : -1;
 

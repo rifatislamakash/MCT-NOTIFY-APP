@@ -1147,10 +1147,32 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const endMM = Math.round(totalMins % 60);
                 return `${String(endHH).padStart(2, '0')}:${String(endMM).padStart(2, '0')}`;
             }
+            let mergedClasses = [];
+            for (let i = 0; i < todayClasses.length; i++) {
+                let currentClass = { ...todayClasses[i], isMerged: false, durationHrs: 1.5 };
+                let isBreak = !currentClass.course_id || currentClass.room_number === 'Break';
+                
+                if (mergedClasses.length > 0 && !isBreak) {
+                    let lastClass = mergedClasses[mergedClasses.length - 1];
+                    let lastIsBreak = !lastClass.course_id || lastClass.room_number === 'Break';
+                    
+                    // Check if same course and faculty
+                    if (!lastIsBreak && lastClass.course_id === currentClass.course_id && lastClass.faculty_id === currentClass.faculty_id) {
+                        const endTimeLastStr = getEndTime(lastClass.start_time, lastClass.durationHrs);
+                        const currentStartStr = currentClass.start_time ? currentClass.start_time.split(':').slice(0, 2).join(':') : '';
+                        if (endTimeLastStr === currentStartStr) {
+                            lastClass.durationHrs += 1.5;
+                            lastClass.isMerged = true;
+                            continue;
+                        }
+                    }
+                }
+                mergedClasses.push(currentClass);
+            }
 
-            container.innerHTML = todayClasses.map((cls, idx) => {
+            container.innerHTML = mergedClasses.map((cls, idx) => {
                 const timeDisplay = formatRoutineTime(cls.start_time);
-                const endTimeStr = getEndTime(cls.start_time, 1.5);
+                const endTimeStr = getEndTime(cls.start_time, cls.durationHrs);
                 const endTimeDisplay = formatRoutineTime(endTimeStr);
                 const [hh, mm] = (cls.start_time || '00:00').split(':').map(Number);
                 const classMins = hh * 60 + mm;
@@ -1177,9 +1199,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         </div>`;
                 }
 
-                const isOngoing = showingToday && classMins <= nowMins && nowMins < classMins + 90;
+                const durationMins = cls.durationHrs * 60;
+                const isOngoing = showingToday && classMins <= nowMins && nowMins < classMins + durationMins;
                 const isUpcoming = !showingToday || classMins > nowMins;
-                const isPast = showingToday && classMins + 90 <= nowMins;
+                const isPast = showingToday && classMins + durationMins <= nowMins;
 
                 const courseName = window.sanitizeHTML(cls.courses?.course_name || 'Unknown Course');
                 const teacherName = window.sanitizeHTML(cls.faculty?.faculty_name || 'Unknown Teacher');

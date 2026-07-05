@@ -486,6 +486,8 @@ export class PollService {
                 });
             }
 
+            if (window.SeenService) window.SeenService.markAsSeen(pollId, 'notice');
+
             showGlobalToast("Success", "Vote cast successfully!");
             this.closePollPopup();
             this.loadPolls();

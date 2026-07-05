@@ -205,13 +205,13 @@ export class ReactionService {
         const activeClass = myReaction ? 'bg-indigo-50 border border-indigo-100 hover:bg-indigo-100' : 'bg-[#f3f4f6] border border-transparent hover:bg-slate-200';
 
         return `
-            <div class="flex items-center justify-end w-full" id="reaction-block-${contentId}">
+            <div class="flex items-center" id="reaction-block-${contentId}">
                 <div class="flex items-center gap-[6px] px-[10px] py-[4px] rounded-[20px] shrink-0 min-w-0 transition-colors ${activeClass}">
                     ${this.getReactionPickerHTML(contentType, contentId)}
                     ${this.getReactionSummaryHTML(contentType, contentId)}
                 </div>
                 ${isAdmin ? `
-                <button onclick="event.stopPropagation(); triggerImmediateNotification('${contentType}', '${contentId}', this)" class="px-2.5 py-1.5 bg-[#4226E9] hover:bg-[#341BC5] text-white rounded-[6px] text-[10px] font-bold transition-colors flex items-center gap-1 shrink-0 ml-3 mr-[2px]">
+                <button onclick="event.stopPropagation(); triggerImmediateNotification('${contentType}', '${contentId}', this)" class="px-2.5 py-1.5 bg-[#4226E9] hover:bg-[#341BC5] text-white rounded-[6px] text-[10px] font-bold transition-colors flex items-center gap-1 shrink-0 ml-1 mr-[2px]">
                     <i data-lucide="bell" class="w-3 h-3"></i> Notify
                 </button>
                 ` : ''}
@@ -226,6 +226,8 @@ export class ReactionService {
             showGlobalToast("Error", "You must be logged in to react.");
             return;
         }
+
+        if (window.SeenService) window.SeenService.markAsSeen(contentId, contentType);
 
         // Prevent race condition (rapid clicks causing multiple inserts)
         if (this.pendingToggles[contentId]) return;

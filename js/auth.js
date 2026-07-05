@@ -237,7 +237,7 @@ let isRegistering = false;
                                 window.navigate('screen-student-dashboard');
                                 // window.updateDashboardGreetings(); removed for single owner
                                 await loadDashboardDataAsync().catch(console.warn);
-                                window.triggerUrgentPopupModal();
+                                window.triggerUnseenUpdatesPopup();
                                 setTimeout(window.startReminderEngine, 2000);
                                 window.showGlobalToast("Student Portal", `Welcome back, ${profile?.full_name || 'Fellow'}`);
                             }
