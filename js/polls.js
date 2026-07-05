@@ -209,7 +209,10 @@ export class PollService {
                         ${window.safeFormatRichText(poll.message)}
                     </div>
                     <div class="mt-3 flex items-center justify-between text-[10px] font-bold text-slate-400 dark:text-dark-textSecondary">
-                        <span>${totalVotes} total votes</span>
+                        <div class="flex items-center gap-2">
+                            <span>${totalVotes} total votes</span>
+                            ${window.SeenService ? window.SeenService.renderSeenBlock('poll', poll.id) : ''}
+                        </div>
                         <div class="flex items-center gap-1 text-indigo-600">
                             View <i data-lucide="chevron-right" class="w-3 h-3"></i>
                         </div>
@@ -222,6 +225,7 @@ export class PollService {
     }
 
     static openPollDetails(pollId) {
+        if (window.SeenService) window.SeenService.markAsSeen(pollId, 'poll');
         const poll = this.currentPolls.find(p => p.id === pollId);
         if (!poll) return;
 
@@ -259,14 +263,29 @@ export class PollService {
                 const optionVoters = votes.filter(v => v.reaction_type === opt);
                 let votersHtml = '';
                 if (optionVoters.length > 0 && (releaseResults || hasVoted || isEnded)) {
-                    const namesHtml = optionVoters.map(v => window.sanitizeHTML(v.profiles?.full_name || 'Unknown')).join(', ');
+                    const namesHtml = optionVoters.map(v => {
+                        const name = window.sanitizeHTML(v.profiles?.full_name || 'Unknown User');
+                        const initial = name.charAt(0).toUpperCase();
+                        let avatarHtml = `<span class="font-bold text-[10px] text-[#4226E9]">${initial}</span>`;
+                        if (v.profiles?.profile_url) {
+                            avatarHtml = `<img src="${window.sanitizeUrl(v.profiles.profile_url)}" class="w-full h-full object-cover rounded-full">`;
+                        }
+                        return `
+                            <div class="flex items-center gap-2 py-1">
+                                <div class="w-5 h-5 rounded-full bg-indigo-50 flex items-center justify-center border border-slate-100 dark:border-white/5 shrink-0 overflow-hidden">
+                                    ${avatarHtml}
+                                </div>
+                                <span class="font-medium text-slate-700 dark:text-slate-300">${name}</span>
+                            </div>
+                        `;
+                    }).join('');
                     votersHtml = `
                         <details class="mt-2 group relative z-20">
                             <summary class="text-[10px] font-bold text-slate-500 dark:text-dark-textSecondary cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition list-none flex items-center gap-1 w-max">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                                 View Voters (${optionVoters.length})
                             </summary>
-                            <div class="mt-1.5 text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed max-h-24 overflow-y-auto overscroll-contain pr-1">
+                            <div class="mt-1.5 text-[11px] leading-relaxed max-h-32 overflow-y-auto overscroll-contain pr-1 flex flex-col gap-0.5">
                                 ${namesHtml}
                             </div>
                         </details>

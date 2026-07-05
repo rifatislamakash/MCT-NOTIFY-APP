@@ -587,7 +587,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         </div>
                         <div class="w-full mt-[12px] !flex !flex-wrap !justify-between !items-center !gap-[8px]">
                             <div class="flex-1">${bottomEventTagsHtml}</div>
-                            <div class="shrink-0 ml-3">
+                            <div class="shrink-0 ml-3 flex items-center">
+                                ${window.SeenService ? window.SeenService.renderSeenBlock('schedule', s.id) : ''}
                                 ${window.ReactionService ? window.ReactionService.renderReactionBlock('schedule', s.id) : ''}
                             </div>
                         </div>
@@ -599,6 +600,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
         // ----- OPEN SCHEDULE DETAILS -----
         window.openScheduleDetails = async function (scheduleId) {
+            if (window.SeenService) window.SeenService.markAsSeen(scheduleId, 'schedule');
             selectedScheduleId = scheduleId;
             const s = schedulesList.find(x => x.id === scheduleId);
             if (!s) {
@@ -1177,7 +1179,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         audienceType: audience_type,
                         createdBy: window.authState.user?.id || null,
                         title: title,
-                        message: message
+                        message: window.stripRichText ? window.stripRichText(message) : message
                     });
                     if (!noticeQueueRes.success) console.error("[SCHEDULE] Notice push queue error:", noticeQueueRes.error);
                 }
@@ -1189,14 +1191,14 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     
                     if (notifyAudience) {
                         const { NotificationQueueService } = await import('./services/NotificationQueueService.js');
-                    const queueRes = await NotificationQueueService.queueNotification({
+                        const queueRes = await NotificationQueueService.queueNotification({
                             parentType: 'schedule',
                             parentId: newSchedule.id,
                             isNotifyEnabled: notifyAudience,
                             audienceType: audience_type,
                             createdBy: window.authState.user?.id || null,
                             courseName: selectedCourse ? selectedCourse.title : '',
-                            message: message
+                            message: window.stripRichText ? window.stripRichText(message) : message
                         });
                         if (!queueRes.success) console.error("[SCHEDULE] Schedule push queue error:", queueRes.error);
                     }
@@ -1230,7 +1232,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                     reminder_time: targetTime.toISOString(),
                                     sent: false,
                                     reminder_title: title,
-                                    reminder_message: message,
+                                    reminder_message: window.stripRichText ? window.stripRichText(message) : message,
                                     created_by: window.authState.user?.id || null
                                 });
                             }

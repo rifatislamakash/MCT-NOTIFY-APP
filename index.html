@@ -5024,7 +5024,10 @@
                                     </a>
                                 </div>
 
-                                <div id="nd-reaction-container" class="mt-4 border-t border-slate-100 dark:border-white/5 pt-2"></div>
+                                <div class="mt-4 border-t border-slate-100 dark:border-white/5 pt-2 flex justify-end items-center">
+                                    <div id="nd-seen-container"></div>
+                                    <div id="nd-reaction-container" class="flex-1"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -5611,6 +5614,7 @@
         
         window.markUrgentNoticeAsSeen = function() {
             if (window._urgentNoticeForPopup) {
+                if (window.SeenService) window.SeenService.markAsSeen(window._urgentNoticeForPopup.id, 'notice');
                 let seenNotices = [];
                 try { seenNotices = JSON.parse(localStorage.getItem('seenUrgentNotices')) || []; } catch(e){}
                 if (!seenNotices.includes(window._urgentNoticeForPopup.id)) {
@@ -10699,6 +10703,26 @@
             <!-- Reaction List -->
             <div id="who-reacted-list" class="flex-1 overflow-y-auto no-scrollbar">
                 <!-- Dynamically populated by ReactionService -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- SEEN BY MODAL -->
+    <div id="seen-by-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 transition-all duration-300 opacity-0 pointer-events-none" onclick="document.getElementById('seen-by-modal').classList.add('hidden')">
+        <div class="bg-white dark:bg-dark-card w-full max-w-sm rounded-[24px] shadow-2xl flex flex-col max-h-[80vh] overflow-hidden transform translate-y-full transition-transform duration-300" onclick="event.stopPropagation()">
+            <!-- Header -->
+            <div class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-white/5">
+                <div class="flex items-center gap-2">
+                    <h3 class="font-black text-slate-800 dark:text-dark-text text-[16px]">Seen By</h3>
+                    <span id="seen-by-count" class="text-[12px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full"></span>
+                </div>
+                <button onclick="document.getElementById('seen-by-modal').classList.add('hidden')" class="w-8 h-8 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center text-slate-500 dark:text-dark-textSecondary hover:bg-slate-200 dark:bg-white/10 transition">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <!-- Seen List -->
+            <div id="seen-by-list" class="flex-1 overflow-y-auto no-scrollbar">
+                <!-- Dynamically populated by SeenService -->
             </div>
         </div>
     </div>

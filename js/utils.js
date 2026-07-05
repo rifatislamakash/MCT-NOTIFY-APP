@@ -303,16 +303,16 @@ window.safeFormatRichText = function(text) {
     let safeText = String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     
     // Bold, Italic, Underline
-    safeText = safeText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    safeText = safeText.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    safeText = safeText.replace(/__(.*?)__/g, '<u>$1</u>');
+    safeText = safeText.replace(/\*\*(.*?)\*\*/gs, '<strong>$1</strong>');
+    safeText = safeText.replace(/\*(.*?)\*/gs, '<em>$1</em>');
+    safeText = safeText.replace(/__(.*?)__/gs, '<u>$1</u>');
     
-    // Color
-    safeText = safeText.replace(/\[color=(#[a-zA-Z0-9]{3,6})\](.*?)\[\/color\]/g, '<span style="color: $1; font-weight: 600;">$2</span>');
+    // Color (allow hex, rgb, rgba)
+    safeText = safeText.replace(/\[color=([^\]]+)\](.*?)\[\/color\]/gs, '<span style="color: $1; font-weight: 600;">$2</span>');
     
     // Links (Placeholder approach to prevent double parsing and WebKit issues)
     let linkMap = [];
-    safeText = safeText.replace(/\[(.*?)\]\((https?:\/\/[^\)]+)\)/g, (match, p1, p2) => {
+    safeText = safeText.replace(/\[(.*?)\]\((https?:\/\/[^\)]+)\)/gs, (match, p1, p2) => {
         linkMap.push(`<a href="${p2}" target="_blank" rel="noopener noreferrer" class="text-blue-600 font-bold hover:underline break-all">${p1}</a>`);
         return `___LINK_${linkMap.length - 1}___`;
     });
@@ -332,6 +332,19 @@ window.safeFormatRichText = function(text) {
     return safeText;
 };
 
+window.stripRichText = function(text) {
+    if (!text) return '';
+    let plain = String(text);
+    // Remove formatting tokens but keep the text
+    plain = plain.replace(/\*\*(.*?)\*\*/gs, '$1');
+    plain = plain.replace(/\*(.*?)\*/gs, '$1');
+    plain = plain.replace(/__(.*?)__/gs, '$1');
+    plain = plain.replace(/\[color=[^\]]+\](.*?)\[\/color\]/gs, '$1');
+    // For links [text](url), just keep the text
+    plain = plain.replace(/\[(.*?)\]\(https?:\/\/[^\)]+\)/gs, '$1');
+    return plain;
+};
+
 window.htmlToMarkdown = function(html) {
     let text = html || '';
     
@@ -342,24 +355,24 @@ window.htmlToMarkdown = function(html) {
     text = text.replace(/<br[^>]*>/gi, '\n');
     
     // Bold
-    text = text.replace(/<b\b[^>]*>(.*?)<\/b>/gi, '**$1**');
-    text = text.replace(/<strong\b[^>]*>(.*?)<\/strong>/gi, '**$1**');
+    text = text.replace(/<b\b[^>]*>(.*?)<\/b>/gis, '**$1**');
+    text = text.replace(/<strong\b[^>]*>(.*?)<\/strong>/gis, '**$1**');
     
     // Italic
-    text = text.replace(/<i\b[^>]*>(.*?)<\/i>/gi, '*$1*');
-    text = text.replace(/<em\b[^>]*>(.*?)<\/em>/gi, '*$1*');
+    text = text.replace(/<i\b[^>]*>(.*?)<\/i>/gis, '*$1*');
+    text = text.replace(/<em\b[^>]*>(.*?)<\/em>/gis, '*$1*');
     
     // Underline
-    text = text.replace(/<u\b[^>]*>(.*?)<\/u>/gi, '__$1__');
+    text = text.replace(/<u\b[^>]*>(.*?)<\/u>/gis, '__$1__');
     
     // Colors
-    text = text.replace(/<font[^>]*color="([^"]+)"[^>]*>(.*?)<\/font>/gi, '[color=$1]$2[/color]');
-    text = text.replace(/<span[^>]*style="[^"]*color:\s*([^;"]+)[^"]*"[^>]*>(.*?)<\/span>/gi, function(m, col, content) {
+    text = text.replace(/<font[^>]*color="([^"]+)"[^>]*>(.*?)<\/font>/gis, '[color=$1]$2[/color]');
+    text = text.replace(/<span[^>]*style="[^"]*color:\s*([^;"]+)[^"]*"[^>]*>(.*?)<\/span>/gis, function(m, col, content) {
         return `[color=${col}]${content}[/color]`;
     });
     
     // Links (keep display text and href)
-    text = text.replace(/<a[^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
+    text = text.replace(/<a[^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gis, '[$2]($1)');
     
     // Strip remaining tags
     text = text.replace(/<[^>]+>/g, '');

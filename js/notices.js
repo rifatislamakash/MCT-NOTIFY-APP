@@ -232,6 +232,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 console.log(`[NOTICES] Successfully loaded ${window.currentNoticesList.length} notices.`);
                 const noticeIds = window.currentNoticesList.map(n => n.id);
                 if (window.ReactionService) await window.ReactionService.fetchReactionsForContent('notice', noticeIds);
+                if (window.SeenService) await window.SeenService.fetchSeenForContent('notice', noticeIds);
 
                 if (!skipRender) {
                     injectDashboardNotices();
@@ -479,7 +480,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 </div>
                                 <div class="w-full mt-[12px] !flex !flex-wrap !justify-between !items-center !gap-[8px]">
                                     <div class="flex-1">${bottomEventTagsHtml}</div>
-                                    <div class="shrink-0 ml-3">
+                                    <div class="shrink-0 ml-3 flex items-center">
+                                        ${window.SeenService ? window.SeenService.renderSeenBlock('notice', n.id) : ''}
                                         ${window.ReactionService ? window.ReactionService.renderReactionBlock('notice', n.id) : ''}
                                     </div>
                                 </div>
@@ -502,7 +504,12 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
             // Top Urgent Notice for dashboard (Student)
             const urgentCard = document.getElementById('dashboard-urgent-notice');
-            const latestUrgent = (window.currentNoticesList || []).find(n => n.notice_type === 'urgent');
+            const _nowTime = new Date();
+            const latestUrgent = (window.currentNoticesList || []).find(n => {
+                if (n.notice_type !== 'urgent') return false;
+                const noticeD = new Date((n.notice_date || n.created_at.split('T')[0]) + 'T' + (n.notice_time || '23:59:00'));
+                return noticeD >= _nowTime;
+            });
 
             if (urgentCard) {
                 if (latestUrgent) {
@@ -628,7 +635,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             const extraBadgesHtml = `${badgeHtml}${courseTagsHtml}`;
 
                             return `
-                                <div class="flex flex-col w-full max-w-full box-border p-[16px] bg-white dark:bg-gradient-to-br dark:from-[#0F1117] dark:to-[#1A1D26] rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 dark:border-white/5 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer" onclick="${clickAction}">
+                                <div class="flex flex-col w-full max-w-full box-border p-[16px] bg-white dark:bg-gradient-to-br dark:from-[#0F1117] dark:to-[#1A1D26] rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 dark:border-white/5 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer recent-update-card" onclick="${clickAction}" data-seen-type="${isPoll ? 'poll' : 'notice'}" data-seen-id="${n.id}">
                                     ${window.AuthorService ? window.AuthorService.renderAuthorBlock(n.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
                                     <div class="mt-1 flex flex-col">
                                         <h4 class="font-[700] text-[16px] text-[#111827] dark:text-indigo-50 mt-0 truncate leading-tight">${window.safeFormatRichText(n.title)}</h4>
@@ -636,7 +643,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                     </div>
                                     <div class="w-full mt-[12px] !flex !flex-wrap !justify-between !items-center !gap-[8px]">
                                         <div class="flex-1">${bottomEventTagsHtml}</div>
-                                        <div class="shrink-0 ml-3">
+                                        <div class="shrink-0 ml-3 flex items-center">
+                                            ${window.SeenService ? window.SeenService.renderSeenBlock('notice', n.id) : ''}
                                             ${(window.ReactionService && !isPoll) ? window.ReactionService.renderReactionBlock('notice', n.id) : ''}
                                         </div>
                                     </div>
@@ -689,15 +697,16 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             const extraBadgesHtml = `${badgeHtml}${courseTagsHtml}`;
 
                             return `
-                                <div class="flex flex-col w-full max-w-full box-border p-[16px] bg-white dark:bg-gradient-to-br dark:from-[#0F1117] dark:to-[#1A1D26] rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 dark:border-white/5 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer" onclick="openScheduleDetails('${window.sanitizeHTML(s.id)}')">
+                                <div class="flex flex-col w-full max-w-full box-border p-[16px] bg-white dark:bg-gradient-to-br dark:from-[#0F1117] dark:to-[#1A1D26] rounded-[20px] shadow-sm shadow-slate-200/50 border border-slate-100 dark:border-white/5 mb-2.5 ${expiredClass} transition-all active:scale-[0.98] cursor-pointer recent-update-card" onclick="openScheduleDetails('${window.sanitizeHTML(s.id)}')" data-seen-type="schedule" data-seen-id="${s.id}">
                                     ${window.AuthorService ? window.AuthorService.renderAuthorBlock(s.profiles, postedTimeStr, extraBadgesHtml, rightSideHtml) : ''}
                                     <div class="mt-1 flex flex-col">
-                                        <h4 class="font-[700] text-[16px] text-[#111827] dark:text-indigo-50 mt-0 truncate leading-tight">${window.sanitizeHTML(s.title)}</h4>
-                                        <p class="text-[14px] text-[#4b5563] dark:text-dark-textSecondary line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.sanitizeHTML(s.message)}</p>
+                                        <h4 class="font-[700] text-[16px] text-[#111827] dark:text-indigo-50 mt-0 truncate leading-tight">${window.safeFormatRichText(s.title)}</h4>
+                                        <p class="text-[14px] text-[#4b5563] dark:text-dark-textSecondary line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.safeFormatRichText(s.message)}</p>
                                     </div>
                                     <div class="w-full mt-[12px] !flex !flex-wrap !justify-between !items-center !gap-[8px]">
                                         <div class="flex-1">${bottomEventTagsHtml}</div>
-                                        <div class="shrink-0 ml-3">
+                                        <div class="shrink-0 ml-3 flex items-center">
+                                            ${window.SeenService ? window.SeenService.renderSeenBlock('schedule', s.id) : ''}
                                             ${window.ReactionService ? window.ReactionService.renderReactionBlock('schedule', s.id) : ''}
                                         </div>
                                     </div>
@@ -706,6 +715,13 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         }
                     }).join('');
                 }
+            }
+            if (window.SeenService && window.SeenService.observer) {
+                document.querySelectorAll('.recent-update-card').forEach(el => {
+                    const type = el.getAttribute('data-seen-type');
+                    const id = el.getAttribute('data-seen-id');
+                    window.SeenService.observeElement(el, type, id);
+                });
             }
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
@@ -1161,7 +1177,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             audienceType: audience_type,
                             createdBy: window.authState.user.id,
                             title: title,
-                            message: message
+                            message: window.stripRichText ? window.stripRichText(message) : message
                         });
 
                         if (!queueRes.success) {
@@ -1200,7 +1216,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                     reminder_time: targetTime.toISOString(),
                                     sent: false,
                                     reminder_title: title,
-                                    reminder_message: message,
+                                    reminder_message: window.stripRichText ? window.stripRichText(message) : message,
                                     created_by: window.authState.user.id
                                 });
                             }
@@ -1238,6 +1254,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
         }
 
         export async function openNoticeDetails(id) {
+            if (window.SeenService) window.SeenService.markAsSeen(id, 'notice');
             const notice = window.currentNoticesList.find(n => n.id === id);
             if (!notice) return;
             selectedNoticeIdForDetails = id;
@@ -1300,6 +1317,12 @@ import { ProfileStore } from './stores/ProfileStore.js';
             }
             if (window.ReactionService) {
                 document.getElementById('nd-reaction-container').innerHTML = window.ReactionService.renderReactionBlock('notice', id);
+            }
+            if (window.SeenService) {
+                const ndSeenContainer = document.getElementById('nd-seen-container');
+                if (ndSeenContainer) {
+                    ndSeenContainer.innerHTML = window.SeenService.renderSeenBlock('notice', id);
+                }
             }
 
             if (typeof lucide !== 'undefined') lucide.createIcons();

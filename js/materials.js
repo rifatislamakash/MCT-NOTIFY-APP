@@ -261,7 +261,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 <button onclick="event.stopPropagation(); openUpdateMaterial('${m.id}')" class="px-3 py-1 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-dark-textSecondary hover:bg-slate-200 rounded-[8px] text-[10px] font-bold transition-colors">Edit</button>
                             </div>` : ''}
                             <div class="w-full mt-[10px] !flex !flex-wrap !justify-between !items-center !gap-[8px]">
-                                <div class="shrink-0">
+                                <div class="shrink-0 flex items-center">
+                                    ${window.SeenService ? window.SeenService.renderSeenBlock('material', m.id) : ''}
                                     ${window.ReactionService ? window.ReactionService.renderReactionBlock('material', m.id) : ''}
                                 </div>
                             </div>
@@ -272,6 +273,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
         };
 
         window.openMaterialDetails = function (id) {
+            if (window.SeenService) window.SeenService.markAsSeen(id, 'material');
             const material = window.currentMaterialsList.find(m => m.id === id);
             if (!material) return;
 

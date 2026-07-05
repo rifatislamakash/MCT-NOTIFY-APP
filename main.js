@@ -41,8 +41,10 @@ window.handleRecoveryOtp = handleRecoveryOtp;
 window.handleUpdatePassword = handleUpdatePassword;
 
 import { ReactionService, AuthorService } from './js/services/ReactionService.js';
+import { SeenService } from './js/services/SeenService.js';
 window.ReactionService = ReactionService;
 window.AuthorService = AuthorService;
+window.SeenService = SeenService;
 window.logout = logout;
 
 import { AuthService } from './js/auth.js';
@@ -207,6 +209,11 @@ window.executeStartupQueue = function() {
         console.log('[STARTUP QUEUE] Synchronizing DOM profiles...');
         if (typeof window.populateProfileDetails === 'function') {
             window.populateProfileDetails();
+        }
+        
+        console.log('[STARTUP QUEUE] Initializing SeenService Scroll Tracking...');
+        if (window.SeenService) {
+            window.SeenService.initScrollTracking();
         }
     });
 };
