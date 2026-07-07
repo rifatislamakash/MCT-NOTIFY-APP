@@ -137,15 +137,29 @@ export class SeenService {
 
         countBadge.innerText = seen.length;
         
-        list.innerHTML = seen.map(s => `
-            <div class="flex items-center gap-3 p-3 border-b border-slate-50 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-dark-bg/50 transition-colors">
-                <img src="${s.profiles?.profile_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(s.profiles?.full_name || 'U') + '&background=random'}" 
-                     class="w-10 h-10 rounded-full object-cover shrink-0 bg-slate-100">
-                <div class="flex-1 min-w-0">
-                    <h5 class="text-[14px] font-bold text-slate-800 dark:text-dark-text truncate leading-tight">${s.profiles?.full_name || 'Unknown User'}</h5>
+        list.innerHTML = seen.map(s => {
+            let timeHtml = '';
+            if (s.created_at) {
+                try {
+                    const dateObj = new Date(s.created_at);
+                    const formattedTime = dateObj.toLocaleTimeString('en-US', { timeZone: 'Asia/Dhaka', hour: '2-digit', minute: '2-digit', hour12: true });
+                    const formattedDate = dateObj.toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka', month: 'short', day: 'numeric', year: 'numeric' });
+                    timeHtml = `<p class="text-[11px] text-slate-400 dark:text-dark-textSecondary mt-0.5">${formattedTime} &bull; ${formattedDate}</p>`;
+                } catch (e) {
+                    console.warn('[SEEN] Error parsing view date:', e);
+                }
+            }
+            return `
+                <div class="flex items-center gap-3 p-3 border-b border-slate-50 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-dark-bg/50 transition-colors">
+                    <img src="${s.profiles?.profile_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(s.profiles?.full_name || 'U') + '&background=random'}" 
+                         class="w-10 h-10 rounded-full object-cover shrink-0 bg-slate-100">
+                    <div class="flex-1 min-w-0">
+                        <h5 class="text-[14px] font-bold text-slate-800 dark:text-dark-text truncate leading-tight">${s.profiles?.full_name || 'Unknown User'}</h5>
+                        ${timeHtml}
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
         if (window.lucide) window.lucide.createIcons();
 
