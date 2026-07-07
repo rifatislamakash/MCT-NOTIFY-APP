@@ -140,8 +140,12 @@ let isRegistering = false;
 
             const loadDashboardDataAsync = async () => {
                 try {
+                    // Pre-load content settings first to prevent redundant / concurrent queries to content_management table
+                    if (typeof window.loadContentSettings === 'function') {
+                        await window.loadContentSettings().catch(console.warn);
+                    }
+
                     const tasks = [];
-                    if (typeof window.loadContentSettings === 'function') tasks.push(window.loadContentSettings().catch(console.warn));
                     if (typeof window.loadNotices === 'function') tasks.push(window.loadNotices(true).catch(console.warn));
                     if (typeof window.loadDashboardTodayRoutine === 'function') tasks.push(window.loadDashboardTodayRoutine(true).catch(console.warn));
                     if (typeof window.loadScheduleList === 'function') tasks.push(window.loadScheduleList(true).catch(console.warn));
@@ -363,6 +367,8 @@ let isRegistering = false;
                     // Attempt offline fallback if we have a profile cached
                     if (window.authState && window.authState.profile) {
                         window.navigate(window.authState.profile.role === 'admin' ? 'screen-admin-dashboard' : 'screen-student-dashboard');
+                    } else {
+                        window.navigate('screen-welcome');
                     }
                 } else {
                     const loginPasswordInput = document.getElementById('login-password');

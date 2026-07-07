@@ -536,9 +536,19 @@
                 modal.style.transition = 'opacity 0.3s ease';
                 setTimeout(() => {
                     modal.style.opacity = '1';
-                    panel.style.transform = 'translateX(0)';
+                    panel.classList.remove('translate-x-full');
+                    panel.classList.add('translate-x-0');
                 }, 10);
+                
+                // 1. Render instantly using cached data
                 renderNotificationCenter();
+                
+                // 2. Silently fetch latest state and update in background
+                if (typeof window.fetchNotificationCenterNotices === 'function') {
+                    window.fetchNotificationCenterNotices().then(() => {
+                        renderNotificationCenter();
+                    }).catch(console.warn);
+                }
             }
             if(typeof lucide !== 'undefined') lucide.createIcons();
         };
@@ -547,7 +557,8 @@
             const modal = document.getElementById('notification-center-modal');
             const panel = document.getElementById('notification-center-panel');
             if(modal && panel) {
-                panel.style.transform = 'translateX(100%)';
+                panel.classList.remove('translate-x-0');
+                panel.classList.add('translate-x-full');
                 modal.style.opacity = '0';
                 setTimeout(() => {
                     modal.classList.add('hidden');

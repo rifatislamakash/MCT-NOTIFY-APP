@@ -94,6 +94,24 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 if (allCoursesList.length === 0) {
                     allCoursesList = await window.crPermissionService.getVisibleCourses();
                 }
+
+                let coursesForDropdown = allCoursesList;
+                if (window.currentUserRole !== 'admin' && !window.isAdminEmail(window.currentUserEmail)) {
+                    const myCourseIds = (window.currentUserCoursesList || []).map(uc => uc.course_id);
+                    coursesForDropdown = allCoursesList.filter(c => myCourseIds.includes(c.id));
+                }
+
+                const courseFilterEl = document.getElementById('schedules-course-filter');
+                if (courseFilterEl) {
+                    const currentSelected = courseFilterEl.value || 'all';
+                    courseFilterEl.innerHTML = '<option value="all">All Courses</option>' + 
+                        coursesForDropdown.map(c => {
+                            const batchName = c.batches ? c.batches.batch_name : c.batch_id;
+                            return '<option value="' + c.id + '">[Batch ' + window.sanitizeHTML(batchName) + '] ' + window.sanitizeHTML(c.course_name) + '</option>';
+                        }).join('');
+                    courseFilterEl.value = currentSelected;
+                }
+
                 const { rawSchedules, scMap, ctMap } = await fetchCachedOrDeduplicated('schedules', async () => {
                     let schedulesData;
                     if (crPermissionService.isCR()) {
@@ -116,43 +134,44 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     let scMap = {};
                     let ctMap = {};
                     if (scheduleIds.length > 0) {
-                        const scData = await fetchWithRetry(async (subSignal) => {
-                            let results = [];
-                            const chunkSize = 100;
-                            for (let i = 0; i < scheduleIds.length; i += chunkSize) {
-                                const chunk = scheduleIds.slice(i, i + chunkSize);
-                                const { data, error } = await _supabase
-                                    .from('schedule_courses')
-                                    .select('schedule_id, course_id')
-                                    .in('schedule_id', chunk)
-                                    .abortSignal(subSignal);
-                                if (error) throw error;
-                                if (data) results = results.concat(data);
-                            }
-                            return results;
-                        }, 2, 1000, 30000, localController.signal);
+                        const [scData, ctData] = await Promise.all([
+                            fetchWithRetry(async (subSignal) => {
+                                let results = [];
+                                const chunkSize = 100;
+                                for (let i = 0; i < scheduleIds.length; i += chunkSize) {
+                                    const chunk = scheduleIds.slice(i, i + chunkSize);
+                                    const { data, error } = await _supabase
+                                        .from('schedule_courses')
+                                        .select('schedule_id, course_id')
+                                        .in('schedule_id', chunk)
+                                        .abortSignal(subSignal);
+                                    if (error) throw error;
+                                    if (data) results = results.concat(data);
+                                }
+                                return results;
+                            }, 2, 1000, 30000, localController.signal),
+                            fetchWithRetry(async (subSignal) => {
+                                let results = [];
+                                const chunkSize = 100;
+                                for (let i = 0; i < scheduleIds.length; i += chunkSize) {
+                                    const chunk = scheduleIds.slice(i, i + chunkSize);
+                                    const { data, error } = await _supabase
+                                        .from('content_targets')
+                                        .select('*')
+                                        .eq('content_type', 'schedule')
+                                        .in('content_id', chunk)
+                                        .abortSignal(subSignal);
+                                    if (error) throw error;
+                                    if (data) results = results.concat(data);
+                                }
+                                return results;
+                            }, 2, 1000, 30000, localController.signal)
+                        ]);
 
                         scData.forEach(row => {
                             if (!scMap[row.schedule_id]) scMap[row.schedule_id] = [];
                             scMap[row.schedule_id].push(row.course_id);
                         });
-
-                        const ctData = await fetchWithRetry(async (subSignal) => {
-                            let results = [];
-                            const chunkSize = 100;
-                            for (let i = 0; i < scheduleIds.length; i += chunkSize) {
-                                const chunk = scheduleIds.slice(i, i + chunkSize);
-                                const { data, error } = await _supabase
-                                    .from('content_targets')
-                                    .select('*')
-                                    .eq('content_type', 'schedule')
-                                    .in('content_id', chunk)
-                                    .abortSignal(subSignal);
-                                if (error) throw error;
-                                if (data) results = results.concat(data);
-                            }
-                            return results;
-                        }, 2, 1000, 30000, localController.signal);
 
                         ctData.forEach(row => {
                             if (!ctMap[row.content_id]) ctMap[row.content_id] = [];
@@ -312,7 +331,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                  // PART 9: For badge count
                 
                 const scheduleIds = schedulesList.map(s => s.id);
-                if (window.ReactionService) await window.ReactionService.fetchReactionsForContent('schedule', scheduleIds);
+                const syncs = [];
+                if (window.ReactionService) syncs.push(window.ReactionService.fetchReactionsForContent('schedule', scheduleIds));
+                if (window.SeenService) syncs.push(window.SeenService.fetchSeenForContent('schedule', scheduleIds));
+                if (syncs.length > 0) await Promise.all(syncs);
 
                 console.log(`[SCHEDULE] Successfully loaded ${schedulesList.length} schedules.`);
                 if (!skipRender) {

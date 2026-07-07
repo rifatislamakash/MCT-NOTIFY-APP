@@ -89,7 +89,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 
                 console.log(`[MATERIALS] Successfully loaded ${window.currentMaterialsList.length} materials.`);
                 const materialIds = window.currentMaterialsList.map(m => m.id);
-                if (window.ReactionService) await window.ReactionService.fetchReactionsForContent('material', materialIds);
+                const syncs = [];
+                if (window.ReactionService) syncs.push(window.ReactionService.fetchReactionsForContent('material', materialIds));
+                if (window.SeenService) syncs.push(window.SeenService.fetchSeenForContent('material', materialIds));
+                if (syncs.length > 0) await Promise.all(syncs);
 
                 renderMaterialsList(window.currentMaterialsList);
 

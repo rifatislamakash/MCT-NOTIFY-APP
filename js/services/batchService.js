@@ -146,11 +146,24 @@ export const batchService = {
         const seenIds = new Set();
         const uniqueNotices = [];
         
-        // 1. Legacy: notice_courses -> courses with batch filter
-        const { data: legacyData } = await _supabase
-            .from('notice_courses')
-            .select('notice_id, notices(*, notice_courses(course_id), profiles(id, full_name, profile_url, role)), courses!inner(batch_id)')
-            .in('courses.batch_id', batchIds);
+        // 1, 2, 3. Fetch legacy notice_courses, content_targets for batches, and courses concurrently
+        const [legacyResult, ctBatchResult, courseResult] = await Promise.all([
+            _supabase
+                .from('notice_courses')
+                .select('notice_id, notices(*, notice_courses(course_id), profiles(id, full_name, profile_url, role)), courses!inner(batch_id)')
+                .in('courses.batch_id', batchIds),
+            _supabase
+                .from('content_targets')
+                .select('content_id')
+                .eq('content_type', 'notice')
+                .in('target_type', ['batch_students', 'batch_crs'])
+                .in('target_id', batchIds),
+            _supabase.from('courses').select('id').in('batch_id', batchIds)
+        ]);
+
+        const legacyData = legacyResult.data;
+        const ctBatchData = ctBatchResult.data;
+        const courseData = courseResult.data;
             
         (legacyData || []).forEach(record => {
             if (record.notices && !seenIds.has(record.notices.id)) {
@@ -159,16 +172,6 @@ export const batchService = {
             }
         });
         
-        // 2. New: content_targets for batch_students/batch_crs
-        const { data: ctBatchData } = await _supabase
-            .from('content_targets')
-            .select('content_id')
-            .eq('content_type', 'notice')
-            .in('target_type', ['batch_students', 'batch_crs'])
-            .in('target_id', batchIds);
-            
-        // 3. New: content_targets for course_students
-        const { data: courseData } = await _supabase.from('courses').select('id').in('batch_id', batchIds);
         const courseIds = courseData ? courseData.map(c => c.id) : [];
         
         let ctCourseData = [];
@@ -214,11 +217,24 @@ export const batchService = {
         const seenIds = new Set();
         const uniqueSchedules = [];
         
-        // 1. Legacy: schedule_courses -> courses with batch filter
-        const { data: legacyData } = await _supabase
-            .from('schedule_courses')
-            .select('schedule_id, schedules(*, profiles(id, full_name, profile_url, role)), courses!inner(batch_id)')
-            .in('courses.batch_id', batchIds);
+        // 1, 2, 3. Fetch legacy schedule_courses, content_targets for batches, and courses concurrently
+        const [legacyResult, ctBatchResult, courseResult] = await Promise.all([
+            _supabase
+                .from('schedule_courses')
+                .select('schedule_id, schedules(*, profiles(id, full_name, profile_url, role)), courses!inner(batch_id)')
+                .in('courses.batch_id', batchIds),
+            _supabase
+                .from('content_targets')
+                .select('content_id')
+                .eq('content_type', 'schedule')
+                .in('target_type', ['batch_students', 'batch_crs'])
+                .in('target_id', batchIds),
+            _supabase.from('courses').select('id').in('batch_id', batchIds)
+        ]);
+
+        const legacyData = legacyResult.data;
+        const ctBatchData = ctBatchResult.data;
+        const courseData = courseResult.data;
             
         (legacyData || []).forEach(record => {
             if (record.schedules && !seenIds.has(record.schedules.id)) {
@@ -227,16 +243,6 @@ export const batchService = {
             }
         });
         
-        // 2. New: content_targets for batch_students/batch_crs
-        const { data: ctBatchData } = await _supabase
-            .from('content_targets')
-            .select('content_id')
-            .eq('content_type', 'schedule')
-            .in('target_type', ['batch_students', 'batch_crs'])
-            .in('target_id', batchIds);
-            
-        // 3. New: content_targets for course_students
-        const { data: courseData } = await _supabase.from('courses').select('id').in('batch_id', batchIds);
         const courseIds = courseData ? courseData.map(c => c.id) : [];
         
         let ctCourseData = [];

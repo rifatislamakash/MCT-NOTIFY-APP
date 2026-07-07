@@ -869,13 +869,13 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
             // Day color palette — all 7 days
             const dayColors = {
-                'Saturday': { header: 'bg-violet-500', badge: 'bg-violet-100 text-violet-800', today: 'bg-violet-50/50' },
-                'Sunday': { header: 'bg-pink-500', badge: 'bg-pink-100 text-pink-800', today: 'bg-pink-50/50' },
-                'Monday': { header: 'bg-indigo-500', badge: 'bg-indigo-100 text-indigo-800', today: 'bg-indigo-50/50' },
-                'Tuesday': { header: 'bg-blue-500', badge: 'bg-blue-100 text-blue-800', today: 'bg-blue-50/50' },
-                'Wednesday': { header: 'bg-sky-500', badge: 'bg-sky-100 text-sky-800', today: 'bg-sky-50/50' },
-                'Thursday': { header: 'bg-teal-500', badge: 'bg-teal-100 text-teal-800', today: 'bg-teal-50/50' },
-                'Friday': { header: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-800', today: 'bg-emerald-50/50' },
+                'Saturday': { header: 'bg-violet-500', badge: 'bg-violet-100 text-violet-800 dark:bg-violet-950/40 dark:text-violet-300', today: 'bg-violet-50/50 dark:bg-violet-950/20' },
+                'Sunday': { header: 'bg-pink-500', badge: 'bg-pink-100 text-pink-800 dark:bg-pink-950/40 dark:text-pink-300', today: 'bg-pink-50/50 dark:bg-pink-950/20' },
+                'Monday': { header: 'bg-indigo-500', badge: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300', today: 'bg-indigo-50/50 dark:bg-indigo-950/20' },
+                'Tuesday': { header: 'bg-blue-500', badge: 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300', today: 'bg-blue-50/50 dark:bg-blue-950/20' },
+                'Wednesday': { header: 'bg-sky-500', badge: 'bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300', today: 'bg-sky-50/50 dark:bg-sky-950/20' },
+                'Thursday': { header: 'bg-teal-500', badge: 'bg-teal-100 text-teal-800 dark:bg-teal-950/40 dark:text-teal-300', today: 'bg-teal-50/50 dark:bg-teal-950/20' },
+                'Friday': { header: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300', today: 'bg-emerald-50/50 dark:bg-emerald-950/20' },
             };
 
             // Dynamic cell width based on number of columns
@@ -959,7 +959,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 html += `
                                     <div class="flex flex-col gap-0.5 items-center py-0.5 ${isAdmin ? 'cursor-pointer active:scale-95 transition-transform' : ''}" ${isAdmin ? `onclick="openRoutineDetails('${entry.id}')"` : ''}>
                                         ${batchTagHtml}
-                                        <span class="text-[10px] font-black text-slate-900 dark:text-dark-text px-1.5 py-0.5 rounded-md ${colors.badge} leading-tight text-center w-full mb-0.5">${shortName}</span>
+                                        <span class="text-[10px] font-black px-1.5 py-0.5 rounded-md ${colors.badge} leading-tight text-center w-full mb-0.5">${shortName}</span>
                                         ${sectionHtml}
                                         <span class="text-[9px] font-bold text-slate-500 dark:text-dark-textSecondary px-1.5 py-0.5 rounded bg-white dark:bg-dark-card/80 w-full text-center leading-none">${initial}</span>
                                         <span class="text-[8px] font-medium text-slate-400 dark:text-dark-textSecondary leading-none">${room}</span>

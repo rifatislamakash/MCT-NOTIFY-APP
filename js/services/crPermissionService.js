@@ -192,14 +192,13 @@ export const crPermissionService = {
             return data || [];
         }
         if (this.isCR()) {
-            console.log('[CR NOTICES] Fetching notices for assigned batches');
-            const batchNotices = await batchService.getBatchNotices(this.currentAssignedBatches);
-            
-            // Also fetch global notices (urgent no longer bypasses)
-            const { data: globalNotices } = await _supabase
-                .from('notices')
-                .select('*, profiles (id, full_name, profile_url, role), notice_courses (course_id)')
-                .in('audience_type', ['all', 'all_students']);
+            const [batchNotices, { data: globalNotices }] = await Promise.all([
+                batchService.getBatchNotices(this.currentAssignedBatches),
+                _supabase
+                    .from('notices')
+                    .select('*, profiles (id, full_name, profile_url, role), notice_courses (course_id)')
+                    .in('audience_type', ['all', 'all_students'])
+            ]);
                 
             const combined = [...batchNotices];
             if (globalNotices) {
@@ -231,14 +230,13 @@ export const crPermissionService = {
             return data || [];
         }
         if (this.isCR()) {
-            console.log('[CR SCHEDULES] Fetching schedules for assigned batches');
-            const batchSchedules = await batchService.getBatchSchedules(this.currentAssignedBatches);
-            
-            // Also fetch global schedules
-            const { data: globalSchedules } = await _supabase
-                .from('schedules')
-                .select('*, profiles (id, full_name, profile_url, role)')
-                .in('audience_type', ['all', 'all_students']);
+            const [batchSchedules, { data: globalSchedules }] = await Promise.all([
+                batchService.getBatchSchedules(this.currentAssignedBatches),
+                _supabase
+                    .from('schedules')
+                    .select('*, profiles (id, full_name, profile_url, role)')
+                    .in('audience_type', ['all', 'all_students'])
+            ]);
                 
             const combined = [...batchSchedules];
             if (globalSchedules) {

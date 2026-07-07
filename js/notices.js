@@ -231,14 +231,18 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                 console.log(`[NOTICES] Successfully loaded ${window.currentNoticesList.length} notices.`);
                 const noticeIds = window.currentNoticesList.map(n => n.id);
-                if (window.ReactionService) await window.ReactionService.fetchReactionsForContent('notice', noticeIds);
-                if (window.SeenService) await window.SeenService.fetchSeenForContent('notice', noticeIds);
+                const syncs = [];
+                if (window.ReactionService) syncs.push(window.ReactionService.fetchReactionsForContent('notice', noticeIds));
+                if (window.SeenService) syncs.push(window.SeenService.fetchSeenForContent('notice', noticeIds));
+                if (syncs.length > 0) await Promise.all(syncs);
 
                 if (!skipRender) {
                     injectDashboardNotices();
                     renderNoticesList();
                     if (typeof window.updateDashboardQuickAccessBadges === 'function') window.updateDashboardQuickAccessBadges();
-                    if (typeof window.fetchNotificationCenterNotices === 'function') window.fetchNotificationCenterNotices();
+                }
+                if (typeof window.fetchNotificationCenterNotices === 'function') {
+                    await window.fetchNotificationCenterNotices();
                 }
             } catch (err) {
                 if (err.name === 'AbortError' || (err.message && err.message.includes('AbortError'))) {
@@ -259,7 +263,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
         function setNoticeFilter(type) {
             currentNoticeFilter = type;
             document.querySelectorAll('.notice-filter-btn').forEach(btn => {
-                btn.className = "notice-filter-btn px-4 py-1.5 bg-white dark:bg-dark-card/10 text-slate-300 border border-white/10 text-[11px] font-bold rounded-full whitespace-nowrap transition-colors";
+                btn.className = "notice-filter-btn px-4 py-1.5 bg-white/20 text-slate-300 border border-white/10 text-[11px] font-bold rounded-full whitespace-nowrap transition-colors";
                 if (btn.dataset.filter === type) {
                     btn.className = "notice-filter-btn active px-4 py-1.5 bg-indigo-600 text-white border border-transparent text-[11px] font-bold rounded-full whitespace-nowrap transition-colors";
                 }

@@ -211,7 +211,7 @@ export class PollService {
                     <div class="mt-3 flex items-center justify-between text-[10px] font-bold text-slate-400 dark:text-dark-textSecondary">
                         <div class="flex items-center gap-2">
                             <span>${totalVotes} total votes</span>
-                            ${window.SeenService ? window.SeenService.renderSeenBlock('poll', poll.id) : ''}
+                            ${window.SeenService ? window.SeenService.renderSeenBlock('notice', poll.id) : ''}
                         </div>
                         <div class="flex items-center gap-1 text-indigo-600">
                             View <i data-lucide="chevron-right" class="w-3 h-3"></i>
@@ -225,7 +225,7 @@ export class PollService {
     }
 
     static openPollDetails(pollId) {
-        if (window.SeenService) window.SeenService.markAsSeen(pollId, 'poll');
+        if (window.SeenService) window.SeenService.markAsSeen(pollId, 'notice');
         const poll = this.currentPolls.find(p => p.id === pollId);
         if (!poll) return;
 
