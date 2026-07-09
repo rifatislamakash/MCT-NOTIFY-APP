@@ -992,6 +992,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const message = document.getElementById('cs-message')?.value?.trim();
             const date = document.getElementById('cs-date')?.value;
             const time = document.getElementById('cs-time')?.value;
+            const scheduleType = document.getElementById('cs-schedule-type')?.value || '';
             let isPinned = document.getElementById('cs-pin')?.checked || false;
             
             if (isPinned) {
@@ -1051,8 +1052,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     console.log("Starting upload to Supabase Storage: bucket 'schedule-files' for file:", fileName);
 
                     const { data: uploadData, error: uploadError } = await _supabase.storage
-                        .from('schedule-files')
-                        .upload(fileName, currentScheduleFile);
+                         .from('schedule-files')
+                         .upload(fileName, currentScheduleFile);
 
                     if (uploadError) {
                         console.error("Upload Error:", uploadError);
@@ -1078,7 +1079,6 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     schedule_time: time,
                     audience_type: audience_type,
                     is_pinned: isPinned,
-                schedule_type: scheduleType,
                     schedule_type: scheduleType,
                     attachment_url: attachmentUrl,
                     created_by: window.authState.user?.id || null
@@ -1475,7 +1475,6 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (curAttach) curAttach.classList.add('hidden');
         };
 
-        // ----- HANDLE UPDATE SCHEDULE -----
         window.handleUpdateSchedule = async function () {
             if (!(await window.verifyAdminStatus())) { window.showGlobalToast("Error", "Admin check failed."); return; }
             if ((window.currentUserRole !== 'admin' && window.currentUserRole !== 'cr') || !selectedScheduleId) return;
@@ -1484,6 +1483,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const message = document.getElementById('es-message')?.value?.trim();
             const date = document.getElementById('es-date')?.value;
             const time = document.getElementById('es-time')?.value;
+            const scheduleType = document.getElementById('es-schedule-type')?.value || '';
             let isPinned = document.getElementById('es-pin')?.checked || false;
             
             if (isPinned) {
@@ -1599,6 +1599,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     schedule_time: time,
                     audience_type: audience_type,
                     is_pinned: isPinned,
+                    schedule_type: scheduleType,
                     attachment_url: attachmentUrl
                 };
 
