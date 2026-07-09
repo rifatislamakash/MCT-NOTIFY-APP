@@ -1219,7 +1219,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             isNotifyEnabled: notifyAudience,
                             audienceType: audience_type,
                             createdBy: window.authState.user?.id || null,
-                            courseName: selectedCourse ? selectedCourse.title : '',
+                            courseName: '',
                             message: window.stripRichText ? window.stripRichText(message) : message
                         });
                         if (!queueRes.success) console.error("[SCHEDULE] Schedule push queue error:", queueRes.error);
@@ -1228,7 +1228,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     const reminderDivs = document.querySelectorAll('#schedule-reminders-list .reminder-row');
                     if (reminderDivs.length > 0) {
                         console.log(`[REMINDERS] Found ${reminderDivs.length} schedule reminder rows to insert.`);
-                        const eventDateTime = window.getSafariSafeDate();
+                        const eventDateTime = window.getSafariSafeDate(date + 'T' + time);
                         
                         reminderDivs.forEach(div => {
                             const offsetSelect = div.querySelector('.reminder-offset');
@@ -1311,12 +1311,14 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const dateEl = document.getElementById('es-date');
                 const timeEl = document.getElementById('es-time');
                 const pinEl = document.getElementById('es-pin');
+                const scheduleTypeEl = document.getElementById('es-schedule-type');
 
                 if (titleEl) titleEl.value = s.title || '';
                 if (msgEl) msgEl.value = s.message || '';
                 if (dateEl) dateEl.value = s.schedule_date || '';
                 if (timeEl) timeEl.value = s.schedule_time ? s.schedule_time.substring(0, 5) : '';
                 if (pinEl) pinEl.checked = !!s.is_pinned;
+                if (scheduleTypeEl) scheduleTypeEl.value = s.schedule_type || '';
 
                 currentEditScheduleFile = null;
                 currentEditRemoveAttachment = false;
@@ -1375,14 +1377,16 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             
                             if (rem.reminder_time) {
                                 const utcDate = window.getSafariSafeDate(rem.reminder_time);
-                                const offset = utcDate.getTimezoneOffset() * 60000;
-                                customDateVal = new Date(utcDate.getTime() - offset).toISOString().slice(0, 16);
-                                
-                                if (eventDateTime && !isNaN(eventDateTime.getTime())) {
-                                    const diffMs = eventDateTime.getTime() - utcDate.getTime();
-                                    const diffMins = Math.round(diffMs / (60 * 1000));
-                                    if (diffMins === 1440 || diffMins === 180 || diffMins === 30) {
-                                        offsetValue = String(diffMins);
+                                if (utcDate && !isNaN(utcDate.getTime())) {
+                                    const offset = utcDate.getTimezoneOffset() * 60000;
+                                    customDateVal = new Date(utcDate.getTime() - offset).toISOString().slice(0, 16);
+                                    
+                                    if (eventDateTime && !isNaN(eventDateTime.getTime())) {
+                                        const diffMs = eventDateTime.getTime() - utcDate.getTime();
+                                        const diffMins = Math.round(diffMs / (60 * 1000));
+                                        if ([15, 30, 60, 1440].includes(diffMins)) {
+                                            offsetValue = String(diffMins);
+                                        }
                                     }
                                 }
                             }
@@ -1391,10 +1395,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 <div id="${rowId}" class="reminder-row flex flex-col gap-2 p-3 bg-slate-50 dark:bg-dark-bg/50 rounded-[12px] border border-slate-200 dark:border-white/10 relative group">
                                     <div class="flex items-center gap-3">
                                         <div class="flex-1">
-                                            <select onchange="toggleCustomReminderTime(this)" class="reminder-offset w-full h-[40px] px-3 bg-white dark:bg-dark-card text-slate-700 dark:text-dark-textSecondary text-[13px] font-bold rounded-[8px] border border-slate-200 dark:border-white/10 focus:border-[#4226E9] outline-none">
-                                                <option value="1440" ${offsetValue === '1440' ? 'selected' : ''}>1 day before</option>
-                                                <option value="180" ${offsetValue === '180' ? 'selected' : ''}>3 hours before</option>
+                                            <select onchange="this.closest('.reminder-row').querySelector('.custom-time-container').style.display = (this.value === 'custom') ? 'block' : 'none'" class="reminder-offset w-full h-[40px] px-3 bg-white dark:bg-dark-card text-slate-700 dark:text-dark-textSecondary text-[13px] font-bold rounded-[8px] border border-slate-200 dark:border-white/10 focus:border-[#4226E9] outline-none">
+                                                <option value="15" ${offsetValue === '15' ? 'selected' : ''}>15 minutes before</option>
                                                 <option value="30" ${offsetValue === '30' ? 'selected' : ''}>30 minutes before</option>
+                                                <option value="60" ${offsetValue === '60' ? 'selected' : ''}>1 hour before</option>
+                                                <option value="1440" ${offsetValue === '1440' ? 'selected' : ''}>1 day before</option>
                                                 <option value="custom" ${offsetValue === 'custom' ? 'selected' : ''}>Custom Date/Time</option>
                                             </select>
                                         </div>
@@ -1402,7 +1407,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                                         </button>
                                     </div>
-                                    <div class="custom-time-container ${offsetValue === 'custom' ? '' : 'hidden'}">
+                                    <div class="custom-time-container" style="display: ${offsetValue === 'custom' ? 'block' : 'none'};">
                                         <label class="text-[10px] font-black uppercase text-slate-400 dark:text-dark-textSecondary tracking-wider ml-1">Custom DateTime</label>
                                         <input type="datetime-local" value="${customDateVal}" class="reminder-custom-time w-full h-[40px] px-3 bg-white dark:bg-dark-card text-slate-700 dark:text-dark-textSecondary text-[13px] font-bold rounded-[8px] border border-slate-200 dark:border-white/10 focus:border-[#4226E9] outline-none mt-1">
                                     </div>
@@ -1621,7 +1626,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     if (reminderDivs.length > 0) {
                         console.log(`[SCHEDULE UPDATE] Found ${reminderDivs.length} schedule reminder rows to insert.`);
                         
-                        const eventDateTime = window.getSafariSafeDate();
+                        const eventDateTime = window.getSafariSafeDate(date + 'T' + time);
                         
                         reminderDivs.forEach(div => {
                             const offsetSelect = div.querySelector('.reminder-offset');
@@ -1713,6 +1718,25 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         const { error: scError } = await _supabase.from('content_targets').insert(scRows);
                         if (scError) console.warn('[CONTENT TARGETS UPDATE WARN]', scError);
                     }
+                }
+
+                try {
+                    const notifyUpdate = document.getElementById('notify-audience-edit-schedule')?.checked;
+                    if (notifyUpdate) {
+                        const { NotificationQueueService } = await import('./services/NotificationQueueService.js');
+                        const queueRes = await NotificationQueueService.queueNotification({
+                            parentType: 'schedule',
+                            parentId: selectedScheduleId,
+                            isNotifyEnabled: true,
+                            audienceType: audience_type,
+                            createdBy: window.authState.user?.id || null,
+                            courseName: '',
+                            message: window.stripRichText ? window.stripRichText(message) : message
+                        });
+                        if (!queueRes.success) console.error("[SCHEDULE UPDATE] Update push queue error:", queueRes.error);
+                    }
+                } catch (qErr) {
+                    console.error("[SCHEDULE UPDATE] Exception queueing update notification:", qErr);
                 }
 
                 window.showGlobalToast('Updated', 'Schedule updated successfully!');

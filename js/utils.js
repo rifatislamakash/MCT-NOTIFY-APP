@@ -389,6 +389,8 @@ window.safeFormatRichText = function(text) {
 window.stripRichText = function(text) {
     if (!text) return '';
     let plain = String(text);
+    // Remove HTML tags
+    plain = plain.replace(/<[^>]*>/g, '');
     // Remove color tags
     plain = plain.replace(/\[\/?color(?:=[^\]]+)?\]/gi, '');
     // Remove link formats [text](url) -> text

@@ -86,7 +86,99 @@ export class ReactionService {
         `;
     }
 
+
     static gestureState = {};
+
+    // ── Portal-based Picker ──
+    // The picker is rendered as a fixed-position element on document.body
+    // to escape all overflow:hidden ancestor containers.
+    static _activePickerEl = null;
+    static _activeContainerId = null;
+
+    static showPickerPortal(triggerButton, contentType, contentId) {
+        // Close any existing picker first
+        this.hidePickerPortal();
+
+        const reactions = this.cache[contentId] || [];
+        const types = ['like', 'love', 'haha', 'sad', 'angry', 'cool'];
+        
+        const shell = document.getElementById('app-viewport-shell') || document.body;
+        const pickerEl = document.createElement('div');
+        pickerEl.id = 'reaction-picker-portal';
+        pickerEl.className = 'reaction-picker-portal';
+        pickerEl.style.cssText = `
+            position: absolute; z-index: 99999; 
+            display: flex; align-items: center; gap: 4px; padding: 4px;
+            background: var(--picker-bg, #fff); 
+            border-radius: 9999px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
+            white-space: nowrap;
+            animation: pickerFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            pointer-events: auto;
+        `;
+        // Dark mode support
+        if (document.documentElement.classList.contains('dark')) {
+            pickerEl.style.background = '#1e2130';
+            pickerEl.style.borderColor = 'rgba(255,255,255,0.05)';
+        }
+
+        types.forEach((type, index) => {
+            const item = document.createElement('div');
+            item.className = 'reaction-icon-wrapper';
+            item.style.cssText = `
+                width: 36px; height: 36px; border-radius: 50%;
+                display: flex; align-items: center; justify-content: center;
+                cursor: pointer; transition: transform 0.15s ease;
+                animation: pickerEmojiBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+                animation-delay: ${index * 0.05}s; opacity: 0;
+                -webkit-touch-callout: none; user-select: none;
+            `;
+            item.innerHTML = `<img src="${REACTION_ICONS[type]}" style="width:28px;height:28px;pointer-events:none;user-select:none;-webkit-touch-callout:none;" alt="${type}">`;
+            
+            const handler = (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                this.hidePickerPortal();
+                this.toggleReaction(contentType, contentId, type);
+            };
+            item.addEventListener('click', handler);
+            item.addEventListener('touchend', handler, { passive: false });
+            item.addEventListener('mouseenter', () => { item.style.transform = 'scale(1.3) translateY(-4px)'; });
+            item.addEventListener('mouseleave', () => { item.style.transform = ''; });
+            pickerEl.appendChild(item);
+        });
+
+        shell.appendChild(pickerEl);
+        this._activePickerEl = pickerEl;
+        this._activeContainerId = `${contentType}_${contentId}`;
+
+        // Position the picker above the trigger button relative to the viewport shell
+        const rect = triggerButton.getBoundingClientRect();
+        const shellRect = shell.getBoundingClientRect();
+        const pickerWidth = 244;
+        const pickerHeight = 44;
+        
+        let top = rect.top - shellRect.top - pickerHeight - 16; // 16px safe gap above the button relative to shell
+        let left = rect.left - shellRect.left + (rect.width / 2) - (pickerWidth / 2); // Center horizontally relative to button within shell
+        
+        // Clamp to shell boundaries
+        if (top < 8) top = rect.bottom - shellRect.top + 16; // flip below if no room above
+        if (left < 8) left = 8;
+        if (left + pickerWidth > shellRect.width - 8) {
+            left = shellRect.width - pickerWidth - 8;
+        }
+        
+        pickerEl.style.top = `${top}px`;
+        pickerEl.style.left = `${left}px`;
+    }
+
+    static hidePickerPortal() {
+        if (this._activePickerEl) {
+            this._activePickerEl.remove();
+            this._activePickerEl = null;
+            this._activeContainerId = null;
+        }
+    }
 
     static handlePointerDown(event, contentType, contentId) {
         event.stopPropagation();
@@ -97,14 +189,14 @@ export class ReactionService {
         
         this.gestureState[gid].longPressTimer = setTimeout(() => {
             this.gestureState[gid].isLongPress = true;
-            const container = currentTarget.closest('.reaction-container');
-            if (container) container.classList.add('force-hovered');
+            // Show picker portal instead of CSS class toggle
+            this.showPickerPortal(currentTarget, contentType, contentId);
         }, 500); // 500ms long press
     }
 
     static handlePointerUp(event, contentType, contentId, defaultReaction) {
         event.stopPropagation();
-        event.preventDefault(); // prevent ghost clicks
+        event.preventDefault();
         const gid = `${contentType}_${contentId}`;
         const state = this.gestureState[gid];
         if (!state) return;
@@ -112,7 +204,7 @@ export class ReactionService {
         clearTimeout(state.longPressTimer);
 
         if (state.isLongPress) {
-            // Long press handled. Keep menu open.
+            // Long press handled — picker is already shown via portal
             return;
         }
 
@@ -123,8 +215,7 @@ export class ReactionService {
             clearTimeout(state.clickTimer);
             this.toggleReaction(contentType, contentId, 'love');
             state.lastClickTime = 0;
-            const container = event.currentTarget.closest('.reaction-container');
-            if (container) container.classList.remove('force-hovered');
+            this.hidePickerPortal();
         } else {
             // Single click
             state.lastClickTime = now;
@@ -142,12 +233,24 @@ export class ReactionService {
         }
     }
 
+    static handleMouseEnter(event, contentType, contentId) {
+        // Show picker on desktop hover
+        const btn = event.currentTarget.querySelector('.reaction-trigger-btn');
+        if (btn) this.showPickerPortal(btn, contentType, contentId);
+    }
+
+    static handleMouseLeave(event, contentType, contentId) {
+        // Delay hide so user can move cursor into the picker
+        this._mouseLeaveTimer = setTimeout(() => {
+            // Only hide if mouse is NOT over the portal picker
+            const portal = document.getElementById('reaction-picker-portal');
+            if (portal && portal.matches(':hover')) return;
+            this.hidePickerPortal();
+        }, 300);
+    }
+
     static closeReactionTray(event) {
-        const container = event.currentTarget.closest('.reaction-container');
-        if (container) {
-            container.classList.remove('force-hovered');
-            container.classList.remove('hovered');
-        }
+        this.hidePickerPortal();
     }
 
     static getReactionPickerHTML(contentType, contentId) {
@@ -166,34 +269,21 @@ export class ReactionService {
             actionIcon = `<img src="${REACTION_ICONS[myReaction.reaction_type]}" class="w-[18px] h-[18px] pointer-events-none select-none hover:scale-110 transition-transform" style="-webkit-touch-callout: none;">`;
         }
 
-        const types = ['like', 'love', 'haha', 'sad', 'angry', 'cool'];
-        const pickerItems = types.map((type, index) => `
-            <div onclick="event.stopPropagation(); window.ReactionService.closeReactionTray(event); window.ReactionService.toggleReaction('${contentType}', '${contentId}', '${type}')" 
-                 onmouseup="event.stopPropagation();" ontouchend="event.stopPropagation(); event.preventDefault(); window.ReactionService.closeReactionTray(event); window.ReactionService.toggleReaction('${contentType}', '${contentId}', '${type}')"
-                 class="reaction-icon-wrapper w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center cursor-pointer transition-transform hover:scale-125 origin-bottom select-none"
-                 style="animation: pickerEmojiBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; animation-delay: ${index * 0.05}s; opacity: 0; -webkit-touch-callout: none;">
-                <img src="${REACTION_ICONS[type]}" class="w-7 h-7 pointer-events-none select-none" style="-webkit-touch-callout: none;" alt="${type}">
-            </div>
-        `).join('');
-
+        // No inline picker div — picker is shown as a body-level portal via JS
         return `
             <div class="reaction-container relative inline-flex items-center shrink-0" 
-                 onmouseenter="this.classList.add('hovered')" 
-                 onmouseleave="this.classList.remove('hovered'); this.classList.remove('force-hovered')">
+                 onmouseenter="window.ReactionService.handleMouseEnter(event, '${contentType}', '${contentId}')"
+                 onmouseleave="window.ReactionService.handleMouseLeave(event, '${contentType}', '${contentId}')"
+                 oncontextmenu="event.preventDefault();">
                 
                 <button onpointerdown="window.ReactionService.handlePointerDown(event, '${contentType}', '${contentId}')"
                         onpointerup="window.ReactionService.handlePointerUp(event, '${contentType}', '${contentId}', '${myReaction ? myReaction.reaction_type : 'like'}')"
                         onpointerleave="window.ReactionService.handlePointerLeave(event, '${contentType}', '${contentId}')"
+                        oncontextmenu="event.preventDefault();"
                         onclick="event.stopPropagation(); event.preventDefault();"
-                        class="reaction-trigger-btn flex items-center justify-center transition-transform active:scale-90 outline-none">
+                        class="reaction-trigger-btn flex items-center justify-center transition-transform active:scale-90 outline-none select-none relative">
                     ${actionIcon}
                 </button>
-                
-                <div class="reaction-picker absolute bg-white dark:bg-dark-card rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-slate-100 dark:border-white/5 p-1 flex items-center gap-1 opacity-0 pointer-events-none transition-all duration-300 translate-y-3 scale-95 origin-bottom-right whitespace-nowrap scrollbar-hide"
-                     style="position: absolute !important; bottom: calc(100% + 6px) !important; right: -8px !important; max-width: calc(100vw - 24px) !important; overflow-x: auto !important; z-index: 9999 !important;"
-                     onclick="event.stopPropagation();" onmouseup="event.stopPropagation();" ontouchend="event.stopPropagation();">
-                    ${pickerItems}
-                </div>
             </div>
         `;
     }
@@ -445,11 +535,35 @@ export class AuthorService {
     }
 }
 
-// Global outside click dismissal for Reaction Picker menus
+// Global outside click dismissal for Reaction Picker portal
 document.addEventListener('pointerdown', (e) => {
-    if (!e.target.closest('.reaction-container')) {
-        document.querySelectorAll('.reaction-container.force-hovered, .reaction-container.hovered').forEach(el => {
-            el.classList.remove('force-hovered', 'hovered');
-        });
+    const portal = document.getElementById('reaction-picker-portal');
+    if (!portal) return;
+    
+    if (e.target && typeof e.target.closest === 'function') {
+        if (!e.target.closest('.reaction-container') && !e.target.closest('#reaction-picker-portal')) {
+            ReactionService.hidePickerPortal();
+        }
+    } else {
+        // Fallback if click is outside any element node (e.g. document boundary)
+        ReactionService.hidePickerPortal();
     }
 });
+
+// Keep picker alive when mouse enters the portal (desktop hover)
+document.addEventListener('mouseenter', (e) => {
+    const portal = document.getElementById('reaction-picker-portal');
+    if (!portal) return;
+
+    if (e.target && (e.target.id === 'reaction-picker-portal' || (typeof e.target.closest === 'function' && e.target.closest('#reaction-picker-portal')))) {
+        clearTimeout(ReactionService._mouseLeaveTimer);
+    }
+}, true);
+
+document.addEventListener('mouseleave', (e) => {
+    if (e.target && e.target.id === 'reaction-picker-portal') {
+        ReactionService._mouseLeaveTimer = setTimeout(() => {
+            ReactionService.hidePickerPortal();
+        }, 300);
+    }
+}, true);

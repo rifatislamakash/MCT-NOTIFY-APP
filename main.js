@@ -9,9 +9,11 @@ window.__DASHBOARD_FETCH_COUNT = 0;
 import { _supabase } from './js/supabase-client.js';
 import { batchService } from './js/services/batchService.js';
 import { crPermissionService } from './js/services/crPermissionService.js';
+import { NotificationQueueService } from './js/services/NotificationQueueService.js';
 
 
 window.crPermissionService = crPermissionService;
+window.NotificationQueueService = NotificationQueueService;
 window._supabase = _supabase;
 
 import { showGlobalToast, dismissGlobalToast, showLoader, forceHideLoader, deduplicateRequest, fetchCachedOrDeduplicated, cancelActiveRequest, cancelAllActiveRequests, fetchWithRetry, ensureBucketExists, extractIdFromEmail, getGreeting, showNotificationToast } from './js/utils.js';
