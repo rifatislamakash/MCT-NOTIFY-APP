@@ -445,6 +445,7 @@ const getSafariSafeDate = window.getSafariSafeDate;
                     return;
                 }
                 
+                window.dashboardClasses = dashboardClasses || [];
                 const todayClassesData = dashboardClasses || [];
 
                 if (localController.signal.aborted) {

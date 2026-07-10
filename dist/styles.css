@@ -354,6 +354,9 @@
   .pointer-events-none {
     pointer-events: none;
   }
+  .invisible {
+    visibility: hidden;
+  }
   .visible {
     visibility: visible;
   }
@@ -787,6 +790,9 @@
   }
   .block {
     display: block;
+  }
+  .contents {
+    display: contents;
   }
   .flex {
     display: flex;
@@ -3452,6 +3458,10 @@
     --tw-shadow: 0 1px var(--tw-shadow-color, rgb(0 0 0 / 0.05));
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
   }
+  .shadow-\[0_20px_50px_rgba\(0\,0\,0\,0\.3\)\] {
+    --tw-shadow: 0 20px 50px var(--tw-shadow-color, rgba(0,0,0,0.3));
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  }
   .shadow-inner {
     --tw-shadow: inset 0 2px 4px 0 var(--tw-shadow-color, rgb(0 0 0 / 0.05));
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
@@ -5423,6 +5433,11 @@
       color: var(--color-slate-300);
     }
   }
+  .dark\:text-slate-500 {
+    &:is(.dark *) {
+      color: var(--color-slate-500);
+    }
+  }
   .dark\:text-teal-300 {
     &:is(.dark *) {
       color: var(--color-teal-300);
@@ -5512,6 +5527,15 @@
           @supports (color: color-mix(in lab, red, red)) {
             background-color: color-mix(in oklab, var(--color-white) 20%, transparent);
           }
+        }
+      }
+    }
+  }
+  .dark\:hover\:text-dark-textSecondary {
+    &:is(.dark *) {
+      &:hover {
+        @media (hover: hover) {
+          color: #9CA3AF;
         }
       }
     }

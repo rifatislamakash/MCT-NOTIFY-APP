@@ -177,6 +177,11 @@ let isRegistering = false;
                 } finally {
                     if (typeof window.showLoader === 'function') window.showLoader(false);
                     if (typeof window.updateGlobalAvatars === 'function') setTimeout(window.updateGlobalAvatars, 1000);
+                    
+                    // Trigger onboarding tour if needed
+                    if (window.TourService && typeof window.TourService.checkAndStartTour === 'function') {
+                        window.TourService.checkAndStartTour();
+                    }
                 }
             };
 

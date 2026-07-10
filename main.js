@@ -47,6 +47,8 @@ import { SeenService } from './js/services/SeenService.js';
 window.ReactionService = ReactionService;
 window.AuthorService = AuthorService;
 window.SeenService = SeenService;
+import { TourService } from './js/services/TourService.js';
+window.TourService = TourService;
 window.logout = logout;
 
 import { AuthService } from './js/auth.js';
