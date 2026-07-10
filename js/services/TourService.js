@@ -72,7 +72,7 @@ export class TourService {
         overlay.id = 'tour-overlay-root';
         overlay.style.cssText = `
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            z-index: 99998; pointer-events: auto; overflow: hidden;
+            z-index: 99998; pointer-events: none; overflow: hidden;
             background: rgba(0,0,0,0.1);
         `;
 
