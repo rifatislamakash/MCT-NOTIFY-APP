@@ -287,10 +287,36 @@ let isRegistering = false;
                     const timeoutPromise = new Promise((_, reject) => 
                         setTimeout(() => reject(new Error('getSession timeout')), 10000)
                     );
-                    const { data, error } = await Promise.race([sessionPromise, timeoutPromise]);
-                    console.log("[DEBUG] checkActiveSession: getSession returned", !!data?.session, error);
-                    if (error) throw error;
-                    session = data.session;
+                    
+                    try {
+                        const { data, error } = await Promise.race([sessionPromise, timeoutPromise]);
+                        console.log("[DEBUG] checkActiveSession: getSession returned", !!data?.session, error);
+                        if (error) throw error;
+                        session = data.session;
+                    } catch (raceErr) {
+                        console.warn("[AUTH] getSession failed or timed out. Checking localStorage backup...", raceErr);
+                        let localSession = null;
+                        for (let i = 0; i < localStorage.length; i++) {
+                            const key = localStorage.key(i);
+                            if (key && key.indexOf('-auth-token') > -1) {
+                                try {
+                                    const parsed = JSON.parse(localStorage.getItem(key));
+                                    if (parsed && parsed.currentSession) {
+                                        localSession = parsed.currentSession;
+                                    }
+                                } catch (e) {
+                                    console.warn("[AUTH] Failed to parse local token:", e);
+                                }
+                                break;
+                            }
+                        }
+                        if (localSession) {
+                            console.log("[AUTH] Restored session from localStorage backup!");
+                            session = localSession;
+                        } else {
+                            throw raceErr;
+                        }
+                    }
                 } else {
                     console.log("[DEBUG] checkActiveSession: using cached session from onAuthStateChange");
                 }
@@ -356,17 +382,29 @@ let isRegistering = false;
             } catch (err) {
                 console.error("[DEBUG] checkActiveSession: catch block triggered", err);
                 
-                // If this is a network/fetch error, DO NOT log the user out!
+                // If this is a network/fetch/timeout error, DO NOT log the user out!
                 // Just notify them and leave them on the current screen (or let offline caching work)
-                if (err.message && (err.message.includes('fetch') || err.message.includes('network') || err.message.includes('offline'))) {
+                const isNetworkError = err.message && (
+                    err.message.includes('fetch') || 
+                    err.message.includes('network') || 
+                    err.message.includes('offline') || 
+                    err.message.includes('timeout') || 
+                    err.message.includes('failed')
+                );
+                
+                if (isNetworkError) {
                     console.warn("[AUTH] Network error during session check. Preserving session state.");
                     if (typeof window.showGlobalToast === 'function') {
-                        window.showGlobalToast("Offline", "Cannot connect to server. Some features may be unavailable.");
+                        window.showGlobalToast("Offline", "Cannot connect to server. Running in offline mode.");
                     }
                     
-                    // Attempt offline fallback if we have a profile cached
-                    if (window.authState && window.authState.profile) {
-                        window.navigate(window.authState.profile.role === 'admin' ? 'screen-admin-dashboard' : 'screen-student-dashboard');
+                    // Attempt offline fallback if we have a local session or cached profile
+                    if (window.authState && window.authState.user) {
+                        const userEmail = window.authState.user.email;
+                        const fallbackRole = window.isAdminEmail(userEmail) ? 'admin' : 'student';
+                        const activeRole = window.authState.profile?.role || fallbackRole;
+                        window.currentUserRole = activeRole;
+                        window.navigate(activeRole === 'admin' ? 'screen-admin-dashboard' : 'screen-student-dashboard');
                     } else {
                         window.navigate('screen-welcome');
                     }

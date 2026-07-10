@@ -1177,24 +1177,64 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const [hh, mm] = (cls.start_time || '00:00').split(':').map(Number);
                 const classMins = hh * 60 + mm;
 
+                // Premium gradients list matching mock-up aesthetics
+                const gradients = [
+                    'from-[#3B82F6] to-[#6366F1]', // Blue-indigo
+                    'from-[#F97316] to-[#F59E0B]', // Orange-amber
+                    'from-[#10B981] to-[#06B6D4]', // Emerald-cyan
+                    'from-[#EC4899] to-[#F43F5E]', // Pink-rose
+                    'from-[#8B5CF6] to-[#D946EF]', // Violet-fuchsia
+                    'from-[#0ea5e9] to-[#2563eb]'  // Sky-blue
+                ];
+                const gradientClass = gradients[idx % gradients.length];
+
+                // Time splitter helper for typography styling
+                const formatTimeParts = (displayStr) => {
+                    if (!displayStr || displayStr === '--') return { val: '--', period: '' };
+                    const parts = displayStr.split(' ');
+                    return { val: parts[0] || '--', period: parts[1] || '' };
+                };
+
+                const startParts = formatTimeParts(timeDisplay);
+                const endParts = formatTimeParts(endTimeDisplay);
+
+                // Duration calculations
+                const durationHrs = cls.durationHrs || 1.5;
+                const dH = Math.floor(durationHrs);
+                const dM = Math.round((durationHrs - dH) * 60);
+                const durationDisplay = dM > 0 ? `${dH}h ${dM}m` : `${dH}h`;
+
                 // Break slot detection
                 const isBreakSlot = !cls.course_id || cls.room_number === 'Break';
                 if (isBreakSlot) {
+                    const breakGradient = 'from-[#F59E0B] to-[#D97706]';
+                    const statusBadge = isOngoing
+                        ? `<span class="bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400 text-[8px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 self-center flex items-center gap-1 border border-amber-200/40 dark:border-transparent"><span class="w-1 h-1 rounded-full bg-amber-500 animate-pulse"></span>Break</span>`
+                        : isUpcoming
+                            ? `<span class="bg-amber-50/50 text-amber-500/80 dark:bg-amber-950/20 dark:text-amber-500/60 text-[8px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 self-center">Break</span>`
+                            : `<span class="bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-dark-textSecondary text-[8px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 self-center">Done</span>`;
+
                     return `
-                        <div class="flex gap-2 items-start relative min-w-0">
-                            <div class="flex-1 min-w-0 bg-amber-50 p-3.5 rounded-[22px] border border-amber-100 shadow-sm flex items-center justify-between gap-2">
-                                <div class="flex items-center gap-3 min-w-0 flex-1">
-                                    <div class="text-center border-r border-amber-100 pr-3 shrink-0 min-w-[65px] flex flex-col items-center justify-center">
-                                        <p class="text-[10px] font-black text-amber-600 leading-none whitespace-nowrap">${timeDisplay}</p>
-                                        <p class="text-[9px] font-bold text-amber-200/60 my-0.5 leading-none">|</p>
-                                        <p class="text-[10px] font-black text-amber-600 leading-none whitespace-nowrap">${endTimeDisplay}</p>
+                        <div class="flex gap-2 items-start relative min-w-0 ${isAdmin ? 'cursor-pointer' : ''}" ${isAdmin ? `onclick="openRoutineDetails('${cls.id}')"` : ''}>
+                            <div class="flex-1 min-w-0 bg-white dark:bg-dark-card rounded-[18px] border border-slate-100 dark:border-white/5 shadow-2xs flex items-center justify-between overflow-hidden hover:shadow-xs hover:border-amber-200/50 transition-all ${isPast ? 'opacity-60' : ''}">
+                                <div class="flex items-center min-w-0 flex-1 self-stretch">
+                                    <!-- Gradient left time box -->
+                                    <div class="self-stretch w-[72px] sm:w-[78px] bg-gradient-to-br ${breakGradient} text-white p-2.5 flex flex-col items-start justify-center pl-3.5 shrink-0">
+                                        <span class="text-[12px] font-extrabold tracking-tight leading-none">${startParts.val} <span class="text-[8px] font-bold opacity-80">${startParts.period}</span></span>
+                                        <span class="text-[8px] opacity-40 my-0.5 leading-none pl-1">|</span>
+                                        <span class="text-[12px] font-extrabold tracking-tight leading-none">${endParts.val} <span class="text-[8px] font-bold opacity-80">${endParts.period}</span></span>
+                                        <div class="mt-1 px-1.5 py-0.2 rounded-full bg-white/20 text-[8px] font-extrabold tracking-wide uppercase whitespace-nowrap">${durationDisplay}</div>
                                     </div>
-                                    <div class="min-w-0 flex-1">
-                                        <h4 class="font-extrabold text-xs text-amber-800 leading-snug">\u2615 Break Time</h4>
-                                        <p class="text-[10px] text-amber-500 font-semibold mt-0.5">Take a break!</p>
+                                    
+                                    <!-- Middle Content -->
+                                    <div class="px-3 py-2.5 min-w-0 flex-1 text-left flex flex-col justify-center">
+                                        <h4 class="font-extrabold text-[13px] text-amber-800 dark:text-amber-500 leading-snug break-words">☕ Break Time</h4>
+                                        <p class="text-[9.5px] text-amber-600/80 dark:text-amber-400/80 font-semibold mt-0.5 break-words">Take a rest & refresh!</p>
                                     </div>
                                 </div>
-                                <span class="bg-amber-100 text-amber-600 text-[8px] font-black px-2.5 py-1 rounded-full uppercase shrink-0">Break</span>
+                                <div class="pr-3 shrink-0 flex items-center">
+                                    ${statusBadge}
+                                </div>
                             </div>
                         </div>`;
                 }
@@ -1209,38 +1249,59 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const room = window.sanitizeHTML(cls.room_number || 'N/A');
                 const shortName = window.sanitizeHTML(cls.courses?.short_name || courseName.split(' ').map(w => w[0]).join('').substring(0, 3));
                 const initial = window.sanitizeHTML(cls.faculty?.teacher_initial || '??');
-                const dotColor = statusColors[idx % statusColors.length];
 
                 const statusBadge = isOngoing
-                    ? `<span class="bg-[#F3E8FF] text-[#8B5CF6] text-[8px] font-black px-2.5 py-1 rounded-full uppercase animate-pulse">Ongoing</span>`
+                    ? `<span class="bg-purple-50 text-[#8B5CF6] dark:bg-purple-900/30 dark:text-purple-300 text-[8px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 self-center flex items-center gap-1 border border-purple-100 dark:border-transparent"><span class="w-1 h-1 rounded-full bg-[#8B5CF6] animate-pulse"></span>Ongoing</span>`
                     : isUpcoming
-                        ? `<span class="bg-blue-50 text-blue-600 text-[8px] font-black px-2.5 py-1 rounded-full uppercase">Upcoming</span>`
-                        : `<span class="bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-dark-textSecondary text-[8px] font-black px-2.5 py-1 rounded-full uppercase">Done</span>`;
+                        ? `<span class="bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300 text-[8px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 self-center flex items-center gap-1 border border-blue-100 dark:border-transparent"><span class="w-1 h-1 rounded-full bg-blue-500"></span>Upcoming</span>`
+                        : `<span class="bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-dark-textSecondary text-[8px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 self-center">Done</span>`;
+
+                let badgesHtml = '';
+                if (window.currentUserRole === 'student' && cls.batch_id && String(cls.batch_id) !== String(window.authState?.profile?.batch_id)) {
+                    badgesHtml += `<span class="text-[8px] font-extrabold bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded-[4px] border border-rose-200 whitespace-nowrap">${cls.batches?.batch_name ? window.sanitizeHTML(cls.batches.batch_name) : 'Other'} Batch</span>`;
+                }
+                
+                let sectionHTML = '';
+                if (cls.section_name) {
+                    sectionHTML = `<span class="bg-indigo-50/70 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded-[4px] tracking-wide self-start leading-none">Sec: ${window.sanitizeHTML(cls.section_name)}</span>`;
+                }
+
+                const metadataBadges = `
+                    <div class="flex items-center flex-wrap gap-1.5 mb-1">
+                        ${badgesHtml}
+                        ${sectionHTML}
+                        <span class="text-[9px] font-extrabold bg-[#4226E9]/5 dark:bg-white/5 text-[#4226E9] dark:text-indigo-300 px-1.5 py-0.5 rounded-[4px]">${shortName}</span>
+                        <span class="text-[9px] text-slate-400 dark:text-dark-textSecondary font-bold">${initial}</span>
+                    </div>
+                `;
 
                 return `
-                        <div class="flex gap-2 items-start relative min-w-0 group ${isAdmin ? 'cursor-pointer' : ''}" ${isAdmin ? `onclick="openRoutineDetails('${cls.id}')"` : ''}>
-                            <div class="flex-1 min-w-0 bg-white dark:bg-dark-card p-3.5 rounded-[22px] border border-slate-100 dark:border-white/5 shadow-sm flex items-center justify-between gap-2 hover:border-[#4226E9]/20 hover:shadow-md transition-all ${isPast ? 'opacity-60' : ''}">
-                                <div class="flex items-center gap-3 min-w-0 flex-1">
-                                    <div class="text-center border-r border-slate-100 dark:border-white/5 pr-3 shrink-0 min-w-[65px] flex flex-col items-center justify-center">
-                                        <p class="text-[10px] font-black text-[#4226E9] leading-none whitespace-nowrap">${timeDisplay}</p>
-                                        <p class="text-[9px] font-bold text-slate-200 my-0.5 leading-none">|</p>
-                                        <p class="text-[10px] font-black text-[#4226E9] leading-none whitespace-nowrap">${endTimeDisplay}</p>
-                                    </div>
-                                    <div class="min-w-0 flex-1">
-                                        <div class="flex items-center flex-wrap gap-1.5 mb-0.5">
-                                            ${(window.currentUserRole === 'student' && cls.batch_id && String(cls.batch_id) !== String(window.authState?.profile?.batch_id)) ? `<span class="text-[8px] font-black bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded border border-rose-200 whitespace-nowrap">${cls.batches?.batch_name ? window.sanitizeHTML(cls.batches.batch_name) : 'Other'} Batch</span>` : ''}
-                                            <span class="text-[9px] font-black bg-indigo-50 text-[#4226E9] px-1.5 py-0.5 rounded">${shortName}</span>
-                                            ${cls.section_name ? `<span class="text-[9px] font-black bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-dark-textSecondary px-1.5 py-0.5 rounded border border-slate-200 dark:border-white/10">Sec: ${window.sanitizeHTML(cls.section_name)}</span>` : ''}
-                                            <span class="text-[9px] text-slate-400 dark:text-dark-textSecondary">\u2022</span>
-                                            <span class="text-[9px] text-slate-400 dark:text-dark-textSecondary font-bold">${initial}</span>
-                                        </div>
-                                        <h4 class="font-extrabold text-xs text-slate-900 dark:text-dark-text leading-snug truncate">${courseName}</h4>
-                                        <p class="text-[10px] text-slate-500 dark:text-dark-textSecondary font-semibold mt-0.5 truncate">Room ${room} \u2014 ${teacherName}</p>
+                    <div class="flex gap-2 items-start relative min-w-0 group ${isAdmin ? 'cursor-pointer' : ''}" ${isAdmin ? `onclick="openRoutineDetails('${cls.id}')"` : ''}>
+                        <div class="flex-1 min-w-0 bg-white dark:bg-dark-card rounded-[18px] border border-slate-100 dark:border-white/5 shadow-2xs flex items-center justify-between overflow-hidden hover:shadow-xs hover:border-[#4226E9]/15 transition-all ${isPast ? 'opacity-60' : ''}">
+                            <div class="flex items-center min-w-0 flex-1 self-stretch">
+                                <!-- Gradient left time box -->
+                                <div class="self-stretch w-[72px] sm:w-[78px] bg-gradient-to-br ${gradientClass} text-white p-2.5 flex flex-col items-start justify-center pl-3.5 shrink-0">
+                                    <span class="text-[12px] font-extrabold tracking-tight leading-none">${startParts.val} <span class="text-[8px] font-bold opacity-80">${startParts.period}</span></span>
+                                    <span class="text-[8px] opacity-40 my-0.5 leading-none pl-1">|</span>
+                                    <span class="text-[12px] font-extrabold tracking-tight leading-none">${endParts.val} <span class="text-[8px] font-bold opacity-80">${endParts.period}</span></span>
+                                    <div class="mt-1 px-1.5 py-0.2 rounded-full bg-white/20 text-[8px] font-extrabold tracking-wide uppercase whitespace-nowrap">${durationDisplay}</div>
+                                </div>
+                                
+                                <!-- Middle Content -->
+                                <div class="px-3 py-2.5 min-w-0 flex-1 text-left flex flex-col justify-center">
+                                    ${metadataBadges}
+                                    <h4 class="font-extrabold text-[13px] text-slate-800 dark:text-indigo-50 leading-tight truncate mb-1">${courseName}</h4>
+                                    <div class="flex items-center gap-1 text-[9.5px] text-slate-400 dark:text-dark-textSecondary font-semibold mt-0.5">
+                                        <i data-lucide="map-pin" class="w-3 h-3 text-slate-400 dark:text-dark-textSecondary shrink-0"></i>
+                                        <span class="truncate">Room ${room} — ${teacherName}</span>
                                     </div>
                                 </div>
+                            </div>
+                            <div class="pr-3 shrink-0 flex items-center">
                                 ${statusBadge}
                             </div>
-                        </div>`;
+                        </div>
+                    </div>`;
             }).join('');
 
             if (typeof lucide !== 'undefined') lucide.createIcons();

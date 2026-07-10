@@ -538,7 +538,7 @@ const getSafariSafeDate = window.getSafariSafeDate;
                 const nowMins = isToday ? (now.getHours() * 60 + now.getMinutes()) : -1;
 
                 try {
-                    window._dashboardRoutineHTML = mergedClasses.map(cls => {
+                    window._dashboardRoutineHTML = mergedClasses.map((cls, idx) => {
                         const isBreak = !cls.course_id || cls.room_number === 'Break';
                         const timeDisplay = formatRoutineTime(cls.start_time);
                         const endTimeStr = getEndTime(cls.start_time, cls.durationHrs);
@@ -552,70 +552,110 @@ const getSafariSafeDate = window.getSafariSafeDate;
                         const isUpcoming = !isToday || classMins > nowMins;
                         const isPast = isToday && classMins + durationMins <= nowMins;
 
-                        let dotColor = "";
-                        let timeColor = "";
+                        // Premium gradients list matching mock-up aesthetics
+                        const gradients = [
+                            'from-[#3B82F6] to-[#6366F1]', // Blue-indigo
+                            'from-[#F97316] to-[#F59E0B]', // Orange-amber
+                            'from-[#10B981] to-[#06B6D4]', // Emerald-cyan
+                            'from-[#EC4899] to-[#F43F5E]', // Pink-rose
+                            'from-[#8B5CF6] to-[#D946EF]', // Violet-fuchsia
+                            'from-[#0ea5e9] to-[#2563eb]'  // Sky-blue
+                        ];
+                        const gradientClass = gradients[idx % gradients.length];
+
+                        // Time splitter helper for typography styling
+                        const formatTimeParts = (displayStr) => {
+                            if (!displayStr || displayStr === '--') return { val: '--', period: '' };
+                            const parts = displayStr.split(' ');
+                            return { val: parts[0] || '--', period: parts[1] || '' };
+                        };
+
+                        const startParts = formatTimeParts(timeDisplay);
+                        const endParts = formatTimeParts(endTimeDisplay);
+
+                        // Duration calculations
+                        const durationHrs = cls.durationHrs;
+                        const dH = Math.floor(durationHrs);
+                        const dM = Math.round((durationHrs - dH) * 60);
+                        const durationDisplay = dM > 0 ? `${dH}h ${dM}m` : `${dH}h`;
+
                         let statusBadge = "";
                         let contentHTML = "";
 
                         if (isBreak) {
-                            timeColor = isOngoing ? 'text-amber-700' : isUpcoming ? 'text-amber-600' : 'text-slate-400 dark:text-dark-textSecondary';
+                            const breakGradient = 'from-[#F59E0B] to-[#D97706]';
                             statusBadge = isOngoing
-                                ? `<span class="bg-amber-100 text-amber-750 text-[8.5px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Ongoing Break</span>`
+                                ? `<span class="bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400 text-[8px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 self-center flex items-center gap-1 border border-amber-200/40 dark:border-transparent"><span class="w-1 h-1 rounded-full bg-amber-500 animate-pulse"></span>Break</span>`
                                 : isUpcoming
-                                    ? `<span class="bg-amber-50/50 text-amber-600 text-[8px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Upcoming Break</span>`
-                                    : `<span class="bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-dark-textSecondary text-[8px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Done</span>`;
+                                    ? `<span class="bg-amber-50/50 text-amber-500/80 dark:bg-amber-950/20 dark:text-amber-500/60 text-[8px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 self-center">Break</span>`
+                                    : `<span class="bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-dark-textSecondary text-[8px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 self-center">Done</span>`;
 
                             contentHTML = `
-                                    <div class="flex-1 min-w-0 bg-amber-50/30 p-3.5 rounded-[22px] border border-amber-100/50 shadow-2xs flex items-center justify-between gap-2 hover:border-amber-200/50 hover:shadow-xs transition-all ${isPast ? 'opacity-60' : ''}">
-                                        <div class="flex items-center gap-3.5 min-w-0 flex-1">
-                                            <div class="text-center border-r border-amber-100/50 pr-4 shrink-0 min-w-[70px] flex flex-col items-center justify-center">
-                                                <p class="text-[11px] font-black ${timeColor} leading-none whitespace-nowrap">${timeDisplay}</p>
-                                                <p class="text-[12px] font-bold text-amber-200/80 my-1 leading-none">|</p>
-                                                <p class="text-[11px] font-black ${timeColor} leading-none whitespace-nowrap mt-0.5">${endTimeDisplay}</p>
-                                            </div>
-                                            <div class="min-w-0 flex-1 text-left">
-                                                <h4 class="font-extrabold text-xs text-amber-800 leading-snug break-words">☕ Break Time</h4>
-                                                <p class="text-[10px] text-amber-500/80 font-semibold mt-1 break-words">Take a break!</p>
-                                            </div>
+                                <div class="flex-1 min-w-0 bg-white dark:bg-dark-card rounded-[18px] border border-slate-100 dark:border-white/5 shadow-2xs flex items-center justify-between overflow-hidden hover:shadow-xs hover:border-amber-200/50 transition-all ${isPast ? 'opacity-60' : ''}">
+                                    <div class="flex items-center min-w-0 flex-1 self-stretch">
+                                        <!-- Gradient left time box -->
+                                        <div class="self-stretch w-[72px] sm:w-[78px] bg-gradient-to-br ${breakGradient} text-white p-2.5 flex flex-col items-start justify-center pl-3.5 shrink-0">
+                                            <span class="text-[12px] font-extrabold tracking-tight leading-none">${startParts.val} <span class="text-[8px] font-bold opacity-80">${startParts.period}</span></span>
+                                            <span class="text-[8px] opacity-40 my-0.5 leading-none pl-1">|</span>
+                                            <span class="text-[12px] font-extrabold tracking-tight leading-none">${endParts.val} <span class="text-[8px] font-bold opacity-80">${endParts.period}</span></span>
+                                            <div class="mt-1 px-1.5 py-0.2 rounded-full bg-white/20 text-[8px] font-extrabold tracking-wide uppercase whitespace-nowrap">${durationDisplay}</div>
                                         </div>
+                                        
+                                        <!-- Middle Content -->
+                                        <div class="px-3 py-2.5 min-w-0 flex-1 text-left flex flex-col justify-center">
+                                            <h4 class="font-extrabold text-[13px] text-amber-800 dark:text-amber-500 leading-snug break-words">☕ Break Time</h4>
+                                            <p class="text-[9.5px] text-amber-600/80 dark:text-amber-400/80 font-semibold mt-0.5 break-words">Take a rest & refresh!</p>
+                                        </div>
+                                    </div>
+                                    <div class="pr-3 shrink-0 flex items-center">
                                         ${statusBadge}
                                     </div>
-                                `;
+                                </div>
+                            `;
                         } else {
-                            timeColor = isOngoing ? 'text-[#4226E9]' : isUpcoming ? 'text-[#3B82F6]' : 'text-slate-400 dark:text-dark-textSecondary';
                             statusBadge = isOngoing
-                                ? `<span class="bg-[#F3E8FF] text-[#8B5CF6] text-[8.5px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Ongoing</span>`
+                                ? `<span class="bg-purple-50 text-[#8B5CF6] dark:bg-purple-900/30 dark:text-purple-300 text-[8px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 self-center flex items-center gap-1 border border-purple-100 dark:border-transparent"><span class="w-1 h-1 rounded-full bg-[#8B5CF6] animate-pulse"></span>Ongoing</span>`
                                 : isUpcoming
-                                    ? `<span class="bg-blue-50 text-blue-600 text-[8px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Upcoming</span>`
-                                    : `<span class="bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-dark-textSecondary text-[8px] font-black px-2.5 py-1 rounded-full uppercase shrink-0 self-center">Done</span>`;
+                                    ? `<span class="bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300 text-[8px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 self-center flex items-center gap-1 border border-blue-100 dark:border-transparent"><span class="w-1 h-1 rounded-full bg-blue-500"></span>Upcoming</span>`
+                                    : `<span class="bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-dark-textSecondary text-[8px] font-black px-2 py-0.5 rounded-full uppercase shrink-0 self-center">Done</span>`;
 
                             let sectionHTML = '';
                             if (cls.section_name) {
-                                sectionHTML = `<span class="bg-indigo-50 text-indigo-600 text-[10px] font-bold px-2 py-0.5 rounded ml-2 whitespace-nowrap">Sec: ${window.sanitizeHTML(cls.section_name)}</span>`;
+                                sectionHTML = `<span class="bg-indigo-50/70 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded-[4px] tracking-wide self-start mb-0.5 leading-none">Sec: ${window.sanitizeHTML(cls.section_name)}</span>`;
                             }
 
                             contentHTML = `
-                                    <div class="flex-1 min-w-0 bg-white dark:bg-dark-card p-3.5 rounded-[22px] border border-slate-100 dark:border-white/5 shadow-2xs flex items-center justify-between gap-2 hover:border-[#4226E9]/15 hover:shadow-xs transition-all ${isPast ? 'opacity-60' : ''}">
-                                        <div class="flex items-center gap-3.5 min-w-0 flex-1">
-                                            <div class="text-center border-r border-slate-100 dark:border-white/5 pr-4 shrink-0 min-w-[70px] flex flex-col items-center justify-center">
-                                                <p class="text-[11px] font-black ${timeColor} leading-none whitespace-nowrap">${timeDisplay}</p>
-                                                <p class="text-[12px] font-bold text-slate-300 my-1 leading-none">|</p>
-                                                <p class="text-[11px] font-black ${timeColor} leading-none whitespace-nowrap mt-0.5">${endTimeDisplay}</p>
-                                            </div>
-                                            <div class="min-w-0 flex-1 text-left">
-                                                <h4 class="font-extrabold text-xs text-slate-900 dark:text-dark-text leading-snug break-words flex flex-wrap items-center gap-1">${cls.courses?.course_name || 'Course'}${sectionHTML}</h4>
-                                                <p class="text-[10px] text-slate-500 dark:text-dark-textSecondary font-semibold mt-1 break-words">Room ${cls.room_number || 'N/A'} — ${cls.faculty?.faculty_name || 'Faculty'}</p>
+                                <div class="flex-1 min-w-0 bg-white dark:bg-dark-card rounded-[18px] border border-slate-100 dark:border-white/5 shadow-2xs flex items-center justify-between overflow-hidden hover:shadow-xs hover:border-[#4226E9]/15 transition-all ${isPast ? 'opacity-60' : ''}">
+                                    <div class="flex items-center min-w-0 flex-1 self-stretch">
+                                        <!-- Gradient left time box -->
+                                        <div class="self-stretch w-[72px] sm:w-[78px] bg-gradient-to-br ${gradientClass} text-white p-2.5 flex flex-col items-start justify-center pl-3.5 shrink-0">
+                                            <span class="text-[12px] font-extrabold tracking-tight leading-none">${startParts.val} <span class="text-[8px] font-bold opacity-80">${startParts.period}</span></span>
+                                            <span class="text-[8px] opacity-40 my-0.5 leading-none pl-1">|</span>
+                                            <span class="text-[12px] font-extrabold tracking-tight leading-none">${endParts.val} <span class="text-[8px] font-bold opacity-80">${endParts.period}</span></span>
+                                            <div class="mt-1 px-1.5 py-0.2 rounded-full bg-white/20 text-[8px] font-extrabold tracking-wide uppercase whitespace-nowrap">${durationDisplay}</div>
+                                        </div>
+                                        
+                                        <!-- Middle Content -->
+                                        <div class="px-3 py-2.5 min-w-0 flex-1 text-left flex flex-col justify-center">
+                                            ${sectionHTML}
+                                            <h4 class="font-extrabold text-[13px] text-slate-800 dark:text-indigo-50 leading-tight truncate mb-1">${cls.courses?.course_name || 'Course'}</h4>
+                                            <div class="flex items-center gap-1 text-[9.5px] text-slate-400 dark:text-dark-textSecondary font-semibold mt-0.5">
+                                                <i data-lucide="map-pin" class="w-3 h-3 text-slate-400 dark:text-dark-textSecondary shrink-0"></i>
+                                                <span class="truncate">Room ${cls.room_number || 'N/A'} — ${cls.faculty?.teacher_initial || cls.faculty?.faculty_name || 'Faculty'}</span>
                                             </div>
                                         </div>
+                                    </div>
+                                    <div class="pr-3 shrink-0 flex items-center">
                                         ${statusBadge}
                                     </div>
-                                `;
+                                </div>
+                            `;
                         }
 
                         return `
-                                <div class="flex gap-2 items-center relative min-w-0">
-                                    ${contentHTML}
-                                </div>`;
+                            <div class="flex gap-2 items-center relative min-w-0">
+                                ${contentHTML}
+                            </div>`;
                     }).join('');
                 } catch (renderError) {
                     console.error("[SAFARI RENDER ERROR]", renderError);
