@@ -1238,7 +1238,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     }
 
                     const reminderDivs = document.querySelectorAll('#schedule-reminders-list .reminder-row');
-                    if (notifyAudience && reminderDivs.length > 0) {
+                    if (reminderDivs.length > 0) {
                         console.log(`[REMINDERS] Found ${reminderDivs.length} schedule reminder rows to insert.`);
                         const eventDateTime = window.getSafariSafeDate(date + 'T' + time);
                         
@@ -1635,7 +1635,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     const reminderRows = [];
                     const reminderDivs = document.querySelectorAll('#edit-schedule-reminders-list .reminder-row');
                     
-                    if (notifyUpdate && reminderDivs.length > 0) {
+                    if (reminderDivs.length > 0) {
                         console.log(`[SCHEDULE UPDATE] Found ${reminderDivs.length} schedule reminder rows to insert.`);
                         
                         const eventDateTime = window.getSafariSafeDate(date + 'T' + time);

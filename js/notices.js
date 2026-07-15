@@ -656,7 +656,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                                 ${window.SeenService ? window.SeenService.renderSeenBlock('notice', n.id) : ''}
                                             </div>
                                             <div class="shrink-0 flex items-center">
-                                                ${(window.ReactionService && !isPoll) ? window.ReactionService.renderReactionBlock('notice', n.id) : ''}
+                                                ${window.ReactionService ? (isPoll ? window.ReactionService.renderReactionBlock('poll', n.id) : window.ReactionService.renderReactionBlock('notice', n.id)) : ''}
                                             </div>
                                         </div>
                                     </div>
@@ -1206,7 +1206,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     }
 
                     const reminderDivs = document.querySelectorAll('#notice-reminders-list .reminder-row');
-                    if (shouldNotify && reminderDivs.length > 0) {
+                    if (reminderDivs.length > 0) {
                         console.log(`[REMINDERS] Found ${reminderDivs.length} reminder rows to insert/update.`);
                         const eventDateTime = window.getSafariSafeDate(notice_date + 'T' + notice_time);
                         
