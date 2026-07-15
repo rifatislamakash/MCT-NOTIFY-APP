@@ -138,13 +138,19 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             fetchWithRetry(async (subSignal) => {
                                 let results = [];
                                 const chunkSize = 100;
+                                const chunks = [];
                                 for (let i = 0; i < scheduleIds.length; i += chunkSize) {
-                                    const chunk = scheduleIds.slice(i, i + chunkSize);
-                                    const { data, error } = await _supabase
+                                    chunks.push(scheduleIds.slice(i, i + chunkSize));
+                                }
+                                const promises = chunks.map(chunk => 
+                                    _supabase
                                         .from('schedule_courses')
                                         .select('schedule_id, course_id')
                                         .in('schedule_id', chunk)
-                                        .abortSignal(subSignal);
+                                        .abortSignal(subSignal)
+                                );
+                                const responses = await Promise.all(promises);
+                                for (const { data, error } of responses) {
                                     if (error) throw error;
                                     if (data) results = results.concat(data);
                                 }
@@ -153,14 +159,20 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             fetchWithRetry(async (subSignal) => {
                                 let results = [];
                                 const chunkSize = 100;
+                                const chunks = [];
                                 for (let i = 0; i < scheduleIds.length; i += chunkSize) {
-                                    const chunk = scheduleIds.slice(i, i + chunkSize);
-                                    const { data, error } = await _supabase
+                                    chunks.push(scheduleIds.slice(i, i + chunkSize));
+                                }
+                                const promises = chunks.map(chunk => 
+                                    _supabase
                                         .from('content_targets')
                                         .select('*')
                                         .eq('content_type', 'schedule')
                                         .in('content_id', chunk)
-                                        .abortSignal(subSignal);
+                                        .abortSignal(subSignal)
+                                );
+                                const responses = await Promise.all(promises);
+                                for (const { data, error } of responses) {
                                     if (error) throw error;
                                     if (data) results = results.concat(data);
                                 }
@@ -1226,7 +1238,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     }
 
                     const reminderDivs = document.querySelectorAll('#schedule-reminders-list .reminder-row');
-                    if (reminderDivs.length > 0) {
+                    if (notifyAudience && reminderDivs.length > 0) {
                         console.log(`[REMINDERS] Found ${reminderDivs.length} schedule reminder rows to insert.`);
                         const eventDateTime = window.getSafariSafeDate(date + 'T' + time);
                         
@@ -1619,11 +1631,11 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 try {
                     console.log("[SCHEDULE UPDATE] Cleaning up old reminders...");
                     await _supabase.from('notification_reminders').delete().eq('parent_id', selectedScheduleId).eq('parent_type', 'schedule');
-                    
+                    const notifyUpdate = document.getElementById('notify-audience-edit-schedule')?.checked;
                     const reminderRows = [];
                     const reminderDivs = document.querySelectorAll('#edit-schedule-reminders-list .reminder-row');
                     
-                    if (reminderDivs.length > 0) {
+                    if (notifyUpdate && reminderDivs.length > 0) {
                         console.log(`[SCHEDULE UPDATE] Found ${reminderDivs.length} schedule reminder rows to insert.`);
                         
                         const eventDateTime = window.getSafariSafeDate(date + 'T' + time);

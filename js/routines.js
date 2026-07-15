@@ -1828,10 +1828,11 @@ window.switchRoutineView = switchRoutineView;
                 
                 // Parse and save reminders
                 try {
+                    const shouldNotify = document.getElementById('notify-audience-exam')?.checked !== false;
                     const reminderRows = [];
                     const eventDateTime = getSafariSafeDate(examDate + 'T' + startTime);
                     const listContainer = document.getElementById('exam-reminders-list');
-                    if (listContainer) {
+                    if (shouldNotify && listContainer) {
                         listContainer.querySelectorAll('.reminder-row').forEach(div => {
                             const offsetSelect = div.querySelector('.reminder-offset');
                             if (!offsetSelect) return;
@@ -2160,10 +2161,11 @@ window.switchRoutineView = switchRoutineView;
                 }
 
                 try {
+                    const shouldNotify = document.getElementById('notify-audience-edit-exam')?.checked !== false;
                     const reminderRows = [];
                     const eventDateTime = getSafariSafeDate(examDate + 'T' + startTime);
                     const listContainer = document.getElementById('edit-exam-reminders-list');
-                    if (listContainer) {
+                    if (shouldNotify && listContainer) {
                         listContainer.querySelectorAll('.reminder-row').forEach(div => {
                             const offsetSelect = div.querySelector('.reminder-offset');
                             if (!offsetSelect) return;

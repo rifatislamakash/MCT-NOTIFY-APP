@@ -1206,7 +1206,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     }
 
                     const reminderDivs = document.querySelectorAll('#notice-reminders-list .reminder-row');
-                    if (reminderDivs.length > 0) {
+                    if (shouldNotify && reminderDivs.length > 0) {
                         console.log(`[REMINDERS] Found ${reminderDivs.length} reminder rows to insert/update.`);
                         const eventDateTime = window.getSafariSafeDate(notice_date + 'T' + notice_time);
                         
