@@ -3540,32 +3540,41 @@
                                 <h3 class="text-xs font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wider">Filter By</h3>
                                 <select id="groups-filter" onchange="if(typeof window.renderGroups === 'function') window.renderGroups()" class="h-8 px-3 text-xs font-bold text-slate-700 dark:text-dark-textSecondary bg-white dark:bg-dark-card border border-slate-200 dark:border-white/10 rounded-lg outline-none focus:border-[#4226E9] shadow-sm cursor-pointer">
                                     <option value="all">All</option>
-                                    <option value="link">Links</option>
-                                    <option value="course">Course Groups</option>
-                                    <option value="general">General or Custom Channels</option>
+                                    <option value="blc">BLC</option>
+                                    <option value="groups">Groups</option>
+                                    <option value="links">Links</option>
+                                    <option value="others">Others</option>
                                 </select>
                             </div>
 
+                            <!-- BLC -->
+                            <div id="section-groups-blc" class="space-y-3">
+                                <h3 class="text-xs font-black uppercase text-slate-400 dark:text-dark-textSecondary tracking-wider flex items-center gap-1.5"><i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-amber-500"></i> BLC</h3>
+                                <div id="groups-blc-container" class="space-y-3">
+                                    <!-- Dynamic cards -->
+                                </div>
+                            </div>
+
+                            <!-- Groups -->
+                            <div id="section-groups-groups" class="space-y-3">
+                                <h3 class="text-xs font-black uppercase text-slate-400 dark:text-dark-textSecondary tracking-wider flex items-center gap-1.5"><i data-lucide="users" class="w-3.5 h-3.5 text-indigo-500"></i> Groups</h3>
+                                <div id="groups-groups-container" class="space-y-3">
+                                    <!-- Dynamic cards -->
+                                </div>
+                            </div>
+
                             <!-- Links -->
-                            <div id="section-groups-link" class="space-y-3">
+                            <div id="section-groups-links" class="space-y-3">
                                 <h3 class="text-xs font-black uppercase text-slate-400 dark:text-dark-textSecondary tracking-wider flex items-center gap-1.5"><i data-lucide="link" class="w-3.5 h-3.5 text-blue-500"></i> Links</h3>
-                                <div id="groups-link-container" class="space-y-3">
+                                <div id="groups-links-container" class="space-y-3">
                                     <!-- Dynamic cards -->
                                 </div>
                             </div>
 
-                            <!-- Course groups -->
-                            <div id="section-groups-course" class="space-y-3">
-                                <h3 class="text-xs font-black uppercase text-slate-400 dark:text-dark-textSecondary tracking-wider flex items-center gap-1.5"><i data-lucide="book-open" class="w-3.5 h-3.5 text-indigo-500"></i> Course Chat Groups</h3>
-                                <div id="groups-course-container" class="space-y-3">
-                                    <!-- Dynamic cards -->
-                                </div>
-                            </div>
-
-                            <!-- Custom groups -->
-                            <div id="section-groups-general" class="space-y-3">
-                                <h3 class="text-xs font-black uppercase text-slate-400 dark:text-dark-textSecondary tracking-wider flex items-center gap-1.5"><i data-lucide="hash" class="w-3.5 h-3.5 text-emerald-500"></i> General & Custom Channels</h3>
-                                <div id="groups-custom-container" class="space-y-3">
+                            <!-- Others -->
+                            <div id="section-groups-others" class="space-y-3">
+                                <h3 class="text-xs font-black uppercase text-slate-400 dark:text-dark-textSecondary tracking-wider flex items-center gap-1.5"><i data-lucide="more-horizontal" class="w-3.5 h-3.5 text-emerald-500"></i> Others</h3>
+                                <div id="groups-others-container" class="space-y-3">
                                     <!-- Dynamic cards -->
                                 </div>
                             </div>
@@ -3664,9 +3673,11 @@
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wider ml-1">Group Type <span class="text-red-400">*</span></label>
                                     <select id="group-type" required class="w-full h-[48px] px-4 bg-slate-50 dark:bg-dark-bg/50 text-slate-900 dark:text-dark-text text-[14px] font-semibold rounded-[14px] border border-slate-200 dark:border-white/10 focus:border-[#4226E9] focus:ring-2 focus:ring-indigo-100 outline-none transition-all">
-                                        <option value="link">Links</option>
-                                        <option value="course">Course Groups</option>
-                                        <option value="general">General or Custom Channels</option>
+                                        <option value="" disabled selected class="text-slate-400">Select Group Type</option>
+                                        <option value="blc">BLC</option>
+                                        <option value="groups">Groups</option>
+                                        <option value="links">Links</option>
+                                        <option value="others">Others</option>
                                     </select>
                                 </div>
 
@@ -9695,19 +9706,22 @@
         window.renderGroups = function () {
             if (!isScreenActive('screen-groups-list')) return;
 
-            const courseContainer = document.getElementById('groups-course-container');
-            const customContainer = document.getElementById('groups-custom-container');
-            const linkContainer = document.getElementById('groups-link-container');
+            const blcContainer = document.getElementById('groups-blc-container');
+            const groupsContainer = document.getElementById('groups-groups-container');
+            const linksContainer = document.getElementById('groups-links-container');
+            const othersContainer = document.getElementById('groups-others-container');
             
-            const sectionCourse = document.getElementById('section-groups-course');
-            const sectionGeneral = document.getElementById('section-groups-general');
-            const sectionLink = document.getElementById('section-groups-link');
+            const sectionBlc = document.getElementById('section-groups-blc');
+            const sectionGroups = document.getElementById('section-groups-groups');
+            const sectionLinks = document.getElementById('section-groups-links');
+            const sectionOthers = document.getElementById('section-groups-others');
 
-            if (!courseContainer || !customContainer || !linkContainer) return;
+            if (!blcContainer || !groupsContainer || !linksContainer || !othersContainer) return;
 
-            courseContainer.innerHTML = '';
-            customContainer.innerHTML = '';
-            linkContainer.innerHTML = '';
+            blcContainer.innerHTML = '';
+            groupsContainer.innerHTML = '';
+            linksContainer.innerHTML = '';
+            othersContainer.innerHTML = '';
 
             const isAdminOrCR = (currentUserRole === 'admin' || currentUserRole === 'cr' || window.isAdminEmail(currentUserEmail));
 
@@ -9727,7 +9741,7 @@
                             <p class="text-sm text-slate-500 dark:text-dark-textSecondary mt-1 max-w-[250px] mx-auto">Select a batch from the dropdown above to view its groups.</p>
                         </div>
                     `;
-                    courseContainer.innerHTML = emptyHtml;
+                    if (blcContainer) blcContainer.innerHTML = emptyHtml;
                     if (window.lucide) window.lucide.createIcons();
                     return;
                 }
@@ -9774,26 +9788,36 @@
                 });
             }
 
-            const courseGroups = viewableGroups.filter(g => (g.type === 'course' || (!g.type && g.course_id !== null)));
-            const customGroups = viewableGroups.filter(g => (g.type === 'general' || (!g.type && g.course_id === null)));
-            const linkGroups = viewableGroups.filter(g => g.type === 'link');
+            const blcGroups = viewableGroups.filter(g => g.type === 'blc');
+            const groupsGroups = viewableGroups.filter(g => g.type === 'groups' || g.type === 'course');
+            const linksGroups = viewableGroups.filter(g => g.type === 'links' || g.type === 'link');
+            const othersGroups = viewableGroups.filter(g => g.type === 'others' || g.type === 'general' || !g.type || (g.type !== 'blc' && g.type !== 'groups' && g.type !== 'course' && g.type !== 'links' && g.type !== 'link'));
 
-            if (filterValue === 'course') {
-                sectionCourse.classList.remove('hidden');
-                sectionGeneral.classList.add('hidden');
-                sectionLink.classList.add('hidden');
-            } else if (filterValue === 'general') {
-                sectionCourse.classList.add('hidden');
-                sectionGeneral.classList.remove('hidden');
-                sectionLink.classList.add('hidden');
-            } else if (filterValue === 'link') {
-                sectionCourse.classList.add('hidden');
-                sectionGeneral.classList.add('hidden');
-                sectionLink.classList.remove('hidden');
+            if (filterValue === 'blc') {
+                if (sectionBlc) sectionBlc.classList.remove('hidden');
+                if (sectionGroups) sectionGroups.classList.add('hidden');
+                if (sectionLinks) sectionLinks.classList.add('hidden');
+                if (sectionOthers) sectionOthers.classList.add('hidden');
+            } else if (filterValue === 'groups') {
+                if (sectionBlc) sectionBlc.classList.add('hidden');
+                if (sectionGroups) sectionGroups.classList.remove('hidden');
+                if (sectionLinks) sectionLinks.classList.add('hidden');
+                if (sectionOthers) sectionOthers.classList.add('hidden');
+            } else if (filterValue === 'links') {
+                if (sectionBlc) sectionBlc.classList.add('hidden');
+                if (sectionGroups) sectionGroups.classList.add('hidden');
+                if (sectionLinks) sectionLinks.classList.remove('hidden');
+                if (sectionOthers) sectionOthers.classList.add('hidden');
+            } else if (filterValue === 'others') {
+                if (sectionBlc) sectionBlc.classList.add('hidden');
+                if (sectionGroups) sectionGroups.classList.add('hidden');
+                if (sectionLinks) sectionLinks.classList.add('hidden');
+                if (sectionOthers) sectionOthers.classList.remove('hidden');
             } else {
-                sectionCourse.classList.remove('hidden');
-                sectionGeneral.classList.remove('hidden');
-                sectionLink.classList.remove('hidden');
+                if (sectionBlc) sectionBlc.classList.remove('hidden');
+                if (sectionGroups) sectionGroups.classList.remove('hidden');
+                if (sectionLinks) sectionLinks.classList.remove('hidden');
+                if (sectionOthers) sectionOthers.classList.remove('hidden');
             }
 
             const renderGroupCardList = (list, container, emptyMsg) => {
@@ -9803,7 +9827,7 @@
                 }
 
                 container.innerHTML = list.map(g => {
-                    const courseBadge = g.courses ? `<span class="px-2 py-0.5 text-[8px] font-black bg-indigo-50 text-[#4226E9] rounded-full uppercase truncate max-w-[120px] inline-block">${window.sanitizeHTML(g.courses.short_name || g.courses.course_name)}</span>` : `<span class="px-2 py-0.5 text-[8px] font-black bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-dark-textSecondary rounded-full uppercase inline-block">General Channel</span>`;
+                    const courseBadge = g.courses ? `<span class="px-2 py-0.5 text-[8px] font-black bg-indigo-50 text-[#4226E9] rounded-full uppercase truncate max-w-[120px] inline-block">${window.sanitizeHTML(g.courses.short_name || g.courses.course_name)}</span>` : `<span class="px-2 py-0.5 text-[8px] font-black bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-dark-textSecondary rounded-full uppercase inline-block">${window.sanitizeHTML(g.type ? g.type.toUpperCase() : 'General')}</span>`;
 
                     let iconName = "users";
                     let iconColorClass = "text-[#4226E9] bg-indigo-50";
@@ -9838,7 +9862,7 @@
                     return `
                             <div id="group-card-${g.id}" class="bg-white dark:bg-dark-card p-3.5 rounded-2xl border border-slate-100 dark:border-white/5 shadow-2xs flex items-center gap-3.5 transition hover:shadow-xs cursor-pointer hover:border-[#4226E9]/30 active:scale-[0.99]" onclick="openGroupDetails('${g.id}')">
                                 <div class="w-10 h-10 rounded-full ${iconColorClass} flex items-center justify-center shrink-0">
-                                    ${iconHTML}
+                                     ${iconHTML}
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <h4 class="font-bold text-[12.5px] text-slate-800 dark:text-dark-text leading-tight truncate">${safeTitle}</h4>
@@ -9855,9 +9879,10 @@
                 }).join('');
             };
 
-            renderGroupCardList(courseGroups, courseContainer, "No course chat groups listed yet.");
-            renderGroupCardList(customGroups, customContainer, "No general support channels listed yet.");
-            renderGroupCardList(linkGroups, linkContainer, "No links available.");
+            renderGroupCardList(blcGroups, blcContainer, "No BLC links listed yet.");
+            renderGroupCardList(groupsGroups, groupsContainer, "No chat groups listed yet.");
+            renderGroupCardList(linksGroups, linksContainer, "No links available.");
+            renderGroupCardList(othersGroups, othersContainer, "No other channels listed yet.");
 
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();
@@ -9868,7 +9893,7 @@
             const g = currentGroupsList.find(x => x.id === groupId);
             if (!g) return;
             document.getElementById('gd-title').innerText = g.title || 'Group';
-            document.getElementById('gd-course').innerText = g.courses?.short_name || g.courses?.course_name || 'General Support';
+            document.getElementById('gd-course').innerText = g.courses?.short_name || g.courses?.course_name || (g.type ? g.type.toUpperCase() : 'General Support');
             document.getElementById('gd-desc').innerText = g.description || 'No description provided for this group.';
             document.getElementById('gd-link').href = g.group_link || '#';
             navigate('screen-groups-detailed');
@@ -9879,7 +9904,7 @@
             document.getElementById('group-title').value = '';
             document.getElementById('group-link').value = '';
             document.getElementById('group-description').value = '';
-            if (document.getElementById('group-type')) document.getElementById('group-type').value = 'course';
+            if (document.getElementById('group-type')) document.getElementById('group-type').value = 'blc';
 
             await populateGroupCourseSelect('');
 
@@ -9898,7 +9923,13 @@
             document.getElementById('group-title').value = group.title || '';
             document.getElementById('group-link').value = group.group_link || '';
             document.getElementById('group-description').value = group.description || '';
-            if (document.getElementById('group-type')) document.getElementById('group-type').value = group.type || 'course';
+            if (document.getElementById('group-type')) {
+                let t = group.type || 'blc';
+                if (t === 'course') t = 'groups';
+                if (t === 'link') t = 'links';
+                if (t === 'general') t = 'others';
+                document.getElementById('group-type').value = t;
+            }
 
             await populateGroupCourseSelect(group.course_id || '');
 
@@ -9927,19 +9958,26 @@
             let customOption = '<option value="">Custom Group (No Course Attached)</option>';
             if (window.crPermissionService && window.crPermissionService.isCR()) {
                 customOption = '<option value="" disabled selected>Select a Course</option>';
-                if (typeEl) {
-                    typeEl.innerHTML = '<option value="course">Course Groups</option>';
-                    typeEl.value = 'course';
-                }
-            } else if (typeEl) {
+            }
+            
+            if (typeEl) {
                 const currentType = typeEl.value;
                 typeEl.innerHTML = `
-                    <option value="link">Links</option>
-                    <option value="course">Course Groups</option>
-                    <option value="general">General or Custom Channels</option>
+                    <option value="blc">BLC</option>
+                    <option value="groups">Groups</option>
+                    <option value="links">Links</option>
+                    <option value="others">Others</option>
                 `;
-                if (['link', 'course', 'general'].includes(currentType)) {
+                if (['blc', 'groups', 'links', 'others'].includes(currentType)) {
                     typeEl.value = currentType;
+                } else if (['link', 'links'].includes(currentType)) {
+                    typeEl.value = 'links';
+                } else if (['course', 'groups'].includes(currentType)) {
+                    typeEl.value = 'groups';
+                } else if (['general', 'others'].includes(currentType)) {
+                    typeEl.value = 'others';
+                } else {
+                    typeEl.value = 'blc';
                 }
             }
 
@@ -9969,10 +10007,10 @@
                 const courseSelect = document.getElementById('group-course-select');
                 const course_id = courseSelect.value || null;
                 const typeSelect = document.getElementById('group-type');
-                const group_type = typeSelect ? typeSelect.value : 'course';
+                const group_type = (typeSelect && typeSelect.value) ? typeSelect.value : 'others';
 
                 if (window.crPermissionService && window.crPermissionService.isCR()) {
-                    if (!course_id && group_type === 'course') {
+                    if (!course_id && group_type === 'groups') {
                         showGlobalToast("Validation Error", "You must select a course to attach this course group to.");
                         isSubmittingGroup = false;
                         showLoader(false);
@@ -10019,6 +10057,7 @@
                 const startTime = performance.now();
 
                 await fetchWithRetry(async (dbSignal) => {
+                    let groupRecord = null;
                     if (id) {
                         console.log(`[GROUPS DB UPDATE] Executing query for ID: ${id}`);
                         const { data, error } = await _supabase
@@ -10031,6 +10070,7 @@
                             console.error("[GROUPS DB UPDATE ERROR] Response:", error);
                             throw error;
                         }
+                        groupRecord = data && data[0];
                         console.log("[GROUPS DB UPDATE SUCCESS] Response:", JSON.stringify(data));
                         showGlobalToast("Success", "Group link updated.");
                     } else {
@@ -10044,20 +10084,71 @@
                             console.error("[GROUPS DB INSERT ERROR] Response:", error);
                             throw error;
                         }
+                        groupRecord = data && data[0];
                         console.log("[GROUPS DB INSERT SUCCESS] Response:", JSON.stringify(data));
-                        const notifyAudience = document.getElementById('notify-audience-group') ? document.getElementById('notify-audience-group').checked : true;
-                        if (data && data.length > 0 && window.NotificationQueueService && notifyAudience) {
-                            window.NotificationQueueService.queueNotification({
-                                parentType: 'group',
-                                parentId: data[0].id,
-                                isNotifyEnabled: true,
-                                audienceType: 'all',
-                                createdBy: window.authState.user.id,
-                                title: payload.title
-                            });
-                        }
-                        
                         showGlobalToast("Success", "Group link added.");
+                    }
+
+                    if (groupRecord) {
+                        // 1. Sync Content Targets for the Group Link
+                        console.log("[GROUPS TARGETS] Rebuilding targets for group ID:", groupRecord.id);
+                        await _supabase.from('content_targets').delete().eq('content_id', groupRecord.id).eq('content_type', 'group').abortSignal(dbSignal);
+
+                        let targetRows = [];
+                        if (course_id) {
+                            targetRows.push({
+                                content_id: groupRecord.id,
+                                content_type: 'group',
+                                target_type: 'course_students',
+                                target_id: course_id
+                            });
+                        } else {
+                            if (window.crPermissionService && window.crPermissionService.isCR()) {
+                                const assigned = window.crPermissionService.getAssignedBatches() || [];
+                                assigned.forEach(bId => {
+                                    targetRows.push({
+                                        content_id: groupRecord.id,
+                                        content_type: 'group',
+                                        target_type: 'batch_students',
+                                        target_id: bId
+                                    });
+                                });
+                            } else {
+                                targetRows.push({
+                                    content_id: groupRecord.id,
+                                    content_type: 'group',
+                                    target_type: 'all_students',
+                                    target_id: 'global'
+                                });
+                            }
+                        }
+
+                        if (targetRows.length > 0) {
+                            const { error: targetErr } = await _supabase.from('content_targets').insert(targetRows).abortSignal(dbSignal);
+                            if (targetErr) console.error("[GROUPS TARGET SAVE] Error inserting targets:", targetErr);
+                        }
+
+                        // 2. Queue Push Notification (Only for new inserts)
+                        if (!id) {
+                            const notifyAudience = document.getElementById('notify-audience-group') ? document.getElementById('notify-audience-group').checked : true;
+                            if (window.NotificationQueueService && notifyAudience) {
+                                let calculatedAudienceType = 'all';
+                                if (course_id) {
+                                    calculatedAudienceType = 'course_students';
+                                } else if (window.crPermissionService && window.crPermissionService.isCR()) {
+                                    calculatedAudienceType = 'batch_students';
+                                }
+
+                                await window.NotificationQueueService.queueNotification({
+                                    parentType: 'group',
+                                    parentId: groupRecord.id,
+                                    isNotifyEnabled: true,
+                                    audienceType: calculatedAudienceType,
+                                    createdBy: window.authState.user.id,
+                                    title: payload.title
+                                });
+                            }
+                        }
                     }
                 }, 3, 1000, 10000, signal);
 
