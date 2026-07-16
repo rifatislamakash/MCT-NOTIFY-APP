@@ -1,5 +1,5 @@
 import { _supabase } from '../supabase-client.js';
-import { fetchCachedOrDeduplicated } from '../utils.js';
+import { fetchCachedOrDeduplicated, fetchWithRetry } from '../utils.js';
 
 export const FacultyStore = (function () {
     let facultyCache = null;
@@ -12,21 +12,19 @@ export const FacultyStore = (function () {
         fetchPromise = new Promise(async (resolve, reject) => {
             try {
                 const data = await fetchCachedOrDeduplicated('store_faculty', async () => {
-                    let query = _supabase
-                        .from('faculty')
-                        .select('*')
-                        .order('faculty_name');
-                    if (signal) {
-                        query = query.abortSignal(signal);
-                    }
-                    const { data: faculty, error } = await query;
-                    if (error) {
-                        console.error("[FacultyStore] Query error:", error);
-                        throw error;
-                    }
-                    console.log("[FacultyStore] Query success");
-                    console.log(`[FacultyStore] Loaded ${faculty ? faculty.length : 0} faculty members`);
-                    return faculty || [];
+                    return await fetchWithRetry(async (retrySignal) => {
+                        const activeSignal = signal || retrySignal;
+                        let query = _supabase
+                            .from('faculty')
+                            .select('*')
+                            .order('faculty_name');
+                        if (activeSignal) {
+                            query = query.abortSignal(activeSignal);
+                        }
+                        const { data: faculty, error } = await query;
+                        if (error) throw error;
+                        return faculty || [];
+                    }, 4, 1000, 15000);
                 });
                 facultyCache = data;
                 resolve(data);

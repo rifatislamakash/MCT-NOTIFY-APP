@@ -1,6 +1,6 @@
 import { _supabase } from './supabase-client.js';
 import { crPermissionService } from './services/crPermissionService.js';
-import { showGlobalToast, showLoader, deduplicateRequest } from './utils.js';
+import { showGlobalToast, showLoader, deduplicateRequest, fetchWithRetry } from './utils.js';
 import { CourseStore } from './stores/CourseStore.js';
 import { FacultyStore } from './stores/FacultyStore.js';
 import { RoutineStore } from './stores/RoutineStore.js';
@@ -10,53 +10,76 @@ import { ProfileStore } from './stores/ProfileStore.js';
 let _isRouting = false;
 let isRegistering = false;
 
+        /**
+         * Decode a JWT's payload (without verification) to read its claims.
+         */
+        function decodeJWTPayload(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(
+                    atob(base64).split('').map(c =>
+                        '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+                    ).join('')
+                );
+                return JSON.parse(jsonPayload);
+            } catch (e) {
+                console.warn('[JWT DECODE] Failed to decode JWT payload:', e);
+                return null;
+            }
+        }
+
+        /**
+         * Forces a session refresh to get a fresh JWT from the Auth server,
+         * then checks the new token's `iat` against the clock-adjusted Date.now().
+         * If `iat` is still in the future (Auth-DB skew), waits exactly long enough.
+         * 
+         * This is needed because:
+         * 1. If the device clock is wrong, GoTrue may think an expired token is still valid
+         * 2. The Auth server always issues tokens with the correct server time
+         * 3. A fresh token will have a current `iat` that the DB will accept
+         */
+        async function waitForJWTValidity() {
+            try {
+                // Do not force refresh session here. 
+                // A forced refresh mints a new token with an iat that is often in the future relative to PostgREST,
+                // causing PGRST303 errors. We rely on the existing valid session if possible.
+                
+                const session = window.authState.session || (await _supabase.auth.getSession())?.data?.session;
+                const accessToken = session?.access_token;
+                if (!accessToken) return;
+
+                const payload = decodeJWTPayload(accessToken);
+                if (!payload || !payload.iat) return;
+
+                const nowSec = Math.floor(Date.now() / 1000);
+                const skew = payload.iat - nowSec;
+                console.log(`[JWT VALIDITY] iat=${payload.iat}, adjustedNow=${nowSec}, skew=${skew}s`);
+
+                if (skew > 0) {
+                    const waitMs = Math.min((skew + 2) * 1000, 30000); // max 30s
+                    console.warn(`[JWT VALIDITY] Token iat is ${skew}s in the future. Waiting ${waitMs}ms for DB clock to catch up...`);
+                    await new Promise(resolve => setTimeout(resolve, waitMs));
+                    console.log('[JWT VALIDITY] Wait complete, proceeding with queries.');
+                }
+            } catch (err) {
+                console.warn('[JWT VALIDITY] Error during JWT validity check:', err);
+            }
+        }
+
+
         export async function fetchUserProfile(userId) {
             try {
-                const controller = new AbortController();
-                const profilePromise = _supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', userId)
-                    .abortSignal(controller.signal)
-                    .maybeSingle();
-                
-                let data, error;
-                try {
-                    if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
-                    let timerId;
-                    const timeoutPromise = new Promise((_, reject) => {
-                        timerId = setTimeout(() => {
-                            controller.abort();
-                            reject(new Error('sdk_timeout'));
-                        }, 5000);
-                    });
-                    try {
-                        const result = await Promise.race([profilePromise, timeoutPromise]);
-                        data = result.data;
-                        error = result.error;
-                    } finally {
-                        clearTimeout(timerId);
-                    }
-                } catch (e) {
-                    if (e.message === 'sdk_timeout') {
-                        window._supabaseSdkFailing = true;
-                        const url = `${_supabase.supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=*`;
-                        const res = await fetch(url, {
-                            headers: {
-                                'apikey': _supabase.supabaseKey,
-                                'Authorization': `Bearer ${window.authState?.session?.access_token || _supabase.supabaseKey}`,
-                                'cache-control': 'no-cache'
-                            },
-                            cache: 'no-store'
-                        });
-                        const fetchResult = await res.json();
-                        data = fetchResult && fetchResult.length > 0 ? fetchResult[0] : null;
-                    } else {
-                        throw e;
-                    }
-                }
-                if (error) throw error;
-                return data;
+                return await fetchWithRetry(async (signal) => {
+                    const { data, error } = await _supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', userId)
+                        .abortSignal(signal)
+                        .maybeSingle();
+                    if (error) throw error;
+                    return data;
+                }, 4, 1000, 10000);
             } catch (err) {
                 console.error('Exception caught in fetchUserProfile:', err);
                 return null;
@@ -104,32 +127,15 @@ let isRegistering = false;
                 if (isAdminCheck) {
                     window.currentUserCoursesList = [];
                 } else {
-                    const coursesPromise = deduplicateRequest('user_courses_boot', async () => {
-                        const sdkPromise = _supabase.from('user_courses').select('*').eq('user_id', user.id);
-                        const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('sdk_timeout')), 2000));
-                        try {
-                            const { data, error } = await Promise.race([sdkPromise, timeout]);
-                            if (error) throw error;
-                            return data;
-                        } catch (e) {
-                            if (e.message === 'sdk_timeout') {
-                                const url = `${_supabase.supabaseUrl}/rest/v1/user_courses?user_id=eq.${user.id}&select=*`;
-                                const res = await fetch(url, {
-                                    headers: {
-                                        'apikey': _supabase.supabaseKey,
-                                        'Authorization': `Bearer ${window.authState?.session?.access_token || _supabase.supabaseKey}`,
-                                        'cache-control': 'no-cache'
-                                    },
-                                    cache: 'no-store'
-                                });
-                                const fetchResult = await res.json();
-                                if (fetchResult.error) throw new Error(fetchResult.error.message);
-                                return fetchResult;
-                            }
-                            throw e;
-                        }
-                    });
-                    const userCourses = await coursesPromise;
+                    const userCourses = await fetchWithRetry(async (signal) => {
+                        const { data, error } = await _supabase
+                            .from('user_courses')
+                            .select('*')
+                            .eq('user_id', user.id)
+                            .abortSignal(signal);
+                        if (error) throw error;
+                        return data;
+                    }, 3, 1000, 8000);
                     window.currentUserCoursesList = userCourses || [];
                     window._userCoursesFetchFailed = false;
                 }
@@ -337,6 +343,9 @@ let isRegistering = false;
                         if (typeof lucide !== 'undefined') lucide.createIcons();
                         return;
                     }
+
+                    // Wait for the JWT's iat to become valid on the DB server before making any queries
+                    await waitForJWTValidity();
 
                     console.log("[PROFILE FETCH] checkActiveSession: fetching fresh profile");
                     let profileData = await fetchUserProfile(session.user.id).catch(e => {

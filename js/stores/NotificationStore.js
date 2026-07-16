@@ -1,5 +1,5 @@
 import { _supabase } from '../supabase-client.js';
-import { fetchCachedOrDeduplicated } from '../utils.js';
+import { fetchCachedOrDeduplicated, fetchWithRetry } from '../utils.js';
 
 export const NotificationStore = (function () {
     let noticesCache = null;
@@ -12,18 +12,21 @@ export const NotificationStore = (function () {
         fetchPromise = new Promise(async (resolve, reject) => {
             try {
                 const data = await fetchCachedOrDeduplicated('store_notices', async () => {
-                    const { data: notices, error } = await _supabase
-                        .from('notices')
-                        .select(`
-                            id, notice_title, notice_content, notice_date, audience_type,
-                            is_urgent, author_id, is_active,
-                            courses ( id, course_name ),
-                            faculty ( id, faculty_name, teacher_initial )
-                        `)
-                        .eq('is_active', true)
-                        .order('created_at', { ascending: false });
-                    if (error) throw error;
-                    return notices || [];
+                    return await fetchWithRetry(async (signal) => {
+                        const { data: notices, error } = await _supabase
+                            .from('notices')
+                            .select(`
+                                id, notice_title, notice_content, notice_date, audience_type,
+                                is_urgent, author_id, is_active,
+                                courses ( id, course_name ),
+                                faculty ( id, faculty_name, teacher_initial )
+                            `)
+                            .eq('is_active', true)
+                            .order('created_at', { ascending: false })
+                            .abortSignal(signal);
+                        if (error) throw error;
+                        return notices || [];
+                    }, 4, 1000, 15000);
                 });
                 noticesCache = data;
                 // Legacy compatibility

@@ -151,7 +151,8 @@ import { _supabase } from './supabase-client.js';
 
         export async function fetchWithRetry(fn, retries = 2, delay = 1000, timeoutMs = 20000, parentSignal = null) {
             let lastError = null;
-            for (let i = 0; i < retries; i++) {
+            let actualRetries = retries;
+            for (let i = 0; i < actualRetries; i++) {
                 if (parentSignal && parentSignal.aborted) {
                     throw new DOMException("The user aborted a request.", "AbortError");
                 }
@@ -168,7 +169,6 @@ import { _supabase } from './supabase-client.js';
 
                 let timer = null;
                 const startTime = performance.now();
-                // console.log(`[REQUEST START] Retries left: ${retries - i - 1}. Attempt ${i + 1}`);
                 try {
                     const timeoutPromise = new Promise((_, reject) => {
                         timer = setTimeout(() => {
@@ -181,23 +181,53 @@ import { _supabase } from './supabase-client.js';
                     if (timer) clearTimeout(timer);
                     if (parentSignal) parentSignal.removeEventListener('abort', onParentAbort);
                     const duration = (performance.now() - startTime).toFixed(1);
-                    // console.log(`[REQUEST SUCCESS] Duration: ${duration}ms`);
                     return result;
                 } catch (err) {
                     if (timer) clearTimeout(timer);
                     if (parentSignal) parentSignal.removeEventListener('abort', onParentAbort);
                     controller.abort();
                     const duration = (performance.now() - startTime).toFixed(1);
+
+                    const isFutureJWT = err && (err.code === 'PGRST303' || (err.message && err.message.includes('JWT issued at future')) || (err.message && err.message.includes('future')));
+                    if (isFutureJWT) {
+                        actualRetries = Math.max(actualRetries, 8); // Allow up to 8 attempts for heavy clock skew (up to ~2.5 mins total)
+                        if (err.name !== 'AbortError' && !(err.message && err.message.includes('AbortError'))) {
+                            console.warn(`[REQUEST FAILURE] Attempt ${i + 1} failed after ${duration}ms (PGRST303: JWT future). Waiting for DB clock to catch up...`);
+                            if (i === 1 && typeof window.showGlobalToast === 'function') {
+                                window.showGlobalToast("Server synchronization in progress. This may take a moment...", 6000, "info");
+                            }
+                        }
+                        lastError = err;
+                        if (i === actualRetries - 1 || err.name === 'AbortError' || (parentSignal && parentSignal.aborted)) {
+                            throw err;
+                        }
+                        // CRITICAL FIX: DO NOT refresh the session here! 
+                        // Refreshing mints a new token with a new future iat, meaning the DB clock can never catch up.
+                        // We MUST hold the existing token and just wait.
+                        const waitMs = 3000 * Math.pow(1.5, i); // 3s, 4.5s, 6.75s, etc.
+                        await new Promise((resolve, reject) => {
+                            const backoffTimer = setTimeout(resolve, waitMs);
+                            if (parentSignal) {
+                                parentSignal.addEventListener('abort', () => {
+                                    clearTimeout(backoffTimer);
+                                    reject(new DOMException("The user aborted a request.", "AbortError"));
+                                }, { once: true });
+                            }
+                        });
+                        continue; // skip normal error/backoff
+                    }
+
                     if (err.name !== 'AbortError' && !(err.message && err.message.includes('AbortError'))) {
                         console.error(`[REQUEST FAILURE] Attempt ${i + 1} failed after ${duration}ms:`, err.message || err);
                     }
                     lastError = err;
-                    if (i === retries - 1 || err.name === 'AbortError' || (parentSignal && parentSignal.aborted)) {
+                    if (i === actualRetries - 1 || err.name === 'AbortError' || (parentSignal && parentSignal.aborted)) {
                         throw err;
                     }
-                    // Exponential backoff
+                    // Exponential backoff for normal errors
+                    const waitTime = delay * Math.pow(2, i);
                     await new Promise((resolve, reject) => {
-                        const backoffTimer = setTimeout(resolve, delay * Math.pow(2, i));
+                        const backoffTimer = setTimeout(resolve, waitTime);
                         if (parentSignal) {
                             parentSignal.addEventListener('abort', () => {
                                 clearTimeout(backoffTimer);

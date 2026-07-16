@@ -1,5 +1,5 @@
 import { _supabase } from '../supabase-client.js';
-import { fetchCachedOrDeduplicated } from '../utils.js';
+import { fetchCachedOrDeduplicated, fetchWithRetry } from '../utils.js';
 
 export const CourseStore = (function () {
     let coursesCache = null;
@@ -12,57 +12,15 @@ export const CourseStore = (function () {
         fetchPromise = new Promise(async (resolve, reject) => {
             try {
                 const data = await fetchCachedOrDeduplicated('store_courses', async () => {
-                    const sdkController = new AbortController();
-                    const sdkPromise = _supabase
-                        .from('courses')
-                        .select('id, course_name, short_name, course_code, total_credit, batch_id, sections_name, faculty_id, batches ( batch_name )')
-                        .order('course_name')
-                        .abortSignal(sdkController.signal);
-                        
-                    try {
-                        if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
-                        let timerId;
-                        const timeoutPromise = new Promise((_, reject) => {
-                            timerId = setTimeout(() => reject(new Error('sdk_timeout')), 8000);
-                        });
-                        let courses, error;
-                        console.log("[CourseStore] [SDK START]");
-                        const startSdk = performance.now();
-                        try {
-                            const result = await Promise.race([sdkPromise, timeoutPromise]);
-                            courses = result.data;
-                            error = result.error;
-                        console.log("[CourseStore] [SDK SUCCESS]");
-                            console.log(`[CourseStore] [SDK DURATION] ${Math.round(performance.now() - startSdk)}ms`);
-                        } finally {
-                            clearTimeout(timerId);
-                        }
+                    return await fetchWithRetry(async (signal) => {
+                        const { data: courses, error } = await _supabase
+                            .from('courses')
+                            .select('id, course_name, short_name, course_code, total_credit, batch_id, sections_name, faculty_id, batches ( batch_name )')
+                            .order('course_name')
+                            .abortSignal(signal);
                         if (error) throw error;
                         return courses || [];
-                    } catch (e) {
-                        if (e.message === 'sdk_timeout') {
-                            sdkController.abort();
-                            window._supabaseSdkFailing = true;
-                            console.log("[CourseStore] [SDK TIMEOUT] 8000ms limit reached");
-                            console.log("[CourseStore] [REST FALLBACK]");
-                            const url = `${_supabase.supabaseUrl}/rest/v1/courses?select=id,course_name,short_name,course_code,total_credit,batch_id,sections_name,faculty_id,batches(batch_name)&order=course_name.asc`;
-                            const res = await fetch(url, {
-                                headers: {
-                                    'apikey': _supabase.supabaseKey,
-                                    'Authorization': `Bearer ${window.authState?.session?.access_token || _supabase.supabaseKey}`,
-                                    'cache-control': 'no-cache'
-                                },
-                                cache: 'no-store'
-                            });
-                            if (!res.ok) {
-                                console.log("[CourseStore] [REST FAILURE]");
-                                throw new Error(`HTTP error! status: ${res.status}`);
-                            }
-                            console.log("[CourseStore] [REST SUCCESS]");
-                            return await res.json();
-                        }
-                        throw e;
-                    }
+                    }, 4, 1000, 15000);
                 });
                 
                 coursesCache = data;

@@ -29,7 +29,10 @@ export class PollService {
             // Load votes (reactions) for these polls
             const pollIds = this.currentPolls.map(p => p.id);
             if (window.ReactionService && pollIds.length > 0) {
-                await window.ReactionService.fetchReactionsForContent('notice', pollIds);
+                await Promise.all([
+                    window.ReactionService.fetchReactionsForContent('notice', pollIds),
+                    window.ReactionService.fetchReactionsForContent('poll', pollIds)
+                ]);
             }
 
             this.renderPollsList();
@@ -56,8 +59,7 @@ export class PollService {
             if (pollEndDatetime) {
                 isEnded = new Date() > new Date(pollEndDatetime);
             }
-
-            const votes = window.ReactionService?.cache[poll.id] || [];
+            const votes = window.ReactionService?.cache['poll_' + poll.id] || [];
             const myVotes = votes.filter(v => v.user_id === window.authState?.user?.id);
             return myVotes.length === 0 && !isEnded;
         });
@@ -119,7 +121,7 @@ export class PollService {
             }
 
             // Get votes
-            const votes = window.ReactionService?.cache[poll.id] || [];
+            const votes = window.ReactionService?.cache['poll_' + poll.id] || [];
             const totalVotes = votes.length;
             const myVotes = votes.filter(v => v.user_id === window.authState?.user?.id);
             const hasVoted = myVotes.length > 0;
@@ -212,6 +214,9 @@ export class PollService {
                         <div class="flex items-center gap-2">
                             <span>${totalVotes} total votes</span>
                             ${window.SeenService ? window.SeenService.renderSeenBlock('notice', poll.id) : ''}
+                            <div class="shrink-0 flex items-center" id="poll-reaction-container-${poll.id}">
+                                ${window.ReactionService ? window.ReactionService.renderReactionBlock('notice', poll.id) : ''}
+                            </div>
                         </div>
                         <div class="flex items-center gap-1 text-indigo-600">
                             View <i data-lucide="chevron-right" class="w-3 h-3"></i>
@@ -239,8 +244,7 @@ export class PollService {
         if (pollEndDatetime) {
             isEnded = new Date() > new Date(pollEndDatetime);
         }
-
-        const votes = window.ReactionService?.cache[poll.id] || [];
+        const votes = window.ReactionService?.cache['poll_' + poll.id] || [];
         const totalVotes = votes.length;
         const myVotes = votes.filter(v => v.user_id === window.authState?.user?.id);
         const hasVoted = myVotes.length > 0 || window.currentUserRole === 'admin';
@@ -414,6 +418,14 @@ export class PollService {
             </div>
             <div>${optionsHtml}</div>
             ${releaseButtonHtml}
+            <div class="mt-4 border-t border-slate-100 dark:border-white/5 pt-3 flex items-center justify-between">
+                <div class="shrink-0 flex items-center">
+                    ${window.SeenService ? window.SeenService.renderSeenBlock('notice', poll.id) : ''}
+                </div>
+                <div class="shrink-0 flex items-center" id="poll-reaction-container-${poll.id}">
+                    ${window.ReactionService ? window.ReactionService.renderReactionBlock('notice', poll.id) : ''}
+                </div>
+            </div>
         `;
 
         const modalContent = document.getElementById('poll-popup-content');

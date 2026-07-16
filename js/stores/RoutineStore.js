@@ -1,5 +1,5 @@
 import { _supabase } from '../supabase-client.js';
-import { fetchCachedOrDeduplicated } from '../utils.js';
+import { fetchCachedOrDeduplicated, fetchWithRetry } from '../utils.js';
 
 export const RoutineStore = (function () {
     let routineCache = null;
@@ -12,16 +12,19 @@ export const RoutineStore = (function () {
         fetchPromise = new Promise(async (resolve, reject) => {
             try {
                 const data = await fetchCachedOrDeduplicated('store_routines', async () => {
-                    const { data: routines, error } = await _supabase
-                        .from('weekly_routines')
-                        .select(`
-                            id, batch_id, day_name, start_time, class_order, room_number, course_id, faculty_id, section_name,
-                            courses ( id, course_name, short_name ),
-                            faculty ( id, faculty_name, teacher_initial )
-                        `)
-                        .order('class_order', { ascending: true });
-                    if (error) throw error;
-                    return routines || [];
+                    return await fetchWithRetry(async (signal) => {
+                        const { data: routines, error } = await _supabase
+                            .from('weekly_routines')
+                            .select(`
+                                id, batch_id, day_name, start_time, class_order, room_number, course_id, faculty_id, section_name,
+                                courses ( id, course_name, short_name ),
+                                faculty ( id, faculty_name, teacher_initial )
+                            `)
+                            .order('class_order', { ascending: true })
+                            .abortSignal(signal);
+                        if (error) throw error;
+                        return routines || [];
+                    }, 4, 1000, 15000);
                 });
                 routineCache = data;
                 // Legacy compatibility

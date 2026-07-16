@@ -1,5 +1,5 @@
 import { _supabase } from '../supabase-client.js';
-import { fetchCachedOrDeduplicated } from '../utils.js';
+import { fetchCachedOrDeduplicated, fetchWithRetry } from '../utils.js';
 
 export const ProfileStore = (function () {
     let profileCache = null;
@@ -15,13 +15,16 @@ export const ProfileStore = (function () {
         fetchPromise = new Promise(async (resolve, reject) => {
             try {
                 const data = await fetchCachedOrDeduplicated('store_profile_' + window.currentUserEmail, async () => {
-                    const { data: profile, error } = await _supabase
-                        .from('profiles')
-                        .select('id, name, student_id, phone, profile_picture, role')
-                        .eq('email', window.currentUserEmail)
-                        .maybeSingle();
-                    if (error) throw error;
-                    return profile || null;
+                    return await fetchWithRetry(async (signal) => {
+                        const { data: profile, error } = await _supabase
+                            .from('profiles')
+                            .select('id, name, student_id, phone, profile_picture, role')
+                            .eq('email', window.currentUserEmail)
+                            .abortSignal(signal)
+                            .maybeSingle();
+                        if (error) throw error;
+                        return profile || null;
+                    }, 4, 1000, 15000);
                 });
                 profileCache = data;
                 resolve(data);

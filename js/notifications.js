@@ -200,17 +200,22 @@
                 const fullName = session.user.user_metadata?.full_name || 'Student';
         
                 // Upsert using device_id as the conflict resolution target
-                const { error } = await window._supabase
-                    .from('device_tokens')
-                    .upsert(
-                        { 
-                            device_id: deviceId,
-                            user_id: session.user.id, 
-                            token: token,
-                            name: fullName
-                        }, 
-                        { onConflict: 'device_id' }
-                    );
+                const { error } = await window.fetchWithRetry(async (signal) => {
+                    const res = await window._supabase
+                        .from('device_tokens')
+                        .upsert(
+                            { 
+                                device_id: deviceId,
+                                user_id: session.user.id, 
+                                token: token,
+                                name: fullName
+                            }, 
+                            { onConflict: 'device_id' }
+                        )
+                        .abortSignal(signal);
+                    if (res.error) throw res.error;
+                    return res;
+                }, 4, 1000, 15000);
         
                 if (error) {
                     console.error('[FCM TOKEN UPSERT FAILURE] Token upsert failure:', error.message);

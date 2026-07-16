@@ -12,9 +12,16 @@ import { crPermissionService } from './js/services/crPermissionService.js';
 import { NotificationQueueService } from './js/services/NotificationQueueService.js';
 
 
+import { CourseStore } from './js/stores/CourseStore.js';
+import { FacultyStore } from './js/stores/FacultyStore.js';
+import { RoutineStore } from './js/stores/RoutineStore.js';
+
 window.crPermissionService = crPermissionService;
 window.NotificationQueueService = NotificationQueueService;
 window._supabase = _supabase;
+window.CourseStore = CourseStore;
+window.FacultyStore = FacultyStore;
+window.RoutineStore = RoutineStore;
 
 import { showGlobalToast, dismissGlobalToast, showLoader, forceHideLoader, deduplicateRequest, fetchCachedOrDeduplicated, cancelActiveRequest, cancelAllActiveRequests, fetchWithRetry, ensureBucketExists, extractIdFromEmail, getGreeting, showNotificationToast } from './js/utils.js';
 window.showGlobalToast = showGlobalToast;

@@ -804,6 +804,25 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     throw updateError;
                 }
 
+                try {
+                    const notifyUpdate = document.getElementById('notify-audience-update-material')?.checked;
+                    if (notifyUpdate) {
+                        const { NotificationQueueService } = await import('./services/NotificationQueueService.js');
+                        const queueRes = await NotificationQueueService.queueNotification({
+                            parentType: 'material',
+                            parentId: selectedMaterialIdForEdit,
+                            isNotifyEnabled: true,
+                            audienceType: 'course_students',
+                            createdBy: window.authState.user?.id || null,
+                            title: title,
+                            courseName: ''
+                        });
+                        if (!queueRes.success) console.error("[MATERIAL UPDATE] Update push queue error:", queueRes.error);
+                    }
+                } catch (qErr) {
+                    console.error("[MATERIAL UPDATE] Exception queueing update notification:", qErr);
+                }
+
                 window.showGlobalToast("Success", "Material updated successfully!");
                 window.navigate('screen-materials-center');
                 await loadMaterials();

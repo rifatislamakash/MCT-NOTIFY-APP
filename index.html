@@ -1,13 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Dark Mode Init -->
+    <!-- Dark Mode Init & Clock Skew Resiliency -->
     <script>
         if (localStorage.getItem('theme') === 'dark') {
             document.documentElement.classList.add('dark');
         } else {
             document.documentElement.classList.remove('dark');
         }
+
+        // --- CLOCK SKEW SYNC WRAPPER ---
+        (function() {
+            const OriginalDate = window.Date;
+            const originalNow = OriginalDate.now;
+            window.OriginalDate = OriginalDate;
+            window.supabaseClockOffset = 0;
+
+            function DateWrapper(...args) {
+                if (!(this instanceof DateWrapper)) {
+                    return new OriginalDate(originalNow() + window.supabaseClockOffset).toString();
+                }
+                if (args.length === 0) {
+                    return new OriginalDate(originalNow() + window.supabaseClockOffset);
+                }
+                return new OriginalDate(...args);
+            }
+
+            DateWrapper.prototype = OriginalDate.prototype;
+            DateWrapper.now = function() {
+                return originalNow() + window.supabaseClockOffset;
+            };
+            DateWrapper.UTC = OriginalDate.UTC;
+            DateWrapper.parse = OriginalDate.parse;
+            window.Date = DateWrapper;
+        })();
     </script>
 
     <meta charset="UTF-8">
@@ -3286,6 +3312,17 @@
                                         </div>
                                     </div>
 
+                                    <!-- Notify Audience Setting -->
+                                    <label class="bg-indigo-50/50 p-4 rounded-[14px] border border-indigo-100 flex items-start gap-3 mb-6 cursor-pointer hover:bg-indigo-50 transition-colors">
+                                        <div class="flex items-center h-5 mt-0.5">
+                                            <input type="checkbox" id="notify-audience-update-material" checked class="w-4.5 h-4.5 text-[#4226E9] rounded-[4px] border-indigo-300 focus:ring-[#4226E9]" onchange="document.getElementById('notify-audience-update-material-desc').textContent = this.checked ? 'Audience will receive a push notification for this update.' : 'Silent update. No notifications will be sent.'">
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="text-[13px] font-bold text-indigo-900 leading-tight">Send Update Notification</div>
+                                            <p id="notify-audience-update-material-desc" class="text-[11px] text-indigo-600/80 mt-1 leading-snug">Audience will receive a push notification for this update.</p>
+                                        </div>
+                                    </label>
+
                                     <div class="grid grid-cols-1 gap-3">
                                         <button type="submit" id="btn-update-material-submit" class="w-full py-3.5 bg-[#4226E9] hover:bg-[#341BC5] text-white rounded-[12px] font-bold text-[15px] shadow-sm transition-all active:scale-[0.98]">
                                             Update Material
@@ -3540,32 +3577,41 @@
                                 <h3 class="text-xs font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wider">Filter By</h3>
                                 <select id="groups-filter" onchange="if(typeof window.renderGroups === 'function') window.renderGroups()" class="h-8 px-3 text-xs font-bold text-slate-700 dark:text-dark-textSecondary bg-white dark:bg-dark-card border border-slate-200 dark:border-white/10 rounded-lg outline-none focus:border-[#4226E9] shadow-sm cursor-pointer">
                                     <option value="all">All</option>
-                                    <option value="link">Links</option>
-                                    <option value="course">Course Groups</option>
-                                    <option value="general">General or Custom Channels</option>
+                                    <option value="blc">BLC</option>
+                                    <option value="groups">Groups</option>
+                                    <option value="links">Links</option>
+                                    <option value="others">Others</option>
                                 </select>
                             </div>
 
+                            <!-- BLC -->
+                            <div id="section-groups-blc" class="space-y-3">
+                                <h3 class="text-xs font-black uppercase text-slate-400 dark:text-dark-textSecondary tracking-wider flex items-center gap-1.5"><i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-amber-500"></i> BLC</h3>
+                                <div id="groups-blc-container" class="space-y-3">
+                                    <!-- Dynamic cards -->
+                                </div>
+                            </div>
+
+                            <!-- Groups -->
+                            <div id="section-groups-groups" class="space-y-3">
+                                <h3 class="text-xs font-black uppercase text-slate-400 dark:text-dark-textSecondary tracking-wider flex items-center gap-1.5"><i data-lucide="users" class="w-3.5 h-3.5 text-indigo-500"></i> Groups</h3>
+                                <div id="groups-groups-container" class="space-y-3">
+                                    <!-- Dynamic cards -->
+                                </div>
+                            </div>
+
                             <!-- Links -->
-                            <div id="section-groups-link" class="space-y-3">
+                            <div id="section-groups-links" class="space-y-3">
                                 <h3 class="text-xs font-black uppercase text-slate-400 dark:text-dark-textSecondary tracking-wider flex items-center gap-1.5"><i data-lucide="link" class="w-3.5 h-3.5 text-blue-500"></i> Links</h3>
-                                <div id="groups-link-container" class="space-y-3">
+                                <div id="groups-links-container" class="space-y-3">
                                     <!-- Dynamic cards -->
                                 </div>
                             </div>
 
-                            <!-- Course groups -->
-                            <div id="section-groups-course" class="space-y-3">
-                                <h3 class="text-xs font-black uppercase text-slate-400 dark:text-dark-textSecondary tracking-wider flex items-center gap-1.5"><i data-lucide="book-open" class="w-3.5 h-3.5 text-indigo-500"></i> Course Chat Groups</h3>
-                                <div id="groups-course-container" class="space-y-3">
-                                    <!-- Dynamic cards -->
-                                </div>
-                            </div>
-
-                            <!-- Custom groups -->
-                            <div id="section-groups-general" class="space-y-3">
-                                <h3 class="text-xs font-black uppercase text-slate-400 dark:text-dark-textSecondary tracking-wider flex items-center gap-1.5"><i data-lucide="hash" class="w-3.5 h-3.5 text-emerald-500"></i> General & Custom Channels</h3>
-                                <div id="groups-custom-container" class="space-y-3">
+                            <!-- Others -->
+                            <div id="section-groups-others" class="space-y-3">
+                                <h3 class="text-xs font-black uppercase text-slate-400 dark:text-dark-textSecondary tracking-wider flex items-center gap-1.5"><i data-lucide="more-horizontal" class="w-3.5 h-3.5 text-emerald-500"></i> Others</h3>
+                                <div id="groups-others-container" class="space-y-3">
                                     <!-- Dynamic cards -->
                                 </div>
                             </div>
@@ -3664,9 +3710,11 @@
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wider ml-1">Group Type <span class="text-red-400">*</span></label>
                                     <select id="group-type" required class="w-full h-[48px] px-4 bg-slate-50 dark:bg-dark-bg/50 text-slate-900 dark:text-dark-text text-[14px] font-semibold rounded-[14px] border border-slate-200 dark:border-white/10 focus:border-[#4226E9] focus:ring-2 focus:ring-indigo-100 outline-none transition-all">
-                                        <option value="link">Links</option>
-                                        <option value="course">Course Groups</option>
-                                        <option value="general">General or Custom Channels</option>
+                                        <option value="" disabled selected class="text-slate-400">Select Group Type</option>
+                                        <option value="blc">BLC</option>
+                                        <option value="groups">Groups</option>
+                                        <option value="links">Links</option>
+                                        <option value="others">Others</option>
                                     </select>
                                 </div>
 
@@ -3678,17 +3726,17 @@
                                     </select>
                                 </div>
 
-                                <div class="mb-4 pt-2">
-                                    <label class="flex items-center gap-2 cursor-pointer bg-indigo-50 p-3 rounded-[12px] border border-indigo-100 hover:bg-indigo-100 transition-colors">
-                                        <input type="checkbox" id="group-notify-users" class="w-4 h-4 rounded border-slate-300 text-[#4226E9] focus:ring-[#4226E9] cursor-pointer">
-                                        <span class="text-[13px] font-bold text-indigo-900">Notify enrolled students (Push Notification)</span>
-                                    </label>
-                                </div>
+                                <!-- Notify Audience Setting -->
+                                <label class="bg-indigo-50/50 p-4 rounded-[14px] border border-indigo-100 flex items-start gap-3 mt-4 mb-4 cursor-pointer hover:bg-indigo-50 transition-colors">
+                                    <div class="flex items-center h-5 mt-0.5">
+                                        <input type="checkbox" id="notify-audience-group" checked class="w-4.5 h-4.5 text-[#4226E9] rounded-[4px] border-indigo-300 focus:ring-[#4226E9]" onchange="document.getElementById('notify-audience-group-desc').textContent = this.checked ? 'Audience will receive a push notification for this action.' : 'Silent action. No notifications will be sent.'">
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="text-[13px] font-bold text-indigo-900 leading-tight">Send Notification</div>
+                                        <p id="notify-audience-group-desc" class="text-[11px] text-indigo-600/80 mt-1 leading-snug">Audience will receive a push notification for this action.</p>
+                                    </div>
+                                </label>
 
-                                <div class="flex items-center mt-2 mb-4">
-                                    <input type="checkbox" id="notify-audience-group" class="w-4 h-4 text-[#4226E9] bg-gray-100 border-gray-300 rounded focus:ring-[#4226E9]" checked>
-                                    <label for="notify-audience-group" class="ml-2 text-[13px] font-bold text-indigo-900">Notify Targeted Audience</label>
-                                </div>
                                 <div class="flex gap-3 pt-4">
                                     <button id="btn-delete-group" onclick="deleteGroup()" type="button" class="hidden w-[56px] h-[52px] bg-red-50 text-red-600 border border-red-200 rounded-[14px] flex items-center justify-center shadow-sm active:scale-95 transition-all">
                                         <i data-lucide="trash-2" class="w-5 h-5"></i>
@@ -5598,12 +5646,17 @@
         // Load content settings from Supabase (called on login/boot)
         async function loadContentSettings() {
             try {
-                const { data, error } = await _supabase
-                    .from('content_management')
-                    .select('*')
-                    .limit(1)
-                    .maybeSingle();
-                if (error) throw error;
+                const data = await window.fetchWithRetry(async (signal) => {
+                    const { data, error } = await _supabase
+                        .from('content_management')
+                        .select('*')
+                        .limit(1)
+                        .abortSignal(signal)
+                        .maybeSingle();
+                    if (error) throw error;
+                    return data;
+                }, 4, 1000, 15000);
+                
                 if (data) {
                     contentSettingsRowId = data.id;
                     contentSettings = {
@@ -5923,6 +5976,60 @@
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
             // Let the splash screen remain active and visible until checkActiveSession completes navigation, preventing white screen during boot.
 
+            // --- CLOCK SKEW RESOLUTION ROUTINE ---
+            async function syncClockWithSupabase() {
+                const start = performance.now();
+                let serverTimeMs = null;
+
+                // STRATEGY 1: Cross-origin time API (NOT cached by Service Worker)
+                // This is the most reliable source because the SW only caches same-origin requests
+                try {
+                    const res = await Promise.race([
+                        fetch('https://worldtimeapi.org/api/timezone/Etc/UTC', { cache: 'no-store' }),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
+                    ]);
+                    const data = await res.json();
+                    if (data && data.datetime) {
+                        serverTimeMs = new window.OriginalDate(data.datetime).getTime();
+                        console.log('[CLOCK SYNC] Got time from worldtimeapi.org');
+                    }
+                } catch (err) {
+                    console.warn("[CLOCK SYNC] worldtimeapi.org failed:", err.message);
+                }
+
+                // STRATEGY 2: Same-origin HEAD request (may be stale if Service Worker caches it)
+                if (!serverTimeMs) {
+                    try {
+                        const res = await fetch(window.location.origin + '/?_t=' + window.OriginalDate.now(), {
+                            method: 'HEAD',
+                            cache: 'no-store'
+                        });
+                        const dateStr = res.headers.get('date');
+                        if (dateStr) {
+                            serverTimeMs = new window.OriginalDate(dateStr).getTime();
+                            console.log('[CLOCK SYNC] Got time from same-origin Date header');
+                        }
+                    } catch (err) {
+                        console.warn("[CLOCK SYNC] Same-origin sync failed:", err.message);
+                    }
+                }
+
+                if (serverTimeMs) {
+                    const rtt = performance.now() - start;
+                    const latency = rtt / 2;
+                    const expectedLocalNow = serverTimeMs + latency;
+                    const actualLocalNow = window.OriginalDate.now();
+                    window.supabaseClockOffset = expectedLocalNow - actualLocalNow;
+                    const absSec = Math.abs(window.supabaseClockOffset / 1000).toFixed(1);
+                    console.log(`[CLOCK SYNC] Offset: ${window.supabaseClockOffset.toFixed(0)}ms (${absSec}s). RTT: ${rtt.toFixed(1)}ms.`);
+                    if (Math.abs(window.supabaseClockOffset) > 5000) {
+                        console.warn(`[CLOCK SYNC] Large clock skew detected: ${absSec}s. Device clock may be significantly off.`);
+                    }
+                } else {
+                    console.error("[CLOCK SYNC] Could not retrieve server time from any source.");
+                }
+            }
+
             setTimeout(() => {
                 let initRetries = 0;
                 const maxInitRetries = 160; // 160 * 50ms = 8 seconds
@@ -5970,7 +6077,11 @@
                         setTimeout(initApp, 50);
                     }
                 };
-                initApp();
+                
+                // Synchronize client memory clock with Supabase first, then execute boot routing
+                syncClockWithSupabase().finally(() => {
+                    initApp();
+                });
 
                 // PART 8: Login email auto-complete @diu.edu.bd
                 const loginEmailEl = document.getElementById('login-email');
@@ -9695,19 +9806,22 @@
         window.renderGroups = function () {
             if (!isScreenActive('screen-groups-list')) return;
 
-            const courseContainer = document.getElementById('groups-course-container');
-            const customContainer = document.getElementById('groups-custom-container');
-            const linkContainer = document.getElementById('groups-link-container');
+            const blcContainer = document.getElementById('groups-blc-container');
+            const groupsContainer = document.getElementById('groups-groups-container');
+            const linksContainer = document.getElementById('groups-links-container');
+            const othersContainer = document.getElementById('groups-others-container');
             
-            const sectionCourse = document.getElementById('section-groups-course');
-            const sectionGeneral = document.getElementById('section-groups-general');
-            const sectionLink = document.getElementById('section-groups-link');
+            const sectionBlc = document.getElementById('section-groups-blc');
+            const sectionGroups = document.getElementById('section-groups-groups');
+            const sectionLinks = document.getElementById('section-groups-links');
+            const sectionOthers = document.getElementById('section-groups-others');
 
-            if (!courseContainer || !customContainer || !linkContainer) return;
+            if (!blcContainer || !groupsContainer || !linksContainer || !othersContainer) return;
 
-            courseContainer.innerHTML = '';
-            customContainer.innerHTML = '';
-            linkContainer.innerHTML = '';
+            blcContainer.innerHTML = '';
+            groupsContainer.innerHTML = '';
+            linksContainer.innerHTML = '';
+            othersContainer.innerHTML = '';
 
             const isAdminOrCR = (currentUserRole === 'admin' || currentUserRole === 'cr' || window.isAdminEmail(currentUserEmail));
 
@@ -9727,7 +9841,7 @@
                             <p class="text-sm text-slate-500 dark:text-dark-textSecondary mt-1 max-w-[250px] mx-auto">Select a batch from the dropdown above to view its groups.</p>
                         </div>
                     `;
-                    courseContainer.innerHTML = emptyHtml;
+                    if (blcContainer) blcContainer.innerHTML = emptyHtml;
                     if (window.lucide) window.lucide.createIcons();
                     return;
                 }
@@ -9774,26 +9888,36 @@
                 });
             }
 
-            const courseGroups = viewableGroups.filter(g => (g.type === 'course' || (!g.type && g.course_id !== null)));
-            const customGroups = viewableGroups.filter(g => (g.type === 'general' || (!g.type && g.course_id === null)));
-            const linkGroups = viewableGroups.filter(g => g.type === 'link');
+            const blcGroups = viewableGroups.filter(g => g.type === 'blc');
+            const groupsGroups = viewableGroups.filter(g => g.type === 'groups' || g.type === 'course');
+            const linksGroups = viewableGroups.filter(g => g.type === 'links' || g.type === 'link');
+            const othersGroups = viewableGroups.filter(g => g.type === 'others' || g.type === 'general' || !g.type || (g.type !== 'blc' && g.type !== 'groups' && g.type !== 'course' && g.type !== 'links' && g.type !== 'link'));
 
-            if (filterValue === 'course') {
-                sectionCourse.classList.remove('hidden');
-                sectionGeneral.classList.add('hidden');
-                sectionLink.classList.add('hidden');
-            } else if (filterValue === 'general') {
-                sectionCourse.classList.add('hidden');
-                sectionGeneral.classList.remove('hidden');
-                sectionLink.classList.add('hidden');
-            } else if (filterValue === 'link') {
-                sectionCourse.classList.add('hidden');
-                sectionGeneral.classList.add('hidden');
-                sectionLink.classList.remove('hidden');
+            if (filterValue === 'blc') {
+                if (sectionBlc) sectionBlc.classList.remove('hidden');
+                if (sectionGroups) sectionGroups.classList.add('hidden');
+                if (sectionLinks) sectionLinks.classList.add('hidden');
+                if (sectionOthers) sectionOthers.classList.add('hidden');
+            } else if (filterValue === 'groups') {
+                if (sectionBlc) sectionBlc.classList.add('hidden');
+                if (sectionGroups) sectionGroups.classList.remove('hidden');
+                if (sectionLinks) sectionLinks.classList.add('hidden');
+                if (sectionOthers) sectionOthers.classList.add('hidden');
+            } else if (filterValue === 'links') {
+                if (sectionBlc) sectionBlc.classList.add('hidden');
+                if (sectionGroups) sectionGroups.classList.add('hidden');
+                if (sectionLinks) sectionLinks.classList.remove('hidden');
+                if (sectionOthers) sectionOthers.classList.add('hidden');
+            } else if (filterValue === 'others') {
+                if (sectionBlc) sectionBlc.classList.add('hidden');
+                if (sectionGroups) sectionGroups.classList.add('hidden');
+                if (sectionLinks) sectionLinks.classList.add('hidden');
+                if (sectionOthers) sectionOthers.classList.remove('hidden');
             } else {
-                sectionCourse.classList.remove('hidden');
-                sectionGeneral.classList.remove('hidden');
-                sectionLink.classList.remove('hidden');
+                if (sectionBlc) sectionBlc.classList.remove('hidden');
+                if (sectionGroups) sectionGroups.classList.remove('hidden');
+                if (sectionLinks) sectionLinks.classList.remove('hidden');
+                if (sectionOthers) sectionOthers.classList.remove('hidden');
             }
 
             const renderGroupCardList = (list, container, emptyMsg) => {
@@ -9803,7 +9927,7 @@
                 }
 
                 container.innerHTML = list.map(g => {
-                    const courseBadge = g.courses ? `<span class="px-2 py-0.5 text-[8px] font-black bg-indigo-50 text-[#4226E9] rounded-full uppercase truncate max-w-[120px] inline-block">${window.sanitizeHTML(g.courses.short_name || g.courses.course_name)}</span>` : `<span class="px-2 py-0.5 text-[8px] font-black bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-dark-textSecondary rounded-full uppercase inline-block">General Channel</span>`;
+                    const courseBadge = g.courses ? `<span class="px-2 py-0.5 text-[8px] font-black bg-indigo-50 text-[#4226E9] rounded-full uppercase truncate max-w-[120px] inline-block">${window.sanitizeHTML(g.courses.short_name || g.courses.course_name)}</span>` : `<span class="px-2 py-0.5 text-[8px] font-black bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-dark-textSecondary rounded-full uppercase inline-block">${window.sanitizeHTML(g.type ? g.type.toUpperCase() : 'General')}</span>`;
 
                     let iconName = "users";
                     let iconColorClass = "text-[#4226E9] bg-indigo-50";
@@ -9838,7 +9962,7 @@
                     return `
                             <div id="group-card-${g.id}" class="bg-white dark:bg-dark-card p-3.5 rounded-2xl border border-slate-100 dark:border-white/5 shadow-2xs flex items-center gap-3.5 transition hover:shadow-xs cursor-pointer hover:border-[#4226E9]/30 active:scale-[0.99]" onclick="openGroupDetails('${g.id}')">
                                 <div class="w-10 h-10 rounded-full ${iconColorClass} flex items-center justify-center shrink-0">
-                                    ${iconHTML}
+                                     ${iconHTML}
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <h4 class="font-bold text-[12.5px] text-slate-800 dark:text-dark-text leading-tight truncate">${safeTitle}</h4>
@@ -9855,9 +9979,10 @@
                 }).join('');
             };
 
-            renderGroupCardList(courseGroups, courseContainer, "No course chat groups listed yet.");
-            renderGroupCardList(customGroups, customContainer, "No general support channels listed yet.");
-            renderGroupCardList(linkGroups, linkContainer, "No links available.");
+            renderGroupCardList(blcGroups, blcContainer, "No BLC links listed yet.");
+            renderGroupCardList(groupsGroups, groupsContainer, "No chat groups listed yet.");
+            renderGroupCardList(linksGroups, linksContainer, "No links available.");
+            renderGroupCardList(othersGroups, othersContainer, "No other channels listed yet.");
 
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();
@@ -9868,7 +9993,7 @@
             const g = currentGroupsList.find(x => x.id === groupId);
             if (!g) return;
             document.getElementById('gd-title').innerText = g.title || 'Group';
-            document.getElementById('gd-course').innerText = g.courses?.short_name || g.courses?.course_name || 'General Support';
+            document.getElementById('gd-course').innerText = g.courses?.short_name || g.courses?.course_name || (g.type ? g.type.toUpperCase() : 'General Support');
             document.getElementById('gd-desc').innerText = g.description || 'No description provided for this group.';
             document.getElementById('gd-link').href = g.group_link || '#';
             navigate('screen-groups-detailed');
@@ -9879,7 +10004,7 @@
             document.getElementById('group-title').value = '';
             document.getElementById('group-link').value = '';
             document.getElementById('group-description').value = '';
-            if (document.getElementById('group-type')) document.getElementById('group-type').value = 'course';
+            if (document.getElementById('group-type')) document.getElementById('group-type').value = 'blc';
 
             await populateGroupCourseSelect('');
 
@@ -9898,7 +10023,13 @@
             document.getElementById('group-title').value = group.title || '';
             document.getElementById('group-link').value = group.group_link || '';
             document.getElementById('group-description').value = group.description || '';
-            if (document.getElementById('group-type')) document.getElementById('group-type').value = group.type || 'course';
+            if (document.getElementById('group-type')) {
+                let t = group.type || 'blc';
+                if (t === 'course') t = 'groups';
+                if (t === 'link') t = 'links';
+                if (t === 'general') t = 'others';
+                document.getElementById('group-type').value = t;
+            }
 
             await populateGroupCourseSelect(group.course_id || '');
 
@@ -9927,19 +10058,26 @@
             let customOption = '<option value="">Custom Group (No Course Attached)</option>';
             if (window.crPermissionService && window.crPermissionService.isCR()) {
                 customOption = '<option value="" disabled selected>Select a Course</option>';
-                if (typeEl) {
-                    typeEl.innerHTML = '<option value="course">Course Groups</option>';
-                    typeEl.value = 'course';
-                }
-            } else if (typeEl) {
+            }
+            
+            if (typeEl) {
                 const currentType = typeEl.value;
                 typeEl.innerHTML = `
-                    <option value="link">Links</option>
-                    <option value="course">Course Groups</option>
-                    <option value="general">General or Custom Channels</option>
+                    <option value="blc">BLC</option>
+                    <option value="groups">Groups</option>
+                    <option value="links">Links</option>
+                    <option value="others">Others</option>
                 `;
-                if (['link', 'course', 'general'].includes(currentType)) {
+                if (['blc', 'groups', 'links', 'others'].includes(currentType)) {
                     typeEl.value = currentType;
+                } else if (['link', 'links'].includes(currentType)) {
+                    typeEl.value = 'links';
+                } else if (['course', 'groups'].includes(currentType)) {
+                    typeEl.value = 'groups';
+                } else if (['general', 'others'].includes(currentType)) {
+                    typeEl.value = 'others';
+                } else {
+                    typeEl.value = 'blc';
                 }
             }
 
@@ -9969,10 +10107,10 @@
                 const courseSelect = document.getElementById('group-course-select');
                 const course_id = courseSelect.value || null;
                 const typeSelect = document.getElementById('group-type');
-                const group_type = typeSelect ? typeSelect.value : 'course';
+                const group_type = (typeSelect && typeSelect.value) ? typeSelect.value : 'others';
 
                 if (window.crPermissionService && window.crPermissionService.isCR()) {
-                    if (!course_id && group_type === 'course') {
+                    if (!course_id && group_type === 'groups') {
                         showGlobalToast("Validation Error", "You must select a course to attach this course group to.");
                         isSubmittingGroup = false;
                         showLoader(false);
@@ -10019,6 +10157,7 @@
                 const startTime = performance.now();
 
                 await fetchWithRetry(async (dbSignal) => {
+                    let groupRecord = null;
                     if (id) {
                         console.log(`[GROUPS DB UPDATE] Executing query for ID: ${id}`);
                         const { data, error } = await _supabase
@@ -10031,6 +10170,7 @@
                             console.error("[GROUPS DB UPDATE ERROR] Response:", error);
                             throw error;
                         }
+                        groupRecord = data && data[0];
                         console.log("[GROUPS DB UPDATE SUCCESS] Response:", JSON.stringify(data));
                         showGlobalToast("Success", "Group link updated.");
                     } else {
@@ -10044,20 +10184,72 @@
                             console.error("[GROUPS DB INSERT ERROR] Response:", error);
                             throw error;
                         }
+                        groupRecord = data && data[0];
                         console.log("[GROUPS DB INSERT SUCCESS] Response:", JSON.stringify(data));
-                        const notifyAudience = document.getElementById('notify-audience-group') ? document.getElementById('notify-audience-group').checked : true;
-                        if (data && data.length > 0 && window.NotificationQueueService && notifyAudience) {
-                            window.NotificationQueueService.queueNotification({
-                                parentType: 'group',
-                                parentId: data[0].id,
-                                isNotifyEnabled: true,
-                                audienceType: 'all',
-                                createdBy: window.authState.user.id,
-                                title: payload.title
-                            });
-                        }
-                        
                         showGlobalToast("Success", "Group link added.");
+                    }
+
+                    if (groupRecord) {
+                        // 1. Sync Content Targets for the Group Link
+                        console.log("[GROUPS TARGETS] Rebuilding targets for group ID:", groupRecord.id);
+                        await _supabase.from('content_targets').delete().eq('content_id', groupRecord.id).eq('content_type', 'group').abortSignal(dbSignal);
+
+                        let targetRows = [];
+                        if (course_id) {
+                            targetRows.push({
+                                content_id: groupRecord.id,
+                                content_type: 'group',
+                                target_type: 'course_students',
+                                target_id: course_id
+                            });
+                        } else {
+                            if (window.crPermissionService && window.crPermissionService.isCR()) {
+                                const assigned = window.crPermissionService.getAssignedBatches() || [];
+                                assigned.forEach(bId => {
+                                    targetRows.push({
+                                        content_id: groupRecord.id,
+                                        content_type: 'group',
+                                        target_type: 'batch_students',
+                                        target_id: bId
+                                    });
+                                });
+                            } else {
+                                targetRows.push({
+                                    content_id: groupRecord.id,
+                                    content_type: 'group',
+                                    target_type: 'all_students',
+                                    target_id: 'global'
+                                });
+                            }
+                        }
+
+                        if (targetRows.length > 0) {
+                            const { error: targetErr } = await _supabase.from('content_targets').insert(targetRows).abortSignal(dbSignal);
+                            if (targetErr) console.error("[GROUPS TARGET SAVE] Error inserting targets:", targetErr);
+                        }
+
+                        // 2. Queue Push Notification (For both inserts and updates if checked)
+                        const notifyAudience = document.getElementById('notify-audience-group') ? document.getElementById('notify-audience-group').checked : true;
+                        if (window.NotificationQueueService && notifyAudience) {
+                            let calculatedAudienceType = 'all';
+                            if (course_id) {
+                                calculatedAudienceType = 'course_students';
+                            } else if (window.currentUserRole === 'cr' && window.currentUserCRBatches && window.currentUserCRBatches.length > 0) {
+                                calculatedAudienceType = 'batch_students';
+                            }
+                            try {
+                                await window.NotificationQueueService.queueNotification({
+                                    parentType: 'group',
+                                    parentId: groupRecord.id,
+                                    isNotifyEnabled: true,
+                                    audienceType: calculatedAudienceType,
+                                    createdBy: window.authState.user.id,
+                                    title: payload.title
+                                });
+                            } catch (e) {
+                                console.error("[GROUP QUEUE ERROR] Failed to queue notification:", e);
+                            }
+                        }
                     }
                 }, 3, 1000, 10000, signal);
 

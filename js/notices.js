@@ -61,19 +61,27 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         
                         // Chunk noticeIds to avoid URL length limits (Supabase PostgREST limit)
                         const chunkSize = 100;
-                        for (let i = 0; i < noticeIds.length; i += chunkSize) {
-                            const chunk = noticeIds.slice(i, i + chunkSize);
-                            const { data: chunkData } = await _supabase
-                                .from('content_targets')
-                                .select('content_id, target_type, target_id')
-                                .eq('content_type', 'notice')
-                                .in('content_id', chunk)
-                                .abortSignal(localController.signal);
-                            
-                            if (chunkData) {
-                                ctData = ctData.concat(chunkData);
+                        ctData = await fetchWithRetry(async (signal) => {
+                            let results = [];
+                            const chunks = [];
+                            for (let i = 0; i < noticeIds.length; i += chunkSize) {
+                                chunks.push(noticeIds.slice(i, i + chunkSize));
                             }
-                        }
+                            const promises = chunks.map(chunk => 
+                                _supabase
+                                    .from('content_targets')
+                                    .select('content_id, target_type, target_id')
+                                    .eq('content_type', 'notice')
+                                    .in('content_id', chunk)
+                                    .abortSignal(signal)
+                            );
+                            const responses = await Promise.all(promises);
+                            for (const { data, error } of responses) {
+                                if (error) throw error;
+                                if (data) results = results.concat(data);
+                            }
+                            return results;
+                        }, 2, 1000, 30000, localController.signal);
                         
                         if (ctData && ctData.length > 0) {
                             const ctMap = {};
@@ -98,6 +106,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         }
                         console.log('[TARGET LOAD] Loaded content_targets for notices');
                     } catch (ctErr) {
+                        if (ctErr.name === 'AbortError' || (ctErr.message && ctErr.message.includes('AbortError'))) {
+                            throw ctErr;
+                        }
                         console.warn('[TARGET LOAD] Failed to load content_targets, using empty:', ctErr);
                         noticesData.forEach(n => {
                             n.content_targets = [];
@@ -656,7 +667,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                                 ${window.SeenService ? window.SeenService.renderSeenBlock('notice', n.id) : ''}
                                             </div>
                                             <div class="shrink-0 flex items-center">
-                                                ${(window.ReactionService && !isPoll) ? window.ReactionService.renderReactionBlock('notice', n.id) : ''}
+                                                ${window.ReactionService ? (isPoll ? window.ReactionService.renderReactionBlock('poll', n.id) : window.ReactionService.renderReactionBlock('notice', n.id)) : ''}
                                             </div>
                                         </div>
                                     </div>
