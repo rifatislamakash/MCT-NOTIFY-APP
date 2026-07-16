@@ -38,8 +38,7 @@ export class ReactionService {
 
             // Update cache
             contentIds.forEach(id => {
-                const cacheKey = contentType === 'poll' ? `poll_${id}` : id;
-                this.cache[cacheKey] = grouped[id];
+                this.cache[id] = grouped[id];
             });
 
             return grouped;
@@ -50,8 +49,7 @@ export class ReactionService {
     }
 
     static getReactionSummaryHTML(contentType, contentId) {
-        const cacheKey = contentType === 'poll' ? `poll_${contentId}` : contentId;
-        const reactions = this.cache[cacheKey] || [];
+        const reactions = this.cache[contentId] || [];
         if (reactions.length === 0) return '';
 
         const counts = {};
@@ -77,7 +75,7 @@ export class ReactionService {
         }).join('');
 
         return `
-            <div onclick="event.stopPropagation(); window.ReactionService.openReactorsModal('${contentId}', '${contentType}')" 
+            <div onclick="event.stopPropagation(); window.ReactionService.openReactorsModal('${contentId}')" 
                  class="flex items-center gap-1.5 cursor-pointer shrink-0 min-w-0 hover:opacity-80 transition-opacity"
                  title="View reactions">
                 <div class="flex items-center shrink-0">
@@ -100,9 +98,8 @@ export class ReactionService {
     static showPickerPortal(triggerButton, contentType, contentId) {
         // Close any existing picker first
         this.hidePickerPortal();
- 
-        const cacheKey = contentType === 'poll' ? `poll_${contentId}` : contentId;
-        const reactions = this.cache[cacheKey] || [];
+
+        const reactions = this.cache[contentId] || [];
         const types = ['like', 'love', 'haha', 'sad', 'angry', 'cool'];
         
         const shell = document.getElementById('app-viewport-shell') || document.body;
@@ -257,8 +254,7 @@ export class ReactionService {
     }
 
     static getReactionPickerHTML(contentType, contentId) {
-        const cacheKey = contentType === 'poll' ? `poll_${contentId}` : contentId;
-        const reactions = this.cache[cacheKey] || [];
+        const reactions = this.cache[contentId] || [];
         const myReaction = reactions.find(r => r.user_id === window.authState?.user?.id);
         
         let actionIcon = `
@@ -294,8 +290,7 @@ export class ReactionService {
 
     static renderReactionBlock(contentType, contentId) {
         const isAdmin = (window.currentUserRole === 'admin' || window.currentUserRole === 'cr' || window.isAdminEmail(window.currentUserEmail));
-        const cacheKey = contentType === 'poll' ? `poll_${contentId}` : contentId;
-        const reactions = this.cache[cacheKey] || [];
+        const reactions = this.cache[contentId] || [];
         const myReaction = reactions.find(r => r.user_id === window.authState?.user?.id);
         const activeClass = myReaction ? 'bg-indigo-50 border border-indigo-100 hover:bg-indigo-100' : 'bg-[#f3f4f6] border border-transparent hover:bg-slate-200';
 
@@ -330,16 +325,15 @@ export class ReactionService {
 
         const userId = window.authState.user.id;
         const profile = window.authState.profile;
-        const cacheKey = contentType === 'poll' ? `poll_${contentId}` : contentId;
-        if (!this.cache[cacheKey]) this.cache[cacheKey] = [];
+        if (!this.cache[contentId]) this.cache[contentId] = [];
         
-        const existingIdx = this.cache[cacheKey].findIndex(r => r.user_id === userId);
-        const isRemoving = existingIdx > -1 && this.cache[cacheKey][existingIdx].reaction_type === reactionType;
- 
+        const existingIdx = this.cache[contentId].findIndex(r => r.user_id === userId);
+        const isRemoving = existingIdx > -1 && this.cache[contentId][existingIdx].reaction_type === reactionType;
+
         // Optimistic UI Update
         if (isRemoving) {
             console.log(`[REACTION DELETE] Optimistic remove ${reactionType} for ${contentId}`);
-            this.cache[cacheKey].splice(existingIdx, 1);
+            this.cache[contentId].splice(existingIdx, 1);
         } else {
             console.log(`[REACTION UPSERT] Optimistic set ${reactionType} for ${contentId}`);
             const newReaction = {
@@ -352,9 +346,9 @@ export class ReactionService {
                 }
             };
             if (existingIdx > -1) {
-                this.cache[cacheKey][existingIdx] = newReaction;
+                this.cache[contentId][existingIdx] = newReaction;
             } else {
-                this.cache[cacheKey].push(newReaction);
+                this.cache[contentId].push(newReaction);
             }
         }
 
@@ -472,16 +466,15 @@ export class ReactionService {
         }).join('');
     }
 
-    static openReactorsModal(contentId, contentType) {
-        const cacheKey = contentType === 'poll' ? `poll_${contentId}` : contentId;
-        const reactions = this.cache[cacheKey] || [];
+    static openReactorsModal(contentId) {
+        const reactions = this.cache[contentId] || [];
         const modal = document.getElementById('who-reacted-modal');
         if (!modal) return;
         if (reactions.length === 0) return;
- 
+
         this.currentModalReactions = reactions;
         this.renderModalList('all');
- 
+
         modal.classList.remove('hidden');
         setTimeout(() => {
             modal.classList.remove('opacity-0', 'pointer-events-none');

@@ -656,7 +656,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                                 ${window.SeenService ? window.SeenService.renderSeenBlock('notice', n.id) : ''}
                                             </div>
                                             <div class="shrink-0 flex items-center">
-                                                ${window.ReactionService ? (isPoll ? window.ReactionService.renderReactionBlock('poll', n.id) : window.ReactionService.renderReactionBlock('notice', n.id)) : ''}
+                                                ${(window.ReactionService && !isPoll) ? window.ReactionService.renderReactionBlock('notice', n.id) : ''}
                                             </div>
                                         </div>
                                     </div>
