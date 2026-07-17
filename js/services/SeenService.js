@@ -85,8 +85,40 @@ export class SeenService {
         }
     }
 
+    static getMergedSeen(contentType, contentId) {
+        let seen = [...(this.cache[contentId] || [])];
+        const seenUserIds = new Set(seen.map(s => s.user_id));
+        
+        // Add anyone who reacted or voted
+        if (window.ReactionService) {
+            const cacheKeyNotice = contentId;
+            const cacheKeyPoll = `poll_${contentId}`;
+            
+            const addReactors = (reactions) => {
+                if (!reactions) return;
+                reactions.forEach(r => {
+                    if (!seenUserIds.has(r.user_id)) {
+                        seenUserIds.add(r.user_id);
+                        seen.push({
+                            user_id: r.user_id,
+                            profiles: r.profiles,
+                            created_at: r.created_at || new Date().toISOString()
+                        });
+                    }
+                });
+            };
+            
+            addReactors(window.ReactionService.cache[cacheKeyNotice]);
+            if (contentType === 'notice' || contentType === 'poll') {
+                addReactors(window.ReactionService.cache[cacheKeyPoll]);
+            }
+        }
+        
+        return seen.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }
+
     static renderSeenBlock(contentType, contentId) {
-        const seen = this.cache[contentId] || [];
+        const seen = this.getMergedSeen(contentType, contentId);
         const total = seen.length;
         if (total === 0) return `<div id="seen-block-${contentId}" class="seen-block-container empty hidden"></div>`;
 
@@ -125,7 +157,7 @@ export class SeenService {
     }
 
     static openSeenList(contentType, contentId) {
-        const seen = this.cache[contentId] || [];
+        const seen = this.getMergedSeen(contentType, contentId);
         if (seen.length === 0) return;
 
         // Use the Seen By modal container logic

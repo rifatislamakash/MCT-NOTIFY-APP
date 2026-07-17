@@ -29,17 +29,41 @@ export class ReactionService {
 
             const grouped = {};
             contentIds.forEach(id => grouped[id] = []);
+            const validReactions = ['like', 'love', 'haha', 'sad', 'angry', 'cool'];
+
             if (data) {
                 data.forEach(row => {
-                    if (!grouped[row.content_id]) grouped[row.content_id] = [];
-                    grouped[row.content_id].push(row);
+                    // Check if it's a legacy poll vote mistakenly saved as a notice
+                    if (contentType === 'notice' && !validReactions.includes(row.reaction_type)) {
+                        const pollCacheKey = `poll_${row.content_id}`;
+                        if (!this.cache[pollCacheKey]) this.cache[pollCacheKey] = [];
+                        // Add to poll cache if not already present
+                        if (!this.cache[pollCacheKey].some(r => r.user_id === row.user_id)) {
+                            this.cache[pollCacheKey].push(row);
+                        }
+                    } else {
+                        if (!grouped[row.content_id]) grouped[row.content_id] = [];
+                        grouped[row.content_id].push(row);
+                    }
                 });
             }
 
             // Update cache
             contentIds.forEach(id => {
                 const cacheKey = contentType === 'poll' ? `poll_${id}` : id;
-                this.cache[cacheKey] = grouped[id];
+                // Merge with existing cache if we added legacy votes to it
+                if (cacheKey.startsWith('poll_') && this.cache[cacheKey] && this.cache[cacheKey].length > 0) {
+                    const existing = this.cache[cacheKey];
+                    const newRows = grouped[id] || [];
+                    newRows.forEach(nr => {
+                        if (!existing.some(er => er.user_id === nr.user_id)) {
+                            existing.push(nr);
+                        }
+                    });
+                    this.cache[cacheKey] = existing;
+                } else {
+                    this.cache[cacheKey] = grouped[id];
+                }
             });
 
             return grouped;
