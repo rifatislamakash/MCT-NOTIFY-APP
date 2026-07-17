@@ -476,7 +476,7 @@ export class PollService {
         try {
             const inserts = selectedOptions.map(opt => ({
                 content_id: pollId,
-                content_type: 'notice',
+                content_type: 'poll', // Fixed: was incorrectly set to 'notice'
                 user_id: window.authState.user.id,
                 reaction_type: opt
             }));
