@@ -1,0 +1,67 @@
+<div id="screen-schedule-list" class="screen bg-[#F5F6F8] dark:bg-dark-bg flex flex-col overflow-hidden">
+                        <!-- Header -->
+                        <div class="bg-[#0F172A] px-6 pt-10 pb-5 shrink-0">
+                            <div class="flex items-center justify-between mb-1">
+                                <div class="flex items-center gap-3">
+                                    <button onclick="goHome()" class="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition">
+                                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                                    </button>
+                                    <div>
+                                        <h2 class="text-[20px] font-extrabold text-white leading-tight tracking-wide">Schedules</h2>
+                                        <p class="text-[11px] text-slate-400 dark:text-dark-textSecondary mt-0.5">Upcoming & past class schedules</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div id="schedule-admin-add-btn" class="hidden">
+                                        <button onclick="openCreateSchedule()" class="w-9 h-9 bg-[#4226E9] rounded-full flex items-center justify-center text-white shadow-md shadow-indigo-600/40 active:scale-90 transition">
+                                            <i data-lucide="plus" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                    <button onclick="navigate('screen-profile')" class="relative hover:opacity-80 transition-opacity active:scale-95 shrink-0">
+                                        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 p-[2px] shadow-lg shadow-indigo-500/20 overflow-hidden global-user-avatar-container">
+                                            <i data-lucide="user" class="w-5 h-5"></i>
+                                        </div>
+                                        <div class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-[#0F172A] rounded-full"></div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Search + Filter Row -->
+                            <div class="mt-4 flex gap-2">
+                                <div class="flex-1 relative">
+                                    <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-dark-textSecondary"></i>
+                                    <input type="text" id="schedule-search" oninput="filterSchedulesUI()" placeholder="Search schedules..." class="w-full h-[38px] pl-9 pr-3 rounded-xl bg-white/20 border border-white/10 text-white placeholder-slate-500 text-[12px] font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white/20 transition">
+                                </div>
+                                <select id="admin-schedule-batch-filter" onchange="filterSchedulesUI()" class="hidden w-[90px] h-[38px] px-2.5 rounded-xl bg-white/20 border border-white/10 text-slate-300 text-[11px] font-semibold focus:outline-none appearance-none">
+                                    <option value="all" class="text-black">All Batches</option>
+                                    <!-- Options injected dynamically -->
+                                </select>
+                                <select id="schedule-filter-sort" onchange="filterSchedulesUI()" class="h-[38px] px-2.5 rounded-xl bg-white/20 border border-white/10 text-slate-300 text-[11px] font-semibold focus:outline-none appearance-none">
+                                    <option value="newest" class="text-black">Newest</option>
+                                    <option value="oldest" class="text-black">Oldest</option>
+                                    <option value="pinned" class="text-black">Pinned</option>
+                                </select>
+                                <select id="schedule-filter-audience" onchange="filterSchedulesUI()" class="h-[38px] px-2.5 rounded-xl bg-white/20 border border-white/10 text-slate-300 text-[11px] font-semibold focus:outline-none appearance-none">
+                                    <option value="all" class="text-black">All Type</option>
+                                    <option value="all_students" class="text-black">General</option>
+                                    <option value="specific" class="text-black">Specific</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Schedule List -->
+                        <div class="flex-1 overflow-y-auto pb-24 px-5 pt-4 space-y-3 scrollbar-hide" id="schedule-list-container">
+                            <div class="flex flex-col items-center justify-center py-16 text-slate-400 dark:text-dark-textSecondary">
+                                <div class="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+                                <p class="text-xs font-semibold">Loading schedules...</p>
+                            </div>
+                        </div>
+
+                        <!-- Nav -->
+                        <div class="bottom-nav-bar">
+                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 transition"><img src="assets/home.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/homefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-bold">Dashboard</span></button>
+                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 transition"><img src="assets/routine.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/routinefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Routine</span></button>
+                            <button onclick="navigate('screen-updates-hub'); window.loadUnifiedUpdates();" class="nav-updates-btn flex flex-col items-center gap-1 transition"><img src="assets/notice.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/noticefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Updates</span></button>
+                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 transition"><img src="assets/profile.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/profilefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Profile</span></button>
+                        </div>
+                    </div>

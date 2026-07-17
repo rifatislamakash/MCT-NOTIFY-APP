@@ -5,8 +5,8 @@ import { showGlobalToast, showLoader, forceHideLoader, cancelActiveRequest } fro
 export class PollService {
     static currentPolls = [];
 
-    static async loadPolls() {
-        showLoader(true, "Loading polls...");
+    static async loadPolls(isSilent = false) {
+        if (!isSilent) showLoader(true, "Loading polls...");
         try {
             // Await notices load if it's currently loading
             if (window.isModuleLoading && window.isModuleLoading('notices')) {
@@ -18,7 +18,7 @@ export class PollService {
             } else if (!window.currentNoticesList || window.currentNoticesList.length === 0) {
                 // Ensure notices are loaded at least once if empty
                 if (typeof window.loadNotices === 'function') {
-                    await window.loadNotices();
+                    await window.loadNotices(isSilent);
                 }
             }
 
@@ -38,9 +38,9 @@ export class PollService {
             this.renderPollsList();
         } catch (err) {
             console.error("Error loading polls:", err);
-            showGlobalToast("Error", "Could not load polls");
+            if (!isSilent) showGlobalToast("Error", "Could not load polls");
         } finally {
-            showLoader(false);
+            if (!isSilent) showLoader(false);
         }
     }
 

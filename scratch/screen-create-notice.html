@@ -1,0 +1,179 @@
+<div id="screen-create-notice" class="screen flex flex-col overflow-hidden bg-[#F5F6F8] dark:bg-dark-bg">
+                        <div class="bg-[#0F172A] px-6 pt-12 pb-6 flex items-center gap-4 text-white shadow-sm z-20 shrink-0">
+                            <button onclick="navigateBack()" class="hover:opacity-75 transition-opacity">
+                                <i data-lucide="arrow-left" class="w-6 h-6 font-light"></i>
+                            </button>
+                            <div>
+                                <h1 id="create-notice-title" class="text-[20px] font-black tracking-tight">Create Notice</h1>
+                                <p class="text-[12px] text-slate-400 dark:text-dark-textSecondary mt-0.5">Add a new notice for students</p>
+                            </div>
+                        </div>
+
+                        <div class="flex-1 overflow-y-auto px-4 py-6 pb-32">
+                            <form id="form-create-notice" onsubmit="handleSaveNotice(event)" class="flex flex-col gap-4">
+                                <input type="hidden" id="notice-edit-id">
+                                <input type="hidden" id="notice-edit-attachment-url">
+
+                                <!-- Notice Information Card -->
+                                <div class="bg-white dark:bg-dark-card rounded-[20px] p-5 shadow-sm border border-slate-100 dark:border-white/5">
+                                    <h3 class="text-[14px] font-extrabold text-slate-900 dark:text-dark-text mb-4">Notice Information</h3>
+
+                                    <div class="flex flex-col gap-1.5 mb-4">
+                                        <label class="text-[12px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wider ml-1">Title <span class="text-red-400">*</span></label>
+                                        <input type="text" id="notice-title" required placeholder="Enter notice title..." class="w-full h-[48px] px-4 bg-slate-50 dark:bg-dark-bg/50 text-slate-900 dark:text-dark-text text-[14px] font-semibold rounded-[14px] border border-slate-200 dark:border-white/10 focus:border-[#4226E9] focus:ring-2 focus:ring-indigo-100 outline-none transition-all placeholder:text-slate-400 dark:text-dark-textSecondary placeholder:font-medium">
+                                    </div>
+
+                                    <div class="flex flex-col gap-1.5">
+                                        <label class="text-[12px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wider ml-1">Message <span class="text-red-400">*</span></label>
+                                        <div class="rich-text-toolbar">
+                                            <button type="button" onclick="applyFormat('bold')"><i data-lucide="bold" class="w-4 h-4"></i></button>
+                                            <button type="button" onclick="applyFormat('italic')"><i data-lucide="italic" class="w-4 h-4"></i></button>
+                                            <button type="button" onclick="applyFormat('underline')"><i data-lucide="underline" class="w-4 h-4"></i></button>
+                                            <button type="button" onclick="applyFormat('link')"><i data-lucide="link" class="w-4 h-4"></i></button>
+                                            <input type="color" value="#000000" onchange="applyFormat('color', this.value)" title="Choose Text Color">
+                                        </div>
+                                        <textarea id="notice-message" required placeholder="Type your notice here..." class="w-full h-[120px] p-4 bg-slate-50 dark:bg-dark-bg/50 text-slate-900 dark:text-dark-text text-[14px] font-medium rounded-[14px] border border-slate-200 dark:border-white/10 focus:border-[#4226E9] focus:ring-2 focus:ring-indigo-100 outline-none transition-all placeholder:text-slate-400 dark:text-dark-textSecondary placeholder:font-medium resize-none"></textarea>
+                                    </div>
+                                </div>
+
+                                <!-- Notice Date & Time Card -->
+                                <div class="bg-white dark:bg-dark-card rounded-[20px] p-5 shadow-sm border border-slate-100 dark:border-white/5">
+                                    <h3 class="text-[14px] font-extrabold text-slate-900 dark:text-dark-text mb-4">Date & Time</h3>
+                                    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                                        <div class="flex flex-col gap-1.5 flex-1 min-w-0">
+                                            <label class="text-[12px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wider ml-1">Date <span class="text-red-400">*</span></label>
+                                            <input type="date" id="notice-date-input" required class="w-full h-[48px] px-2 sm:px-4 bg-slate-50 dark:bg-dark-bg/50 text-slate-900 dark:text-dark-text text-[14px] font-semibold rounded-[14px] border border-slate-200 dark:border-white/10 focus:border-[#4226E9] focus:ring-2 focus:ring-indigo-100 outline-none transition-all">
+                                        </div>
+                                        <div class="flex flex-col gap-1.5 flex-1 min-w-0">
+                                            <label class="text-[12px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wider ml-1">Time <span class="text-red-400">*</span></label>
+                                            <input type="time" id="notice-time-input" required class="w-full h-[48px] px-2 sm:px-4 bg-slate-50 dark:bg-dark-bg/50 text-slate-900 dark:text-dark-text text-[14px] font-semibold rounded-[14px] border border-slate-200 dark:border-white/10 focus:border-[#4226E9] focus:ring-2 focus:ring-indigo-100 outline-none transition-all">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Notice Type Card -->
+                                <div class="bg-white dark:bg-dark-card rounded-[20px] p-5 shadow-sm border border-slate-100 dark:border-white/5">
+                                    <label class="text-[12px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wider ml-1">Notice Type <span class="text-red-400">*</span></label>
+                                    <div class="flex gap-3 mt-2">
+                                        <label class="flex-1 relative cursor-pointer">
+                                            <input type="radio" name="notice-type-radio" value="general" checked onchange="document.getElementById('notice-type').value='general'" class="peer sr-only">
+                                            <div class="flex items-center gap-2 px-4 py-3 bg-slate-50 dark:bg-dark-bg/50 rounded-[12px] border-2 border-slate-200 dark:border-white/10 peer-checked:border-[#4226E9] peer-checked:bg-indigo-50 transition-all">
+                                                <div class="w-4 h-4 rounded-full border-2 border-slate-300 peer-checked:border-[#4226E9] flex items-center justify-center">
+                                                    <div class="w-2 h-2 rounded-full bg-[#4226E9] hidden peer-checked:block"></div>
+                                                </div>
+                                                <span class="text-[13px] font-bold text-slate-700 dark:text-dark-textSecondary">General Notice</span>
+                                            </div>
+                                        </label>
+                                        <label class="flex-1 relative cursor-pointer">
+                                            <input type="radio" name="notice-type-radio" value="urgent" onchange="document.getElementById('notice-type').value='urgent'" class="peer sr-only">
+                                            <div class="flex items-center gap-2 px-4 py-3 bg-slate-50 dark:bg-dark-bg/50 rounded-[12px] border-2 border-slate-200 dark:border-white/10 peer-checked:border-red-500 peer-checked:bg-red-50 transition-all">
+                                                <div class="w-4 h-4 rounded-full border-2 border-slate-300 peer-checked:border-red-500 flex items-center justify-center">
+                                                    <div class="w-2 h-2 rounded-full bg-red-500 hidden peer-checked:block"></div>
+                                                </div>
+                                                <span class="text-[13px] font-bold text-slate-700 dark:text-dark-textSecondary">Urgent Notice</span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                    <select id="notice-type" class="hidden"><option value="general">General</option><option value="urgent">Urgent</option></select>
+                                </div>
+
+                                <!-- Publish Settings Card -->
+                                <div class="bg-white dark:bg-dark-card rounded-[20px] p-5 shadow-sm border border-slate-100 dark:border-white/5">
+                                    <h3 class="text-[14px] font-extrabold text-slate-900 dark:text-dark-text mb-4">Publish Settings</h3>
+
+                                    <div class="flex gap-3 mb-3">
+                                        <label class="flex-1 flex items-center justify-between bg-slate-50 dark:bg-dark-bg/50 rounded-[12px] px-4 py-3 border border-slate-200 dark:border-white/10 cursor-pointer">
+                                            <span class="text-[13px] font-bold text-slate-700 dark:text-dark-textSecondary">Publish Now</span>
+                                            <input type="checkbox" id="notice-publish-now" checked onchange="togglePublishDate(this.checked)" class="w-5 h-5 accent-[#4226E9] rounded">
+                                        </label>
+                                        <label class="flex-1 flex items-center justify-between bg-slate-50 dark:bg-dark-bg/50 rounded-[12px] px-4 py-3 border border-slate-200 dark:border-white/10 cursor-pointer">
+                                            <span class="text-[13px] font-bold text-slate-700 dark:text-dark-textSecondary">Pin Notice</span>
+                                            <input type="checkbox" id="notice-pinned" class="w-5 h-5 accent-[#4226E9] rounded">
+                                        </label>
+                                    </div>
+                                    <div id="notice-publish-date-container" class="hidden flex flex-col gap-1.5 mt-2">
+                                        <label class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase tracking-wider ml-1">Publish Date & Time</label>
+                                        <input type="datetime-local" id="notice-publish-date" class="w-full h-[48px] px-4 bg-slate-50 dark:bg-dark-bg/50 text-slate-900 dark:text-dark-text text-[14px] font-semibold rounded-[12px] outline-none border border-slate-200 dark:border-white/10 focus:border-[#4226E9]">
+                                    </div>
+                                </div>
+
+                                <!-- Attachment Card -->
+                                <div class="bg-white dark:bg-dark-card rounded-[20px] p-5 shadow-sm border border-slate-100 dark:border-white/5">
+                                    <h3 class="text-[14px] font-extrabold text-slate-900 dark:text-dark-text mb-1">Attachments <span class="text-slate-400 dark:text-dark-textSecondary font-semibold text-[12px]">(Optional)</span></h3>
+                                    <input type="file" id="notice-file-input" onchange="onNoticeFileSelected(this)" accept=".pdf,.png,.jpg,.jpeg,.ppt,.pptx" class="hidden">
+
+                                    <div id="notice-file-dropzone" onclick="document.getElementById('notice-file-input').click()" class="w-full py-8 mt-3 bg-slate-50 dark:bg-dark-bg/50 border-2 border-dashed border-[#4226E9]/30 rounded-[16px] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-indigo-50/50 hover:border-[#4226E9]/60 transition-all">
+                                        <div class="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center">
+                                            <i data-lucide="upload-cloud" class="w-6 h-6 text-[#4226E9]"></i>
+                                        </div>
+                                        <p class="text-[13px] text-[#4226E9] font-bold">Tap to upload your files</p>
+                                        <p class="text-[11px] text-slate-400 dark:text-dark-textSecondary font-medium">IMG, PDF, PPT supported Max 5 MB</p>
+                                    </div>
+
+                                    <div id="notice-selected-file-preview" class="hidden bg-emerald-50 p-3 rounded-[12px] flex items-center justify-between border border-emerald-200 mt-3">
+                                        <div class="flex items-center gap-3">
+                                            <i data-lucide="file" class="w-5 h-5 text-emerald-600"></i>
+                                            <div class="flex flex-col">
+                                                <span id="notice-selected-filename" class="text-[13px] text-slate-900 dark:text-dark-text font-bold truncate max-w-[150px]"></span>
+                                                <span id="notice-selected-filesize" class="text-[10px] text-slate-500 dark:text-dark-textSecondary"></span>
+                                            </div>
+                                        </div>
+                                        <button type="button" onclick="clearNoticeFile()" class="w-8 h-8 flex items-center justify-center rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Target Audience Card -->
+                                <div class="bg-white dark:bg-dark-card rounded-[20px] p-5 shadow-sm border border-slate-100 dark:border-white/5">
+                                    <h3 class="text-[14px] font-extrabold text-slate-900 dark:text-dark-text mb-4">Target Audience <span class="text-red-400">*</span></h3>
+                                    <div class="relative mb-3 mt-3">
+                                        <select id="notice-audience-type" onchange="if(window.toggleNoticeAudience) window.toggleNoticeAudience()" class="w-full h-[48px] px-4 bg-slate-50 dark:bg-dark-bg/50 text-slate-900 dark:text-dark-text text-[14px] font-bold rounded-[14px] border border-slate-200 dark:border-white/10 focus:border-[#4226E9] outline-none appearance-none">
+                                            <option value="all_students">All Students</option>
+                                            <option value="all_crs">All CRs</option>
+                                            <option value="batch_students">Specific Batch Students</option>
+                                            <option value="batch_crs">Specific Batch CRs</option>
+                                            <option value="course_students">Specific Course(s)</option>
+                                            <option value="specific_student">Specific Student</option>
+                                        </select>
+                                        <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 dark:text-dark-textSecondary absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                                    </div>
+
+                                    <div id="notice-target-selection" class="hidden flex flex-col gap-2 p-4 bg-slate-50 dark:bg-dark-bg/50 rounded-[14px] border border-slate-200 dark:border-white/10 max-h-[200px] overflow-y-auto">
+                                        <!-- Checkboxes injected here -->
+                                    </div>
+                                </div>
+
+                                <!-- Reminders & Alerts Card -->
+                                <div class="bg-white dark:bg-dark-card rounded-[20px] p-5 shadow-sm border border-slate-100 dark:border-white/5">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div>
+                                            <h3 class="text-[14px] font-extrabold text-slate-900 dark:text-dark-text">Reminders & Alerts</h3>
+                                            <p class="text-[10px] text-slate-400 dark:text-dark-textSecondary mt-0.5">Schedule push notifications</p>
+                                        </div>
+                                        <button type="button" onclick="addReminderRow('notice')" class="px-3 py-1.5 bg-indigo-50 text-[#4226E9] hover:bg-indigo-100 rounded-[10px] text-[11px] font-bold transition-all flex items-center gap-1">
+                                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Reminder
+                                        </button>
+                                    </div>
+                                    <div id="notice-reminders-list" class="space-y-3">
+                                        <!-- Dynamic Reminder Rows Will Go Here -->
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 flex items-center">
+                                    <input type="checkbox" id="notify-audience-notice" checked class="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500">
+                                    <label for="notify-audience-notice" class="ml-2 text-sm font-medium text-gray-900">Notify Targeted Audience</label>
+                                </div>
+
+                            </form>
+                        </div>
+
+                        <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#F5F6F8] via-[#F5F6F8] to-transparent z-30 flex gap-3">
+                            <button id="btn-delete-notice" onclick="deleteNoticeAction()" type="button" class="hidden w-[56px] h-[52px] bg-red-50 text-red-600 border border-red-200 rounded-[14px] flex items-center justify-center shadow-sm active:scale-95 transition-all">
+                                <i data-lucide="trash-2" class="w-5 h-5"></i>
+                            </button>
+                            <button onclick="document.getElementById('form-create-notice').requestSubmit()" class="flex-1 h-[52px] bg-[#4226E9] text-white rounded-[14px] font-black text-[15px] shadow-lg shadow-indigo-500/30 hover:bg-[#341BC5] active:scale-[0.98] transition-all duration-200">
+                                Publish
+                            </button>
+                        </div>
+                    </div>

@@ -156,7 +156,7 @@ let isRegistering = false;
                     if (typeof window.loadDashboardTodayRoutine === 'function') tasks.push(window.loadDashboardTodayRoutine(true).catch(console.warn));
                     if (typeof window.loadScheduleList === 'function') tasks.push(window.loadScheduleList(true).catch(console.warn));
                     if (window.PollService && typeof window.PollService.loadPolls === 'function') {
-                        tasks.push(window.PollService.loadPolls().then(() => {
+                        tasks.push(window.PollService.loadPolls(true).then(() => {
                             if (typeof window.PollService?.checkAndShowPopup === 'function') {
                                 window.PollService.checkAndShowPopup();
                             }

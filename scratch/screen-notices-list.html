@@ -1,0 +1,61 @@
+<div id="screen-notices-list" class="screen bg-[#F5F6F8] dark:bg-dark-bg flex flex-col justify-between overflow-hidden">
+                        <div class="bg-[#0F172A] px-6 pt-10 pb-5 shrink-0 z-20 shadow-sm">
+                            <div class="flex items-center justify-between mb-1">
+                                <div class="flex items-center gap-3">
+                                    <button onclick="goHome()" class="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition">
+                                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                                    </button>
+                                    <div>
+                                        <h2 class="text-[20px] font-extrabold text-white leading-tight tracking-wide">Notices</h2>
+                                        <p class="text-[11px] text-slate-400 dark:text-dark-textSecondary mt-0.5">Departmental announcements & updates</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <button id="btn-admin-create-notice" onclick="openCreateNotice()" class="hidden w-9 h-9 bg-[#4226E9] text-white rounded-full flex items-center justify-center shadow-md shadow-indigo-600/40 active:scale-90 transition">
+                                        <i data-lucide="plus" class="w-4 h-4"></i>
+                                    </button>
+                                    <div class="cursor-pointer transition-transform hover:scale-105 active:scale-95" onclick="navigate('screen-profile')" title="View profile">
+                                        <div class="w-10 h-10 rounded-full border-2 border-white/20 shadow-sm overflow-hidden bg-indigo-50 flex items-center justify-center global-user-avatar-container">
+                                            <i data-lucide="user" class="w-5 h-5"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 flex flex-col gap-3">
+                                <div class="relative">
+                                    <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-dark-textSecondary"></i>
+                                    <input type="text" id="notices-search" oninput="filterNotices()" placeholder="Search notices..." class="w-full h-[38px] pl-10 pr-3 rounded-xl bg-white/20 border border-white/10 text-white placeholder-slate-500 text-[12px] font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white/20 transition">
+                                </div>
+                                <select id="admin-notices-batch-filter" onchange="filterNotices()" class="hidden w-full h-[38px] px-3 rounded-xl bg-white/20 border border-white/10 text-white text-[12px] font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white/20 transition">
+                                    <option value="all" class="text-black">All Batches</option>
+                                    <!-- Options injected dynamically -->
+                                </select>
+                                <div class="flex gap-2 overflow-x-auto pb-1 hide-scrollbar" id="notices-filter-chips">
+                                    <button onclick="setNoticeFilter('all')" class="notice-filter-btn active px-4 py-1.5 bg-indigo-600 text-white text-[11px] font-bold rounded-full whitespace-nowrap transition-colors" data-filter="all">All</button>
+                                    <button onclick="setNoticeFilter('urgent')" class="notice-filter-btn px-4 py-1.5 bg-white/20 text-slate-300 border border-white/10 text-[11px] font-bold rounded-full whitespace-nowrap transition-colors" data-filter="urgent">Urgent</button>
+                                    <button onclick="setNoticeFilter('general')" class="notice-filter-btn px-4 py-1.5 bg-white/20 text-slate-300 border border-white/10 text-[11px] font-bold rounded-full whitespace-nowrap transition-colors" data-filter="general">General</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex-1 overflow-y-auto px-6 py-6 pb-24">
+                            <div id="notices-list-container" class="flex flex-col gap-4">
+                                <!-- Notices injected dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Sticky Bottom Navigation Bar -->
+                        <div class="bottom-nav-bar">
+                            <button onclick="goHome()" class="nav-home-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/home.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/homefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
+                                <span class="text-[9px] font-bold">Dashboard</span>
+                            </button>
+                            <button onclick="navigate('screen-weekly-routine'); loadWeeklyRoutine();" class="nav-routine-btn flex flex-col items-center gap-1 transition"><img src="assets/routine.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/routinefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Routine</span></button>
+                            <button onclick="navigate('screen-updates-hub'); window.loadUnifiedUpdates();" class="nav-updates-btn flex flex-col items-center gap-1 transition"><img src="assets/notice.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/noticefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;"><span class="text-[9px] font-semibold">Updates</span></button>
+                            <button onclick="navigate('screen-profile')" class="nav-profile-btn flex flex-col items-center gap-1 transition">
+                                <img src="assets/profile.png" class="w-6 h-6 object-contain nav-icon-normal transition"><img src="assets/profilefill.png" class="w-6 h-6 object-contain nav-icon-active transition" style="display:none;">
+                                <span class="text-[9px] font-semibold">Profile</span>
+                            </button>
+                        </div>
+                    </div>

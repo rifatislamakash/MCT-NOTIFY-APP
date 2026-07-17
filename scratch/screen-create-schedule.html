@@ -1,0 +1,154 @@
+<div id="screen-create-schedule" class="screen flex flex-col overflow-hidden bg-[#0F172A]">
+                        <div class="bg-[#0F172A] px-6 pt-10 pb-5 flex items-center gap-3 shrink-0">
+                            <button onclick="navigate('screen-schedule-list')" class="hover:opacity-75 transition-opacity text-white">
+                                <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                            </button>
+                            <div>
+                                <h2 class="text-[20px] font-extrabold text-white leading-tight tracking-wide">Create Schedule</h2>
+                                <p class="text-[11px] text-slate-400 dark:text-dark-textSecondary mt-0.5">Add a new schedule for students</p>
+                            </div>
+                            <div class="ml-auto">
+                                <button onclick="handleCreateSchedule()" class="px-5 py-2 bg-[#4226E9] hover:bg-[#341BC5] text-white text-[12px] font-extrabold rounded-full shadow-md shadow-indigo-600/30 active:scale-95 transition-all">
+                                    Publish
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex-1 overflow-y-auto pb-8 bg-[#EAECEF] scrollbar-hide">
+                            <div class="px-5 pt-5 space-y-4">
+
+                                <!-- Schedule Information Card -->
+                                <div class="bg-white dark:bg-dark-card rounded-[18px] p-5 shadow-sm border border-slate-100 dark:border-white/5">
+                                    <h3 class="font-extrabold text-[13px] text-slate-800 dark:text-dark-text mb-4 uppercase tracking-wider">Schedule Information</h3>
+
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="block text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary mb-1.5 tracking-wider uppercase">Title <span class="text-red-500">*</span></label>
+                                            <input type="text" id="cs-title" placeholder="Enter schedule title..." class="w-full h-[44px] px-4 rounded-[12px] border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-dark-bg/50 focus:bg-white dark:bg-dark-card focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-800 dark:text-dark-text transition-all">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary mb-1.5 tracking-wider uppercase">Message <span class="text-red-500">*</span></label>
+                                            <div class="rich-text-toolbar">
+                                                <button type="button" onclick="applyFormat('bold')"><i data-lucide="bold" class="w-4 h-4"></i></button>
+                                                <button type="button" onclick="applyFormat('italic')"><i data-lucide="italic" class="w-4 h-4"></i></button>
+                                                <button type="button" onclick="applyFormat('underline')"><i data-lucide="underline" class="w-4 h-4"></i></button>
+                                                <button type="button" onclick="applyFormat('link')"><i data-lucide="link" class="w-4 h-4"></i></button>
+                                                <input type="color" value="#000000" onchange="applyFormat('color', this.value)" title="Choose Text Color">
+                                            </div>
+                                            <textarea id="cs-message" rows="4" placeholder="Type your notice here..." class="w-full px-4 py-3 rounded-[12px] border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-dark-bg/50 focus:bg-white dark:bg-dark-card focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-800 dark:text-dark-text transition-all resize-none"></textarea>
+                                            <!-- Schedule Type -->
+                                            <div>
+                                                <label class="block text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary mb-1.5 tracking-wider uppercase">Schedule Type <span class="text-slate-400 dark:text-dark-textSecondary font-medium normal-case">(Optional)</span></label>
+                                                <select id="cs-schedule-type" class="w-full h-[44px] px-4 rounded-[12px] border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-dark-bg/50 focus:bg-white dark:bg-dark-card focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-800 dark:text-dark-text transition-all appearance-none">
+                                                    <option value="">None</option>
+                                                    <option value="Exam">Exam</option>
+                                                    <option value="Class">Class</option>
+                                                    <option value="Assignment">Assignment</option>
+                                                    <option value="Presentation">Presentation</option>
+                                                </select>
+                                            </div>
+
+                                            <!-- Date & Time Row -->
+                                            <div class="flex flex-row gap-3 sm:gap-4">
+                                                <div class="flex-1 min-w-0">
+                                                    <label class="block text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary mb-1.5 tracking-wider uppercase">Date <span class="text-red-500">*</span></label>
+                                                    <input type="date" id="cs-date" class="w-full h-[44px] px-2 sm:px-3 rounded-[12px] border border-slate-200 dark:border-white/10 bg-white dark:bg-dark-card focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[13px] font-bold text-slate-800 dark:text-dark-text transition-all">
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <label class="block text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary mb-1.5 tracking-wider uppercase">Time <span class="text-red-500">*</span></label>
+                                                    <input type="time" id="cs-time" class="w-full h-[44px] px-2 sm:px-3 rounded-[12px] border border-slate-200 dark:border-white/10 bg-white dark:bg-dark-card focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[13px] font-bold text-slate-800 dark:text-dark-text transition-all">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Publish Settings Card -->
+                                <div class="bg-white dark:bg-dark-card rounded-[18px] p-5 shadow-sm border border-slate-100 dark:border-white/5">
+                                    <h3 class="font-extrabold text-[13px] text-slate-800 dark:text-dark-text mb-4 uppercase tracking-wider">Options</h3>
+                                    <div class="flex items-center justify-between py-2.5 border-b border-slate-50">
+                                        <div>
+                                            <p class="text-[13px] font-bold text-slate-800 dark:text-dark-text">Pin Schedule</p>
+                                            <p class="text-[10px] text-slate-400 dark:text-dark-textSecondary">Show at top of the feed</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="cs-pin" class="sr-only peer">
+                                            <div class="w-10 h-5 bg-slate-200 dark:bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:bg-dark-card after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#4226E9]"></div>
+                                        </label>
+                                    </div>
+                                    <div class="flex items-center justify-between py-2.5 border-b border-slate-50">
+                                        <div>
+                                            <p class="text-[13px] font-bold text-slate-800 dark:text-dark-text">Also Send as General Notice</p>
+                                            <p class="text-[10px] text-slate-400 dark:text-dark-textSecondary">Automatically publish to notices</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="cs-send-notice" class="sr-only peer">
+                                            <div class="w-10 h-5 bg-slate-200 dark:bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:bg-dark-card after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#4226E9]"></div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Attachments Card -->
+                                <div class="bg-white dark:bg-dark-card rounded-[18px] p-5 shadow-sm border border-slate-100 dark:border-white/5">
+                                    <h3 class="font-extrabold text-[13px] text-slate-800 dark:text-dark-text mb-3 uppercase tracking-wider">Attachment <span class="text-slate-400 dark:text-dark-textSecondary font-medium normal-case">(Optional)</span></h3>
+                                    <div id="cs-attachment-zone" onclick="document.getElementById('cs-file-input').click()" class="border-2 border-dashed border-indigo-200 rounded-[14px] p-5 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/50 transition-all">
+                                        <i data-lucide="upload-cloud" class="w-7 h-7 text-[#4226E9]"></i>
+                                        <p class="text-[12px] font-bold text-[#4226E9]">Tap to upload your files</p>
+                                        <p class="text-[10px] text-slate-400 dark:text-dark-textSecondary">IMG, PDF, PPT supported • Max 5 MB</p>
+                                    </div>
+                                    <input type="file" id="cs-file-input" accept="image/*,.pdf,.ppt,.pptx" class="hidden" onchange="onScheduleFileSelected(this)">
+                                    <div id="cs-file-preview" class="hidden mt-3 p-3 bg-slate-50 dark:bg-dark-bg/50 rounded-[12px] border border-slate-200 dark:border-white/10 flex items-center gap-3">
+                                        <div class="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center shrink-0">
+                                            <i data-lucide="file" class="w-4 h-4 text-orange-600"></i>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p id="cs-file-name" class="text-[12px] font-bold text-slate-700 dark:text-dark-textSecondary truncate">filename.pdf</p>
+                                            <p id="cs-file-size" class="text-[10px] text-slate-400 dark:text-dark-textSecondary">0 KB</p>
+                                        </div>
+                                        <button onclick="clearScheduleFile()" class="text-red-400 hover:text-red-600 transition-colors shrink-0">
+                                            <i data-lucide="x" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Target Audience Card -->
+                                <div class="bg-white dark:bg-dark-card rounded-[18px] p-5 shadow-sm border border-slate-100 dark:border-white/5">
+                                    <h3 class="font-extrabold text-[13px] text-slate-800 dark:text-dark-text mb-3 uppercase tracking-wider">Target Audience <span class="text-red-500">*</span></h3>
+                                    <div class="relative mb-3 mt-3">
+                                        <select id="cs-audience-type" onchange="if(window.toggleScheduleAudience) window.toggleScheduleAudience('cs')" class="w-full h-[48px] px-4 bg-slate-50 dark:bg-dark-bg/50 text-slate-900 dark:text-dark-text text-[14px] font-bold rounded-[14px] border border-slate-200 dark:border-white/10 focus:border-[#4226E9] outline-none appearance-none">
+                                            <option value="all_students">All Students</option>
+                                            <option value="all_crs">All CRs</option>
+                                            <option value="batch_students">Specific Batch Students</option>
+                                            <option value="batch_crs">Specific Batch CRs</option>
+                                            <option value="course_students">Specific Course(s)</option>
+                                            <option value="specific_student">Specific Student</option>
+                                        </select>
+                                        <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 dark:text-dark-textSecondary absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                                    </div>
+                                    <div id="cs-target-selection" class="hidden flex flex-col gap-2 p-4 bg-slate-50 dark:bg-dark-bg/50 rounded-[14px] border border-slate-200 dark:border-white/10 max-h-[200px] overflow-y-auto">
+                                        <div class="flex items-center justify-center py-4 text-slate-400 dark:text-dark-textSecondary">
+                                            <div class="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin mr-2"></div>
+                                            <span class="text-[11px]">Loading targets...</span>
+                                        </div>
+                                    </div>
+                                    <div id="cs-selected-courses-preview" class="flex flex-wrap gap-1.5 mt-3 min-h-[20px]"></div>
+                                </div>
+
+                                <!-- Reminders & Alerts Card -->
+                                <div class="bg-white dark:bg-dark-card rounded-[18px] p-5 shadow-sm border border-slate-100 dark:border-white/5">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div>
+                                            <h3 class="font-extrabold text-[13px] text-slate-800 dark:text-dark-text uppercase tracking-wider">Reminders & Alerts</h3>
+                                            <p class="text-[10px] text-slate-400 dark:text-dark-textSecondary mt-0.5">Schedule push notifications</p>
+                                        </div>
+                                        <button type="button" onclick="addReminderRow('schedule')" class="px-3 py-1.5 bg-indigo-50 text-[#4226E9] hover:bg-indigo-100 rounded-[10px] text-[11px] font-bold transition-all flex items-center gap-1">
+                                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Reminder
+                                        </button>
+                                    </div>
+                                    <div id="schedule-reminders-list" class="space-y-3">
+                                        <!-- Dynamic Reminder Rows Will Go Here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>

@@ -344,8 +344,10 @@ window.safeFormatRichText = function(text) {
         safeText = safeText.replace(/\[color=([^\]]+)\]((?:(?!\[\/?color).)*?)\[\/color\]/gis, (match, colorVal, textContent) => {
             let color = colorVal.trim();
             const isDarkTheme = typeof document !== 'undefined' && document.documentElement && document.documentElement.classList.contains('dark');
+            
+            const lower = color.toLowerCase();
+            
             if (isDarkTheme) {
-                const lower = color.toLowerCase();
                 const isBlackOrDarkName = ['black', 'darkgray', 'darkgrey', 'charcoal', 'navy', 'darkblue', '#000', '#000000', '#111', '#111827', '#1f2937', '#374151', '#4b5563', '#1e293b', '#0f172a', '#0f1117', '#171a22'].includes(lower);
                 let isDarkColor = false;
                 
@@ -386,6 +388,48 @@ window.safeFormatRichText = function(text) {
                 
                 if (isBlackOrDarkName || isDarkColor) {
                     color = '#F3F4F6';
+                }
+            } else {
+                const isWhiteOrLightName = ['white', 'lightgray', 'lightgrey', 'ivory', 'snow', 'mintcream', '#fff', '#ffffff', '#f8f9fa', '#f3f4f6', '#f1f5f9'].includes(lower);
+                let isLightColor = false;
+                
+                // Hex check
+                if (lower.startsWith('#') && (lower.length === 4 || lower.length === 7)) {
+                    let r, g, b;
+                    if (lower.length === 4) {
+                        r = parseInt(lower[1] + lower[1], 16);
+                        g = parseInt(lower[2] + lower[2], 16);
+                        b = parseInt(lower[3] + lower[3], 16);
+                    } else {
+                        r = parseInt(lower.substring(1, 3), 16);
+                        g = parseInt(lower.substring(3, 5), 16);
+                        b = parseInt(lower.substring(5, 7), 16);
+                    }
+                    if (!isNaN(r) && !isNaN(g) && !isNaN(b)) {
+                        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                        if (brightness > 200) {
+                            isLightColor = true;
+                        }
+                    }
+                }
+                // RGB/RGBA check
+                else if (lower.startsWith('rgb')) {
+                    const rgbMatch = lower.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                    if (rgbMatch) {
+                        const r = parseInt(rgbMatch[1], 10);
+                        const g = parseInt(rgbMatch[2], 10);
+                        const b = parseInt(rgbMatch[3], 10);
+                        if (!isNaN(r) && !isNaN(g) && !isNaN(b)) {
+                            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                            if (brightness > 200) {
+                                isLightColor = true;
+                            }
+                        }
+                    }
+                }
+                
+                if (isWhiteOrLightName || isLightColor) {
+                    color = '#111827';
                 }
             }
             return `<span style="color: ${color}; font-weight: 600;">${textContent}</span>`;
