@@ -583,8 +583,15 @@ export class PollService {
         let batch = document.getElementById('poll-batch-id').value;
         const course = document.getElementById('poll-course-id').value;
 
+        let targetBatches = [batch];
+
         if (window.currentUserRole === 'cr') {
-            batch = window.authState.profile.batch_id;
+            if (batch === 'global') {
+                targetBatches = window.currentUserCRBatches || [window.authState.profile.batch_id];
+                batch = 'specific'; // Force audience type to specific for database and targeting
+            } else {
+                targetBatches = [batch];
+            }
         }
 
         const notifyAudience = document.getElementById('notify-audience-poll') ? document.getElementById('notify-audience-poll').checked : true;
@@ -646,12 +653,17 @@ export class PollService {
             }
 
             if (batch !== 'global' && data && data.length > 0) {
-                const targets = data.map(n => ({
-                    content_id: n.id,
-                    content_type: 'notice',
-                    target_type: 'batch_students',
-                    target_id: batch
-                }));
+                const targets = [];
+                data.forEach(n => {
+                    targetBatches.forEach(bId => {
+                        targets.push({
+                            content_id: n.id,
+                            content_type: 'notice',
+                            target_type: 'batch_students',
+                            target_id: bId
+                        });
+                    });
+                });
                 await _supabase.from('content_targets').insert(targets);
                 
                 // Queue Notification
@@ -663,7 +675,8 @@ export class PollService {
                         isNotifyEnabled: true,
                         audienceType: 'batch_students',
                         createdBy: window.authState.user.id,
-                        title: title
+                        title: title,
+                        message: window.stripRichText ? window.stripRichText(desc) : desc
                     });
                     if (!queueRes.success) console.error("Poll Queue Error:", queueRes.error);
                 }
@@ -676,7 +689,8 @@ export class PollService {
                     isNotifyEnabled: true,
                     audienceType: 'all',
                     createdBy: window.authState.user.id,
-                    title: title
+                    title: title,
+                    message: window.stripRichText ? window.stripRichText(desc) : desc
                 });
                 if (!queueRes.success) console.error("Poll Queue Error:", queueRes.error);
             }

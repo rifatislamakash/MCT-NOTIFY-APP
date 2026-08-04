@@ -1909,7 +1909,9 @@ window.switchRoutineView = switchRoutineView;
                         isNotifyEnabled: true,
                         audienceType: 'batch_students',
                         createdBy: window.authState.user.id,
+                        title: courseName,
                         courseName: courseName,
+                        message: window.stripRichTextForNotification ? window.stripRichTextForNotification(syllabusDesc) : (window.stripRichText ? window.stripRichText(syllabusDesc) : syllabusDesc),
                         date: examDate,
                         time: window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime
                     });
@@ -2234,7 +2236,9 @@ window.switchRoutineView = switchRoutineView;
                         isNotifyEnabled: true,
                         audienceType: 'batch_students',
                         createdBy: window.authState.user.id,
+                        title: courseName,
                         courseName: courseName,
+                        message: window.stripRichTextForNotification ? window.stripRichTextForNotification(syllabusDesc) : (window.stripRichText ? window.stripRichText(syllabusDesc) : syllabusDesc),
                         date: examDate,
                         time: window.formatTimeIfPossible ? window.formatTimeIfPossible(startTime) : startTime
                     });

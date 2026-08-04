@@ -73,7 +73,7 @@ export const CascadeDeleteService = {
                 }
             }
 
-            // 4. [DELETE REACTIONS]
+            // 4. [DELETE REACTIONS & VIEWS]
             if (targetContentType) {
                 const { error: errReactions, count: countReactions } = await _supabase
                     .from('content_reactions')
@@ -85,6 +85,18 @@ export const CascadeDeleteService = {
                     console.error(`[DELETE REACTIONS] Error deleting reactions:`, errReactions);
                 } else {
                     console.log(`[DELETE REACTIONS] Deleted ${countReactions || 0} reactions.`);
+                }
+
+                const { error: errViews, count: countViews } = await _supabase
+                    .from('item_views')
+                    .delete({ count: 'exact' })
+                    .eq('item_type', targetContentType)
+                    .eq('item_id', parentId);
+                    
+                if (errViews) {
+                    console.error(`[DELETE VIEWS] Error deleting views:`, errViews);
+                } else {
+                    console.log(`[DELETE VIEWS] Deleted ${countViews || 0} views.`);
                 }
             }
 
@@ -179,6 +191,119 @@ export const CascadeDeleteService = {
             const duration = (performance.now() - startTime).toFixed(2);
             console.error(`[CASCADE FAILED] Unhandled exception during cascade delete for ${databaseTable}. Duration: ${duration}ms:`, e);
             return { success: false, error: e };
+        }
+    },
+
+    /**
+     * Master Course Cascade Delete
+     * Deletes direct items, then unlinks shared items, checking for orphans and deleting them.
+     */
+    cascadeDeleteCourse: async function(courseId) {
+        console.log(`[COURSE CASCADE START] Initiating full cascade delete for course: ${courseId}`);
+        if (typeof window !== 'undefined' && window.showLoader) window.showLoader(true, "Gathering connected data...");
+
+        try {
+            // 1. Gather DIRECT Items (Materials, Routines, Exams)
+            const { data: materials } = await _supabase.from('materials').select('id').eq('course_id', courseId);
+            const { data: routines } = await _supabase.from('weekly_routines').select('id').eq('course_id', courseId);
+            const { data: exams } = await _supabase.from('exam_schedules').select('id').eq('course_id', courseId);
+            
+            const materialsList = materials || [];
+            const routinesList = routines || [];
+            const examsList = exams || [];
+            
+            const directDeletePayloads = [];
+            materialsList.forEach(m => directDeletePayloads.push({
+                parentType: 'material', parentId: m.id, databaseTable: 'materials', targetContentType: 'material', storageBucket: 'materials'
+            }));
+            routinesList.forEach(r => directDeletePayloads.push({
+                parentType: 'routine', parentId: r.id, databaseTable: 'weekly_routines'
+            }));
+            examsList.forEach(e => directDeletePayloads.push({
+                parentType: 'exam', parentId: e.id, databaseTable: 'exam_schedules'
+            }));
+
+            // Process Direct Deletions sequentially in chunks of 3
+            if (typeof window !== 'undefined' && window.showLoader) window.showLoader(true, `Deleting ${directDeletePayloads.length} direct items...`);
+            for (let i = 0; i < directDeletePayloads.length; i += 3) {
+                const chunk = directDeletePayloads.slice(i, i + 3);
+                await Promise.all(chunk.map(payload => this.cascadeDelete(payload)));
+            }
+
+            // 2. Gather SHARED Items (Notices, Schedules, Polls, Groups)
+            if (typeof window !== 'undefined' && window.showLoader) window.showLoader(true, "Processing shared content targets...");
+            const { data: targets } = await _supabase.from('content_targets').select('content_id, content_type').eq('target_type', 'course').eq('target_id', courseId);
+            const targetsList = targets || [];
+            
+            if (targetsList.length > 0) {
+                // Delete these specific target links from the database
+                const { error: targetDeleteErr } = await _supabase.from('content_targets').delete().eq('target_type', 'course').eq('target_id', courseId);
+                if (targetDeleteErr) throw targetDeleteErr;
+                
+                // Group by unique content_id to prevent redundant checks
+                const uniqueTargetsMap = new Map();
+                targetsList.forEach(t => uniqueTargetsMap.set(t.content_id, t));
+                const uniqueTargets = Array.from(uniqueTargetsMap.values());
+                
+                const orphanDeletePayloads = [];
+                
+                // For each uniquely unlinked item, check if it has ANY remaining targets
+                for (const t of uniqueTargets) {
+                    const { count: remainingCount, error: countErr } = await _supabase
+                        .from('content_targets')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('content_id', t.content_id);
+                        
+                    if (countErr) {
+                        console.error(`[COURSE CASCADE] Error checking orphan status for ${t.content_id}:`, countErr);
+                        continue;
+                    }
+                    
+                    if (remainingCount === 0) {
+                        // ORPHAN DETECTED! Prepare full wipe payload
+                        let table = '';
+                        let bucket = '';
+                        if (t.content_type === 'notice') { table = 'notices'; bucket = 'notice-files'; }
+                        else if (t.content_type === 'schedule') { table = 'schedules'; bucket = 'schedule-files'; }
+                        else if (t.content_type === 'poll') { table = 'polls'; bucket = null; }
+                        else if (t.content_type === 'group') { table = 'groups'; bucket = null; }
+                        
+                        if (table) {
+                            orphanDeletePayloads.push({
+                                parentType: t.content_type,
+                                parentId: t.content_id,
+                                databaseTable: table,
+                                targetContentType: t.content_type,
+                                storageBucket: bucket
+                            });
+                        }
+                    } else {
+                        console.log(`[COURSE CASCADE] Item ${t.content_id} (${t.content_type}) has ${remainingCount} other targets. Leaving intact.`);
+                    }
+                }
+                
+                // Process Orphan Deletions
+                if (orphanDeletePayloads.length > 0) {
+                    if (typeof window !== 'undefined' && window.showLoader) window.showLoader(true, `Wiping ${orphanDeletePayloads.length} orphaned items...`);
+                    for (let i = 0; i < orphanDeletePayloads.length; i += 3) {
+                        const chunk = orphanDeletePayloads.slice(i, i + 3);
+                        await Promise.all(chunk.map(payload => this.cascadeDelete(payload)));
+                    }
+                }
+            }
+
+            // 3. Delete the Course Itself
+            if (typeof window !== 'undefined' && window.showLoader) window.showLoader(true, "Deleting final course mapping...");
+            await _supabase.from('user_courses').delete().eq('course_id', courseId);
+            
+            const { error: courseErr } = await _supabase.from('courses').delete().eq('id', courseId);
+            if (courseErr) throw courseErr;
+            
+            console.log(`[COURSE CASCADE SUCCESS] Successfully purged course ${courseId}`);
+            return { success: true };
+        } catch (err) {
+            console.error(`[COURSE CASCADE FAILED]`, err);
+            return { success: false, error: err };
         }
     }
 };

@@ -12,38 +12,38 @@ export const NotificationFormatter = {
         };
     },
 
-    formatSchedule: function(courseName, message) {
+    formatSchedule: function(title, message) {
         return {
-            title: courseName ? `Schedule Update: ${courseName}` : 'Schedule Update',
+            title: title || 'Schedule Update',
             message: message || 'A new schedule update is available.'
         };
     },
 
-    formatMaterial: function(courseName, title) {
+    formatMaterial: function(title, message, courseName) {
         return {
-            title: 'New Material Added',
-            message: `A new material '${title}' was uploaded.`
+            title: title || (courseName ? `Material: ${courseName}` : 'New Material Added'),
+            message: message || 'A new material was uploaded.'
         };
     },
 
-    formatPoll: function(title) {
+    formatPoll: function(title, message) {
         return {
-            title: 'New Poll Created',
-            message: title || 'A new poll requires your attention.'
+            title: title || 'New Poll Created',
+            message: message || 'A new poll requires your attention.'
         };
     },
 
-    formatGroup: function(title) {
+    formatGroup: function(title, message) {
         return {
-            title: 'New Group Link',
-            message: `A new group link '${title}' was added.`
+            title: title || 'New Group Link',
+            message: message || 'A new group link was added.'
         };
     },
 
-    formatExam: function(courseName, date, time) {
+    formatExam: function(title, message, date, time) {
         return {
-            title: `📝 Exam: '${courseName || 'Course'}'`,
-            message: `Upcoming Exam is '${courseName || 'Course'}' at ${date} ${time ? '& ' + time : ''}. Open the app to see the syllabus.`
+            title: title || '📝 Upcoming Exam',
+            message: message || `Upcoming Exam on ${date} ${time ? '& ' + time : ''}. Open the app to see details.`
         };
     },
     

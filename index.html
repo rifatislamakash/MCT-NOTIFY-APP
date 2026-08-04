@@ -6576,11 +6576,10 @@
             if (!confirm("Are you sure you want to completely remove this course?")) return;
             showLoader(true, "Deleting course...");
             try {
-                // Safeguard cleanup on dependencies before course purge
-                await _supabase.from('user_courses').delete().eq('course_id', selectedCourseIdForEdit);
-                const { error } = await _supabase.from('courses').delete().eq('id', selectedCourseIdForEdit);
-                if (error) throw error;
-
+                const { CascadeDeleteService } = await import('./js/services/CascadeDeleteService.js');
+                const cascadeRes = await CascadeDeleteService.cascadeDeleteCourse(selectedCourseIdForEdit);
+                
+                if (!cascadeRes.success) throw cascadeRes.error;
                 showGlobalToast("Success", "Course deleted successfully.");
                 navigate('screen-admin-courses');
 

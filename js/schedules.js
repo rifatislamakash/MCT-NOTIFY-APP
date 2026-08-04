@@ -1024,8 +1024,15 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (!date) { window.showGlobalToast('Validation', 'Date is required.'); return; }
             if (!time) { window.showGlobalToast('Validation', 'Time is required.'); return; }
             
-            const audience_type = document.getElementById('cs-audience-type').value;
-            const checkedCbs = Array.from(document.querySelectorAll('.cs-target-cb:checked')).map(cb => cb.value);
+            let audience_type = document.getElementById('cs-audience-type').value;
+            let checkedCbs = Array.from(document.querySelectorAll('.cs-target-cb:checked')).map(cb => cb.value);
+            
+            // Security: Prevent CRs from broadcasting globally when they select "All Students"
+            if (window.currentUserRole === 'cr' && audience_type === 'all_students') {
+                audience_type = 'batch_students';
+                checkedCbs = window.currentUserCRBatches || [];
+            }
+
             const isTargetSpecific = ['batch_students', 'batch_crs', 'course_students', 'specific_student'].includes(audience_type);
 
             if (isTargetSpecific && checkedCbs.length === 0) {
@@ -1231,7 +1238,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             isNotifyEnabled: notifyAudience,
                             audienceType: audience_type,
                             createdBy: window.authState.user?.id || null,
-                            courseName: '',
+                            title: title,
                             message: window.stripRichText ? window.stripRichText(message) : message
                         });
                         if (!queueRes.success) console.error("[SCHEDULE] Schedule push queue error:", queueRes.error);
@@ -1521,8 +1528,15 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (!message) { window.showGlobalToast('Validation', 'Message is required.'); return; }
             if (!date) { window.showGlobalToast('Validation', 'Date is required.'); return; }
             if (!time) { window.showGlobalToast('Validation', 'Time is required.'); return; }
-            const audience_type = document.getElementById('es-audience-type').value;
-            const checkedCbs = Array.from(document.querySelectorAll('.es-target-cb:checked')).map(cb => cb.value);
+            let audience_type = document.getElementById('es-audience-type').value;
+            let checkedCbs = Array.from(document.querySelectorAll('.es-target-cb:checked')).map(cb => cb.value);
+
+            // Security: Prevent CRs from broadcasting globally when they select "All Students"
+            if (window.currentUserRole === 'cr' && audience_type === 'all_students') {
+                audience_type = 'batch_students';
+                checkedCbs = window.currentUserCRBatches || [];
+            }
+
             const isTargetSpecific = ['batch_students', 'batch_crs', 'course_students', 'specific_student'].includes(audience_type);
 
             if (isTargetSpecific && checkedCbs.length === 0) {
@@ -1745,7 +1759,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             isNotifyEnabled: true,
                             audienceType: audience_type,
                             createdBy: window.authState.user?.id || null,
-                            courseName: '',
+                            title: title,
                             message: window.stripRichText ? window.stripRichText(message) : message
                         });
                         if (!queueRes.success) console.error("[SCHEDULE UPDATE] Update push queue error:", queueRes.error);

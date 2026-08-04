@@ -622,7 +622,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 isNotifyEnabled: true,
                                 audienceType: 'course_students',
                                 createdBy: window.authState.user.id,
-                                title: payload.title
+                                title: payload.title,
+                                message: window.stripRichText ? window.stripRichText(payload.description) : payload.description
                             });
                             if (!queueRes.success) {
                                 console.error("[MATERIAL NOTIFY ERROR]", queueRes.error);
@@ -815,7 +816,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             audienceType: 'course_students',
                             createdBy: window.authState.user?.id || null,
                             title: title,
-                            courseName: ''
+                            message: window.stripRichText ? window.stripRichText(description) : description
                         });
                         if (!queueRes.success) console.error("[MATERIAL UPDATE] Update push queue error:", queueRes.error);
                     }

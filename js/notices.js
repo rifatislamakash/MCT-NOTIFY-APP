@@ -1013,15 +1013,23 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
+        let isSavingNotice = false;
         export async function handleSaveNotice(e) {
             e.preventDefault();
-            if (!(await window.verifyAdminStatus())) { window.showGlobalToast("Error", "Admin check failed."); return; }
+            if (isSavingNotice) return;
+            isSavingNotice = true;
+            
+            if (!(await window.verifyAdminStatus())) { 
+                window.showGlobalToast("Error", "Admin check failed."); 
+                isSavingNotice = false;
+                return; 
+            }
             window.showLoader(true, "Saving Notice...");
             try {
                 const id = document.getElementById('notice-edit-id').value;
                 const title = document.getElementById('notice-title').value;
                 const message = document.getElementById('notice-message').value;
-                const notice_type = document.getElementById('notice-type').value;
+                const notice_type = document.querySelector('input[name="notice-type-radio"]:checked')?.value || 'general';
                 let is_pinned = document.getElementById('notice-pinned').checked;
                 
                 if (is_pinned) {
@@ -1037,10 +1045,25 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const publish_now = document.getElementById('notice-publish-now').checked;
                 const publish_date = publish_now ? new Date().toISOString() : document.getElementById('notice-publish-date').value;
                 let audience_type = document.getElementById('notice-audience-type').value;
+                let checkedCbs = Array.from(document.querySelectorAll('.notice-target-cb:checked')).map(cb => cb.value);
+
+                // Security: Prevent CRs from broadcasting globally when they select "All Students"
+                if (window.currentUserRole === 'cr' && audience_type === 'all_students') {
+                    audience_type = 'batch_students';
+                    checkedCbs = window.currentUserCRBatches || [];
+                }
+
+                const isTargetSpecific = ['batch_students', 'batch_crs', 'course_students', 'specific_student'].includes(audience_type);
+
+                if (isTargetSpecific && checkedCbs.length === 0) {
+                    window.showGlobalToast("Validation", "Please select at least one target.");
+                    isSavingNotice = false;
+                    window.showLoader(false);
+                    return;
+                }
 
                 const isAdmin = window.crPermissionService && window.crPermissionService.isAdmin();
                 const isCR = window.crPermissionService && window.crPermissionService.isCR();
-                const checkedCbs = Array.from(document.querySelectorAll('.notice-target-cb:checked')).map(cb => cb.value);
 
                 if (id && isCR) {
                     const originalNotice = window.currentNoticesList.find(n => n.id === id);
@@ -1279,6 +1302,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 window.showGlobalToast("Error", "Failed to save notice. Check logs.");
             } finally {
                 window.showLoader(false);
+                isSavingNotice = false;
             }
         }
 

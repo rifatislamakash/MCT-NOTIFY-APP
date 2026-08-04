@@ -79,10 +79,26 @@ export const NotificationQueueService = {
                     break;
                 case 'exam':
                 case 'exam_schedules':
-                    formatted = NotificationFormatter.formatExam(courseName, date, time);
+                    formatted = NotificationFormatter.formatExam(title || courseName, message, date, time);
                     break;
                 default:
                     formatted = NotificationFormatter.formatGeneric(title, message);
+            }
+
+            // Security: Prevent identical notifications from spamming the system within 5 minutes
+            const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+            const { data: recentDups, error: dupErr } = await _supabase
+                .from('notification_reminders')
+                .select('id')
+                .eq('parent_type', parentType)
+                .eq('reminder_title', formatted.title)
+                .eq('reminder_message', formatted.message)
+                .gte('created_at', fiveMinutesAgo)
+                .limit(1);
+
+            if (recentDups && recentDups.length > 0) {
+                console.log(`[QUEUE SECURITY] Blocked duplicate notification. Exact match found within 5 minutes.`);
+                return { success: true, skipped: true, reason: 'Duplicate prevented' };
             }
 
             const payload = {
