@@ -1153,8 +1153,6 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 await _supabase.from('content_targets').delete().eq('content_type', 'notice').eq('content_id', savedNoticeId);
                 console.log("[TARGET SAVE] Old targets deleted.");
 
-                const isTargetSpecific = ['batch_students', 'batch_crs', 'course_students', 'specific_student'].includes(audience_type);
-                
                 if (isTargetSpecific) {
                     const cbs = document.querySelectorAll('.notice-target-cb:checked');
                     const selectedIds = Array.from(cbs).map(cb => cb.value);
