@@ -621,6 +621,8 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <!-- Preload Splash Screen GIF for iOS -->
     <link rel="preload" href="assets/animatedsplash.gif" as="image">
+    <!-- html-to-image for routine download (supports oklch better) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
 </head>
 <body class="overflow-x-hidden min-h-screen text-slate-900 dark:text-dark-text bg-slate-50 dark:bg-dark-bg/50 auth-mode">
 
@@ -3770,6 +3772,11 @@
                                     <h2 id="wr-header-title" class="text-[22px] font-bold leading-tight tracking-wide">Weekly Routine</h2>
                                     <p class="text-[12px] text-slate-400 dark:text-dark-textSecondary mt-0.5" id="wr-batch-label">Loading...</p>
                                 </div>
+                                
+                                <button id="wr-download-btn" onclick="if(typeof window.downloadRoutineImage === 'function') window.downloadRoutineImage()" class="px-2 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl flex items-center justify-center active:scale-95 transition-all shadow-sm" title="Download Routine">
+                                    <i data-lucide="download" class="w-5 h-5"></i>
+                                </button>
+
                                 <select id="admin-routine-batch-filter" onchange="if(typeof window.filterRoutinesByBatch === 'function') window.filterRoutinesByBatch()" class="hidden w-[90px] h-[36px] px-2.5 rounded-xl bg-white/20 border border-white/10 text-slate-300 text-[11px] font-semibold focus:outline-none appearance-none cursor-pointer">
                                     <option value="" disabled selected class="text-black">Select Batch</option>
                                 </select>
@@ -4769,7 +4776,6 @@
                                             <span class="text-[11px]">Loading targets...</span>
                                         </div>
                                     </div>
-                                    </div>
                                 </div>
                                 
                                 <!-- Notify Audience Setting -->
@@ -4803,7 +4809,7 @@
 
                     <!-- ----------------- NOTICES SCREENS ----------------- -->
                     <!-- 1. NOTICES LIST SCREEN -->
-                    <div id="screen-notices-list" class="screen bg-[#F5F6F8] dark:bg-dark-bg flex flex-col justify-between overflow-hidden">
+                    <div id="screen-notices-list" class="screen bg-[#F5F6F8] dark:bg-dark-bg flex flex-col overflow-hidden">
                         <div class="bg-[#0F172A] px-6 pt-10 pb-5 shrink-0 z-20 shadow-sm">
                             <div class="flex items-center justify-between mb-1">
                                 <div class="flex items-center gap-3">
@@ -4875,7 +4881,7 @@
                     </div>
 
                     <!-- 2. CREATE / EDIT NOTICE SCREEN -->
-                    <div id="screen-create-notice" class="screen flex flex-col overflow-hidden bg-[#F5F6F8] dark:bg-dark-bg">
+                    <div id="screen-create-notice" class="screen relative flex flex-col overflow-hidden bg-[#F5F6F8] dark:bg-dark-bg">
                         <div class="bg-[#0F172A] px-6 pt-12 pb-6 flex items-center gap-4 text-white shadow-sm z-20 shrink-0">
                             <button onclick="navigateBack()" class="hover:opacity-75 transition-opacity">
                                 <i data-lucide="arrow-left" class="w-6 h-6 font-light"></i>
@@ -4886,7 +4892,7 @@
                             </div>
                         </div>
 
-                        <div class="flex-1 overflow-y-auto px-4 py-6 pb-32">
+                        <div class="flex-1 overflow-y-auto px-4 py-6 pb-32 min-h-0">
                             <form id="form-create-notice" onsubmit="handleSaveNotice(event)" class="flex flex-col gap-4">
                                 <input type="hidden" id="notice-edit-id">
                                 <input type="hidden" id="notice-edit-attachment-url">
@@ -11076,7 +11082,29 @@
             attachObserver.observe(document.body, { childList: true, subtree: true });
         })();
     </script>
-    </div>\n</body>
+
+    <!-- ROUTINE METADATA MODAL -->
+    <div id="routine-metadata-modal" class="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm z-[100] hidden items-center justify-center opacity-0 transition-opacity duration-300">
+        <div class="bg-white dark:bg-dark-card w-[90%] max-w-sm rounded-3xl overflow-hidden shadow-2xl scale-95 transition-transform duration-300 p-6">
+            <h3 class="text-[18px] font-extrabold text-slate-900 dark:text-dark-text mb-4">Routine Settings</h3>
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label class="text-[12px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase mb-1 block">Routine Version</label>
+                    <input type="text" id="meta-routine-version" placeholder="e.g. 1.2" class="w-full h-[48px] px-4 bg-slate-50 dark:bg-dark-bg/50 text-slate-900 dark:text-dark-text text-[14px] font-semibold rounded-[14px] border border-slate-200 dark:border-white/10 focus:border-[#4226E9] outline-none">
+                </div>
+                <div>
+                    <label class="text-[12px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase mb-1 block">Effect Date</label>
+                    <input type="text" id="meta-routine-date" placeholder="e.g. Aug 15, 2026" class="w-full h-[48px] px-4 bg-slate-50 dark:bg-dark-bg/50 text-slate-900 dark:text-dark-text text-[14px] font-semibold rounded-[14px] border border-slate-200 dark:border-white/10 focus:border-[#4226E9] outline-none">
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="document.getElementById('routine-metadata-modal').classList.add('hidden')" class="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-dark-textSecondary font-bold rounded-xl transition-colors hover:bg-slate-200 dark:hover:bg-white/10">Cancel</button>
+                <button onclick="if(typeof window.saveRoutineMetadata === 'function') window.saveRoutineMetadata()" class="flex-1 py-3 bg-[#4226E9] text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 active:scale-95 transition-transform">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
 </html>
 
 

@@ -137,7 +137,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     await crPermissionService.initializePermissions();
                 }
                 const batches = await fetchCachedOrDeduplicated('batches', async () => {
-                    const { data, error } = await _supabase.from('batches').select('*').order('created_at', { ascending: false }).abortSignal(parentSignal);
+                    const { data, error } = await _supabase.from('batches').select('*, routine_version, routine_effect_date').order('created_at', { ascending: false }).abortSignal(parentSignal);
                     if (error) throw error;
                     return data || [];
                 });
@@ -472,7 +472,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                     batchFilter.classList.remove('hidden');
                                     if (batchFilter.options.length <= 1) {
                                         try {
-                                            const { data: batchesData } = await _supabase.from('batches').select('id, batch_name').order('batch_name');
+                                            const { data: batchesData } = await _supabase.from('batches').select('id, batch_name, routine_version, routine_effect_date').order('batch_name');
                                             let optionsHTML = '<option value="" disabled selected class="text-black">Select Batch</option>';
                                             if (batchesData) {
                                                 optionsHTML += batchesData.map(b => `<option value="${b.id}" class="text-black">${b.batch_name}</option>`).join('');
@@ -573,7 +573,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 console.log("[BATCH FILTER LOAD] Populating routine batch filter");
                                 if (batchFilter.options.length <= 1) {
                                     try {
-                                        const { data: batchesData } = await _supabase.from('batches').select('id, batch_name').order('batch_name');
+                                        const { data: batchesData } = await _supabase.from('batches').select('id, batch_name, routine_version, routine_effect_date').order('batch_name');
                                         let optionsHTML = '<option value="" disabled selected class="text-black">Select Batch</option>';
                                         if (batchesData) {
                                             optionsHTML += batchesData.map(b => `<option value="${b.id}" class="text-black">${b.batch_name}</option>`).join('');
@@ -661,6 +661,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const btnDaily = document.getElementById('btn-view-daily');
             const btnExams = document.getElementById('btn-view-exams');
             const tabLabel = document.getElementById('daily-tab-label');
+            const downloadBtn = document.getElementById('wr-download-btn');
 
             // Update tab label to reflect Today / Tomorrow
             if (tabLabel) {
@@ -706,6 +707,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (mode === 'weekly') {
                 if(weeklyView) weeklyView.classList.remove('hidden');
                 activateBtn(btnWeekly);
+                if(downloadBtn) downloadBtn.style.display = '';
                 if(dynBtn) {
                     dynBtn.onclick = () => { if(window.openAddRoutine) window.openAddRoutine(); };
                     dynBtn.className = 'px-3 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-100 rounded-xl flex items-center gap-1.5 active:scale-95 transition-all shadow-sm';
@@ -717,6 +719,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             } else if (mode === 'exams') {
                 if(examsView) examsView.classList.remove('hidden');
                 activateBtn(btnExams);
+                if(downloadBtn) downloadBtn.style.display = 'none';
                 if(dynBtn) {
                     dynBtn.onclick = () => { if(window.openAddExamSchedule) window.openAddExamSchedule(); };
                     dynBtn.className = 'px-3 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-100 rounded-xl flex items-center gap-1.5 active:scale-95 transition-all shadow-sm';
@@ -727,6 +730,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             } else {
                 if(dailyView) dailyView.classList.remove('hidden');
                 activateBtn(btnDaily);
+                if(downloadBtn) downloadBtn.style.display = 'none';
                 if(dynBtn) {
                     dynBtn.onclick = () => { if(window.openAddRoutine) window.openAddRoutine(); };
                     dynBtn.className = 'px-3 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-100 rounded-xl flex items-center gap-1.5 active:scale-95 transition-all shadow-sm';
@@ -800,6 +804,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     const batchLabel = document.getElementById('wr-batch-label');
                     if (batchLabel) batchLabel.textContent = "Select a batch";
                     
+                    const metaBtn = document.getElementById('wr-admin-meta-btn');
+                    if (metaBtn) metaBtn.classList.add('hidden');
+                    
                     container.innerHTML = `
                         <div class="flex flex-col items-center justify-center py-16 px-4 text-center mt-4 bg-white dark:bg-dark-card rounded-3xl border border-slate-100 dark:border-white/5 shadow-sm">
                             <div class="w-16 h-16 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
@@ -819,11 +826,24 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 const batchLabel = document.getElementById('wr-batch-label');
                 if (batchLabel && opt) batchLabel.textContent = opt.text;
                 
+                const isAdmin = (window.currentUserRole === 'admin' || window.currentUserRole === 'cr');
+                const metaBtn = document.getElementById('wr-admin-meta-btn');
+                if (metaBtn) {
+                    if (isAdmin) metaBtn.classList.remove('hidden');
+                    else metaBtn.classList.add('hidden');
+                }
+                
                 console.log(`[BATCH FILTER SELECT] Routine batch changed to: ${batchVal}`);
                 console.log(`[ROUTINE BATCH] Rendering routines for batch: ${batchVal}`);
             } else {
                 const title = document.getElementById('wr-header-title');
                 if (title) title.textContent = "Weekly Routine";
+                const isAdmin = (window.currentUserRole === 'admin' || window.currentUserRole === 'cr');
+                const metaBtn = document.getElementById('wr-admin-meta-btn');
+                if (metaBtn) {
+                    if (isAdmin && window.authState?.profile?.batch_id) metaBtn.classList.remove('hidden');
+                    else metaBtn.classList.add('hidden');
+                }
             }
 
             if (!dataArray || dataArray.length === 0) {
@@ -880,8 +900,32 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
             // Dynamic cell width based on number of columns
             const cellW = renderDays.length <= 3 ? 'min-width:90px;' : renderDays.length <= 5 ? 'min-width:72px;' : 'min-width:60px;';
+            const activeBatchId = batchVal && batchVal !== 'all' ? batchVal : window.authState?.profile?.batch_id;
+            const activeBatch = window.routineBatchesList?.find(b => String(b.id) === String(activeBatchId));
+            const rVersion = activeBatch?.routine_version || '';
+            const rDate = activeBatch?.routine_effect_date || '';
 
-            let html = `
+            const isAdmin = (window.currentUserRole === 'admin' || window.currentUserRole === 'cr');
+            let html = `<div id="routine-export-area" class="bg-white dark:bg-dark-card rounded-3xl border border-slate-100 dark:border-white/5 shadow-sm p-5 mt-4 overflow-x-auto min-w-max">`;
+            
+            if (rVersion || rDate || isAdmin) {
+                html += `<div class="flex justify-center items-center mb-4 pb-2 border-b border-slate-100 dark:border-white/10 gap-3">
+                            ${(rVersion || rDate) ? `
+                                <div class="flex items-center gap-2 bg-slate-50 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10">
+                                    ${rVersion ? `<span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">Ver: ${window.sanitizeHTML(rVersion)}</span>` : ''}
+                                    ${(rVersion && rDate) ? `<span class="text-[10px] text-slate-300 dark:text-slate-600">|</span>` : ''}
+                                    ${rDate ? `<span class="text-[10px] font-semibold text-slate-500 dark:text-slate-400">Effective: ${window.sanitizeHTML(rDate)}</span>` : ''}
+                                </div>
+                            ` : ''}
+                            ${isAdmin ? `
+                                <button id="routine-meta-edit-btn" onclick="window.openRoutineMetadataModal()" class="w-6 h-6 flex items-center justify-center bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 rounded-md hover:bg-indigo-100 transition-colors" title="Edit Metadata">
+                                    <i data-lucide="edit-3" class="w-3 h-3"></i>
+                                </button>
+                            ` : ''}
+                         </div>`;
+            }
+
+            html += `
                     <div class="overflow-x-auto pb-2">
                     <div class="flex justify-center">
                     <table class="border-collapse" style="width:auto;">
@@ -993,6 +1037,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     </span>`;
             });
             html += `</div></div>`;
+            html += `</div>`; // Close export area
 
             container.innerHTML = html;
             if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -1078,7 +1123,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             id, batch_id, day_name, start_time, section_name, room_number, course_id, faculty_id,
                             courses ( id, course_name, short_name ),
                             faculty ( id, faculty_name, teacher_initial ),
-                            batches ( id, batch_name )
+                            batches ( id, batch_name, routine_version, routine_effect_date )
                         `)
                     .eq('day_name', targetDay)
                     .order('start_time', { ascending: true });
@@ -2271,6 +2316,157 @@ window.switchRoutineView = switchRoutineView;
         window.openEditExamSchedule = openEditExamSchedule;
         window.handleEditExamSubmit = handleEditExamSubmit;
         window.loadWeeklyRoutine = loadWeeklyRoutine;
+
+        // --------------------------------------------------
+        // ROUTINE METADATA & DOWNLOAD FUNCTIONS
+        // --------------------------------------------------
+        window.openRoutineMetadataModal = function() {
+            const batchFilterEl = document.getElementById('admin-routine-batch-filter');
+            const batchVal = (batchFilterEl && !batchFilterEl.classList.contains('hidden')) ? batchFilterEl.value : window.authState?.profile?.batch_id;
+            
+            if (!batchVal || batchVal === 'all') {
+                window.showGlobalToast("Error", "Please select a specific batch first.");
+                return;
+            }
+
+            const activeBatch = window.routineBatchesList?.find(b => String(b.id) === String(batchVal));
+            document.getElementById('meta-routine-version').value = activeBatch?.routine_version || '';
+            document.getElementById('meta-routine-date').value = activeBatch?.routine_effect_date || '';
+
+            const modal = document.getElementById('routine-metadata-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.children[0].classList.remove('scale-95');
+            }, 10);
+        };
+
+        window.saveRoutineMetadata = async function() {
+            const batchFilterEl = document.getElementById('admin-routine-batch-filter');
+            const batchVal = (batchFilterEl && !batchFilterEl.classList.contains('hidden')) ? batchFilterEl.value : window.authState?.profile?.batch_id;
+            
+            if (!batchVal || batchVal === 'all') {
+                window.showGlobalToast("Error", "Please select a specific batch first.");
+                return;
+            }
+
+            const rVersion = document.getElementById('meta-routine-version').value.trim();
+            const rDate = document.getElementById('meta-routine-date').value.trim();
+
+            const btn = document.querySelector('#routine-metadata-modal button:last-child');
+            const ogBtnHtml = btn.innerHTML;
+            btn.innerHTML = `<div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto"></div>`;
+            btn.disabled = true;
+
+            try {
+                const { _supabase } = await import('./supabase-client.js');
+                const { error } = await _supabase
+                    .from('batches')
+                    .update({ routine_version: rVersion, routine_effect_date: rDate })
+                    .eq('id', batchVal);
+
+                if (error) throw error;
+                
+                window.showGlobalToast("Success", "Routine metadata updated!");
+                
+                // Update cache locally
+                const activeBatch = window.routineBatchesList?.find(b => String(b.id) === String(batchVal));
+                if (activeBatch) {
+                    activeBatch.routine_version = rVersion;
+                    activeBatch.routine_effect_date = rDate;
+                }
+
+                // Close Modal
+                const modal = document.getElementById('routine-metadata-modal');
+                modal.classList.add('opacity-0');
+                modal.children[0].classList.add('scale-95');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }, 300);
+
+                // Re-render
+                if (typeof window.filterRoutinesByBatch === 'function') window.filterRoutinesByBatch();
+                else if (typeof window.loadWeeklyRoutine === 'function') window.loadWeeklyRoutine();
+
+            } catch(err) {
+                console.error("Error saving metadata:", err);
+                window.showGlobalToast("Error", "Failed to update. Did you run the SQL script?");
+            } finally {
+                btn.innerHTML = ogBtnHtml;
+                btn.disabled = false;
+            }
+        };
+
+        window.downloadRoutineImage = function() {
+            const element = document.getElementById('routine-export-area');
+            if (!element) {
+                window.showGlobalToast("Error", "Routine not fully loaded.");
+                return;
+            }
+            if (typeof htmlToImage === 'undefined') {
+                window.showGlobalToast("Error", "html-to-image library is not loaded.");
+                return;
+            }
+
+            window.showGlobalToast("Downloading", "Preparing high-quality routine image...");
+
+            // Hide edit button for clean capture
+            const editBtn = document.getElementById('routine-meta-edit-btn');
+            if (editBtn) editBtn.style.display = 'none';
+
+            // Temporarily adjust styles to ensure it captures cleanly without scrollbars
+            const originalOverflow = element.style.overflow;
+            element.style.overflow = 'visible';
+
+            // Suppress harmless CORS cssRules warnings from html-to-image
+            const originalConsoleError = console.error;
+            const originalConsoleWarn = console.warn;
+            
+            const suppressFilter = function(origFn) {
+                return function(...args) {
+                    const msg = args.map(String).join(' ').toLowerCase();
+                    if (msg.includes('cssrules') || msg.includes('remote css') || msg.includes('remote stylesheet')) return;
+                    origFn.apply(console, args);
+                };
+            };
+            
+            console.error = suppressFilter(originalConsoleError);
+            console.warn = suppressFilter(originalConsoleWarn);
+
+            htmlToImage.toPng(element, {
+                pixelRatio: 4, // Ultra high quality
+                backgroundColor: document.documentElement.classList.contains('dark') ? '#0F172A' : '#ffffff'
+            }).then(dataUrl => {
+                console.error = originalConsoleError;
+                console.warn = originalConsoleWarn;
+                element.style.overflow = originalOverflow;
+                if (editBtn) editBtn.style.display = '';
+                
+                const batchFilterEl = document.getElementById('admin-routine-batch-filter');
+                const batchVal = (batchFilterEl && !batchFilterEl.classList.contains('hidden')) ? batchFilterEl.value : window.authState?.profile?.batch_id;
+                const activeBatch = window.routineBatchesList?.find(b => String(b.id) === String(batchVal));
+                
+                let filename = `Routine_${activeBatch ? activeBatch.batch_name : 'Download'}.png`;
+                if (activeBatch?.routine_version) {
+                    filename = `Routine_${activeBatch.batch_name}_v${activeBatch.routine_version}.png`;
+                }
+                
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = dataUrl;
+                link.click();
+                window.showGlobalToast("Success", "Routine downloaded successfully!");
+            }).catch(err => {
+                console.error = originalConsoleError;
+                console.warn = originalConsoleWarn;
+                console.error("html-to-image error:", err);
+                element.style.overflow = originalOverflow;
+                if (editBtn) editBtn.style.display = '';
+                window.showGlobalToast("Error", "Failed to capture routine image.");
+            });
+        };
 
         // Removed DOMContentLoaded trigger to prevent "auth load failed" error on login screens.
         // loadWeeklyRoutine is already handled by the router when navigating to the routine screen.
