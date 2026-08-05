@@ -142,6 +142,10 @@
     <!-- Supabase SDK -->
     <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        input.cs-schedule-type-cb:checked + span,
+        input.es-schedule-type-cb:checked + span {
+            color: white !important;
+        }
         html.dark {
             color-scheme: dark;
         }
@@ -4318,25 +4322,32 @@
                             </div>
 
                             <!-- Search + Filter Row -->
-                            <div class="mt-4 flex gap-2">
-                                <div class="flex-1 relative">
+                            <div class="mt-4 flex flex-col gap-3">
+                                <div class="relative">
                                     <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-dark-textSecondary"></i>
                                     <input type="text" id="schedule-search" oninput="filterSchedulesUI()" placeholder="Search schedules..." class="w-full h-[38px] pl-9 pr-3 rounded-xl bg-white/20 border border-white/10 text-white placeholder-slate-500 text-[12px] font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white/20 transition">
                                 </div>
-                                <select id="admin-schedule-batch-filter" onchange="filterSchedulesUI()" class="hidden w-[90px] h-[38px] px-2.5 rounded-xl bg-white/20 border border-white/10 text-slate-300 text-[11px] font-semibold focus:outline-none appearance-none">
-                                    <option value="all" class="text-black">All Batches</option>
-                                    <!-- Options injected dynamically -->
-                                </select>
-                                <select id="schedule-filter-sort" onchange="filterSchedulesUI()" class="h-[38px] px-2.5 rounded-xl bg-white/20 border border-white/10 text-slate-300 text-[11px] font-semibold focus:outline-none appearance-none">
-                                    <option value="newest" class="text-black">Newest</option>
-                                    <option value="oldest" class="text-black">Oldest</option>
-                                    <option value="pinned" class="text-black">Pinned</option>
-                                </select>
-                                <select id="schedule-filter-audience" onchange="filterSchedulesUI()" class="h-[38px] px-2.5 rounded-xl bg-white/20 border border-white/10 text-slate-300 text-[11px] font-semibold focus:outline-none appearance-none">
-                                    <option value="all" class="text-black">All Type</option>
-                                    <option value="all_students" class="text-black">General</option>
-                                    <option value="specific" class="text-black">Specific</option>
-                                </select>
+                                <div class="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+                                    <select id="admin-schedule-batch-filter" onchange="filterSchedulesUI()" class="hidden shrink-0 h-[38px] px-2.5 rounded-xl bg-white/20 border border-white/10 text-slate-300 text-[11px] font-semibold focus:outline-none appearance-none">
+                                        <option value="all" class="text-black">All Batches</option>
+                                        <!-- Options injected dynamically -->
+                                    </select>
+                                    <select id="schedule-course-filter" onchange="filterSchedulesUI()" class="shrink-0 h-[38px] px-2.5 max-w-[150px] truncate rounded-xl bg-white/20 border border-white/10 text-slate-300 text-[11px] font-semibold focus:outline-none appearance-none">
+                                        <option value="all" class="text-black">All Courses</option>
+                                        <option value="upcoming" class="text-black">Upcoming Only</option>
+                                        <!-- Options injected dynamically -->
+                                    </select>
+                                    <select id="schedule-filter-sort" onchange="filterSchedulesUI()" class="shrink-0 h-[38px] px-2.5 rounded-xl bg-white/20 border border-white/10 text-slate-300 text-[11px] font-semibold focus:outline-none appearance-none">
+                                        <option value="newest" class="text-black">Newest</option>
+                                        <option value="oldest" class="text-black">Oldest</option>
+                                        <option value="pinned" class="text-black">Pinned</option>
+                                    </select>
+                                    <select id="schedule-filter-audience" onchange="filterSchedulesUI()" class="shrink-0 h-[38px] px-2.5 rounded-xl bg-white/20 border border-white/10 text-slate-300 text-[11px] font-semibold focus:outline-none appearance-none">
+                                        <option value="all" class="text-black">All Type</option>
+                                        <option value="all_students" class="text-black">General</option>
+                                        <option value="specific" class="text-black">Specific</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
@@ -4403,13 +4414,24 @@
                                             <!-- Schedule Type -->
                                             <div>
                                                 <label class="block text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary mb-1.5 tracking-wider uppercase">Schedule Type <span class="text-slate-400 dark:text-dark-textSecondary font-medium normal-case">(Optional)</span></label>
-                                                <select id="cs-schedule-type" class="w-full h-[44px] px-4 rounded-[12px] border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-dark-bg/50 focus:bg-white dark:bg-dark-card focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-800 dark:text-dark-text transition-all appearance-none">
-                                                    <option value="">None</option>
-                                                    <option value="Exam">Exam</option>
-                                                    <option value="Class">Class</option>
-                                                    <option value="Assignment">Assignment</option>
-                                                    <option value="Presentation">Presentation</option>
-                                                </select>
+                                                <div id="cs-schedule-type-container" class="flex flex-wrap gap-2">
+                                                    <label class="cursor-pointer relative">
+                                                        <input type="checkbox" value="Exam" class="cs-schedule-type-cb peer sr-only">
+                                                        <span class="px-3 py-1.5 rounded-full text-[12px] font-semibold bg-slate-100 text-slate-600 dark:bg-dark-card dark:text-dark-textSecondary border border-slate-200 dark:border-white/10 peer-checked:bg-[#4226E9] peer-checked:text-white peer-checked:border-[#4226E9] transition-all shadow-sm block">Exam</span>
+                                                    </label>
+                                                    <label class="cursor-pointer relative">
+                                                        <input type="checkbox" value="Class" class="cs-schedule-type-cb peer sr-only">
+                                                        <span class="px-3 py-1.5 rounded-full text-[12px] font-semibold bg-slate-100 text-slate-600 dark:bg-dark-card dark:text-dark-textSecondary border border-slate-200 dark:border-white/10 peer-checked:bg-[#4226E9] peer-checked:text-white peer-checked:border-[#4226E9] transition-all shadow-sm block">Class</span>
+                                                    </label>
+                                                    <label class="cursor-pointer relative">
+                                                        <input type="checkbox" value="Assignment" class="cs-schedule-type-cb peer sr-only">
+                                                        <span class="px-3 py-1.5 rounded-full text-[12px] font-semibold bg-slate-100 text-slate-600 dark:bg-dark-card dark:text-dark-textSecondary border border-slate-200 dark:border-white/10 peer-checked:bg-[#4226E9] peer-checked:text-white peer-checked:border-[#4226E9] transition-all shadow-sm block">Assignment</span>
+                                                    </label>
+                                                    <label class="cursor-pointer relative">
+                                                        <input type="checkbox" value="Presentation" class="cs-schedule-type-cb peer sr-only">
+                                                        <span class="px-3 py-1.5 rounded-full text-[12px] font-semibold bg-slate-100 text-slate-600 dark:bg-dark-card dark:text-dark-textSecondary border border-slate-200 dark:border-white/10 peer-checked:bg-[#4226E9] peer-checked:text-white peer-checked:border-[#4226E9] transition-all shadow-sm block">Presentation</span>
+                                                    </label>
+                                                </div>
                                             </div>
 
                                             <!-- Date & Time Row -->
@@ -4652,15 +4674,27 @@
                                             <textarea id="es-message" rows="4" class="w-full px-4 py-3 rounded-[12px] border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-dark-bg/50 focus:bg-white dark:bg-dark-card focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-800 dark:text-dark-text transition-all resize-none"></textarea>
                                         </div>
                                         <div class="space-y-4">
-                                        <div>
-                                            <label class="block text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary mb-1.5 tracking-wider uppercase">Schedule Type <span class="text-slate-400 dark:text-dark-textSecondary font-medium normal-case">(Optional)</span></label>
-                                            <select id="es-schedule-type" class="w-full h-[44px] px-4 rounded-[12px] border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-dark-bg/50 focus:bg-white dark:bg-dark-card focus:ring-2 focus:ring-[#4226E9] focus:outline-none text-[14px] text-slate-800 dark:text-dark-text transition-all appearance-none">
-                                                <option value="">None</option>
-                                                <option value="Exam">Exam</option>
-                                                <option value="Class">Class</option>
-                                                <option value="Assignment">Assignment</option>
-                                                <option value="Presentation">Presentation</option>
-                                            </select>
+                                          <div>
+                                              <label class="block text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary mb-1.5 tracking-wider uppercase">Schedule Type <span class="text-slate-400 dark:text-dark-textSecondary font-medium normal-case">(Optional)</span></label>
+                                              <div id="es-schedule-type-container" class="flex flex-wrap gap-2">
+                                                  <label class="cursor-pointer relative">
+                                                      <input type="checkbox" value="Exam" class="es-schedule-type-cb peer sr-only">
+                                                      <span class="px-3 py-1.5 rounded-full text-[12px] font-semibold bg-slate-100 text-slate-600 dark:bg-dark-card dark:text-dark-textSecondary border border-slate-200 dark:border-white/10 peer-checked:bg-[#4226E9] peer-checked:text-white peer-checked:border-[#4226E9] transition-all shadow-sm block">Exam</span>
+                                                  </label>
+                                                  <label class="cursor-pointer relative">
+                                                      <input type="checkbox" value="Class" class="es-schedule-type-cb peer sr-only">
+                                                      <span class="px-3 py-1.5 rounded-full text-[12px] font-semibold bg-slate-100 text-slate-600 dark:bg-dark-card dark:text-dark-textSecondary border border-slate-200 dark:border-white/10 peer-checked:bg-[#4226E9] peer-checked:text-white peer-checked:border-[#4226E9] transition-all shadow-sm block">Class</span>
+                                                  </label>
+                                                  <label class="cursor-pointer relative">
+                                                      <input type="checkbox" value="Assignment" class="es-schedule-type-cb peer sr-only">
+                                                      <span class="px-3 py-1.5 rounded-full text-[12px] font-semibold bg-slate-100 text-slate-600 dark:bg-dark-card dark:text-dark-textSecondary border border-slate-200 dark:border-white/10 peer-checked:bg-[#4226E9] peer-checked:text-white peer-checked:border-[#4226E9] transition-all shadow-sm block">Assignment</span>
+                                                  </label>
+                                                  <label class="cursor-pointer relative">
+                                                      <input type="checkbox" value="Presentation" class="es-schedule-type-cb peer sr-only">
+                                                      <span class="px-3 py-1.5 rounded-full text-[12px] font-semibold bg-slate-100 text-slate-600 dark:bg-dark-card dark:text-dark-textSecondary border border-slate-200 dark:border-white/10 peer-checked:bg-[#4226E9] peer-checked:text-white peer-checked:border-[#4226E9] transition-all shadow-sm block">Presentation</span>
+                                                  </label>
+                                              </div>
+                                          </div>
                                         </div>
                                         <div class="flex flex-row gap-3 sm:gap-4 overflow-hidden">
                                             <div class="flex-1 min-w-0">
@@ -4803,6 +4837,10 @@
                                     <!-- Options injected dynamically -->
                                 </select>
                                 <div class="flex gap-2 overflow-x-auto pb-1 hide-scrollbar" id="notices-filter-chips">
+                                    <select id="notices-course-filter" onchange="filterNotices()" class="shrink-0 h-[38px] px-3 max-w-[150px] truncate rounded-xl bg-white/20 border border-white/10 text-white text-[12px] font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white/20 transition appearance-none">
+                                        <option value="all" class="text-black">All Courses</option>
+                                        <!-- Options injected dynamically -->
+                                    </select>
                                     <button onclick="setNoticeFilter('all')" class="notice-filter-btn active px-4 py-1.5 bg-indigo-600 text-white text-[11px] font-bold rounded-full whitespace-nowrap transition-colors" data-filter="all">All</button>
                                     <button onclick="setNoticeFilter('urgent')" class="notice-filter-btn px-4 py-1.5 bg-white/20 text-slate-300 border border-white/10 text-[11px] font-bold rounded-full whitespace-nowrap transition-colors" data-filter="urgent">Urgent</button>
                                     <button onclick="setNoticeFilter('general')" class="notice-filter-btn px-4 py-1.5 bg-white/20 text-slate-300 border border-white/10 text-[11px] font-bold rounded-full whitespace-nowrap transition-colors" data-filter="general">General</button>

@@ -63,6 +63,16 @@ import { _supabase } from './supabase-client.js';
                 toast.style.opacity = '0';
             }, 5000);
         }
+        export function getSafariSafeDate(dateInput) {
+            if (!dateInput) return new Date();
+            if (dateInput instanceof Date) return dateInput;
+            const nativeDate = new Date(dateInput);
+            if (!isNaN(nativeDate.getTime())) return nativeDate;
+            const safeString = String(dateInput).replace(/-/g, '/').replace(/T/g, ' '); 
+            const parsedDate = new Date(safeString);
+            return isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+        }
+        window.getSafariSafeDate = getSafariSafeDate;
 
         export function showLoader(show, text = 'Loading...') {
             let loaderEl = document.getElementById('global-dynamic-loader');

@@ -151,20 +151,48 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const filterSelect = document.getElementById('materials-filter-type');
             const filterType = filterSelect ? filterSelect.value : 'all';
 
+            const courseFilterEl = document.getElementById('materials-filter-course');
+            if (courseFilterEl && !courseFilterEl.getAttribute('data-populated')) {
+                courseFilterEl.setAttribute('data-populated', 'pending');
+                CourseStore.getCourses().then(fullCourses => {
+                    const userEnrolledIds = (window.currentUserCoursesList || []).map(uc => uc.course_id);
+                    const crBatches = window.currentUserCRBatches || [];
+                    const myCourses = fullCourses.filter(c => userEnrolledIds.includes(c.id) || crBatches.includes(c.batch_id));
+                    if (myCourses.length > 0) {
+                        courseFilterEl.setAttribute('data-populated', 'true');
+                        myCourses.forEach(c => {
+                            const opt = document.createElement('option');
+                            opt.value = c.id;
+                            opt.className = 'text-black';
+                            opt.textContent = c.short_name || c.course_name;
+                            courseFilterEl.appendChild(opt);
+                        });
+                    } else {
+                        courseFilterEl.removeAttribute('data-populated');
+                    }
+                }).catch(e => {
+                    console.error("Failed to populate material course filter:", e);
+                    courseFilterEl.removeAttribute('data-populated');
+                });
+            }
+            const courseVal = courseFilterEl ? courseFilterEl.value : 'all';
+
             const batchFilter = document.getElementById('admin-materials-batch-filter');
             const batchFilterVal = (batchFilter && !batchFilter.classList.contains('hidden')) ? batchFilter.value : 'all';
 
             let filteredList = window.currentMaterialsList.filter(m => {
                 const titleMatch = m.title && m.title.toLowerCase().includes(searchVal);
                 const descMatch = m.description && m.description.toLowerCase().includes(searchVal);
-                const courseMatch = m.courses && m.courses.course_name && m.courses.course_name.toLowerCase().includes(searchVal);
-                const matchesSearch = titleMatch || descMatch || courseMatch;
+                const courseMatchStr = m.courses && m.courses.course_name && m.courses.course_name.toLowerCase().includes(searchVal);
+                const matchesSearch = titleMatch || descMatch || courseMatchStr;
 
                 const matchesType = filterType === 'all' || m.material_type === filterType;
                 
                 const matchesBatch = batchFilterVal === 'all' || (m.courses && m.courses.batch_id === batchFilterVal);
 
-                return matchesSearch && matchesType && matchesBatch;
+                const matchesCourse = courseVal === 'all' || (m.course_id === courseVal);
+
+                return matchesSearch && matchesType && matchesBatch && matchesCourse;
             });
 
             if (typeof window.renderMaterialsList === 'function') window.renderMaterialsList(filteredList);

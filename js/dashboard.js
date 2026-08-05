@@ -929,7 +929,7 @@ window.updateTodayAtGlanceCounters = function() {
              examsCount += window._currentExamsData.filter(ex => ex.exam_date === targetDateStr).length;
         }
         const schedules = window.currentSchedulesList || [];
-        examsCount += schedules.filter(s => (s.schedule_date || s.date) === targetDateStr && s.schedule_type === 'Exam').length;
+        examsCount += schedules.filter(s => (s.schedule_date || s.date) === targetDateStr && s.schedule_type && s.schedule_type.includes('Exam')).length;
 
         let classesCount = 0;
         if (window.dashboardClasses) {
@@ -938,10 +938,10 @@ window.updateTodayAtGlanceCounters = function() {
                 classesCount = isTomorrow ? (window._tomorrowClassesCount || 0) : (window._todayClassesCount || 0);
             }
         }
-        classesCount += schedules.filter(s => (s.schedule_date || s.date) === targetDateStr && s.schedule_type === 'Class').length;
+        classesCount += schedules.filter(s => (s.schedule_date || s.date) === targetDateStr && s.schedule_type && s.schedule_type.includes('Class')).length;
 
-        const assignmentsCount = schedules.filter(s => (s.schedule_date || s.date) === targetDateStr && s.schedule_type === 'Assignment').length;
-        const presentationsCount = schedules.filter(s => (s.schedule_date || s.date) === targetDateStr && s.schedule_type === 'Presentation').length;
+        const assignmentsCount = schedules.filter(s => (s.schedule_date || s.date) === targetDateStr && s.schedule_type && s.schedule_type.includes('Assignment')).length;
+        const presentationsCount = schedules.filter(s => (s.schedule_date || s.date) === targetDateStr && s.schedule_type && s.schedule_type.includes('Presentation')).length;
 
         const items = [
             { id: 'exams', label: 'Exams', count: examsCount, priority: 1, icon: '<div class="shrink-0 flex items-center justify-center" style="width: 20px; height: 20px;"><i data-lucide="file-check-2" class="w-full h-full text-orange-500"></i></div>', color: 'text-orange-500', action: "window.openDedicatedExamPanel ? window.openDedicatedExamPanel() : null" },

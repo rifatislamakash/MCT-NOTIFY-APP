@@ -249,7 +249,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                 if (!skipRender) {
                     injectDashboardNotices();
-                    renderNoticesList();
+                    window.filterNotices();
                     if (typeof window.updateDashboardQuickAccessBadges === 'function') window.updateDashboardQuickAccessBadges();
                 }
                 if (typeof window.fetchNotificationCenterNotices === 'function') {
@@ -284,6 +284,32 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
         window.filterNotices = function () {
             const batchFilterEl = document.getElementById('admin-notices-batch-filter');
+            const courseFilterEl = document.getElementById('notices-course-filter');
+            
+            if (courseFilterEl && !courseFilterEl.getAttribute('data-populated')) {
+                courseFilterEl.setAttribute('data-populated', 'pending');
+                CourseStore.getCourses().then(fullCourses => {
+                    const userEnrolledIds = (window.currentUserCoursesList || []).map(uc => uc.course_id);
+                    const crBatches = window.currentUserCRBatches || [];
+                    const myCourses = fullCourses.filter(c => userEnrolledIds.includes(c.id) || crBatches.includes(c.batch_id));
+                    if (myCourses.length > 0) {
+                        courseFilterEl.setAttribute('data-populated', 'true');
+                        myCourses.forEach(c => {
+                            const opt = document.createElement('option');
+                            opt.value = c.id;
+                            opt.className = 'text-black';
+                            opt.textContent = c.short_name || c.course_name;
+                            courseFilterEl.appendChild(opt);
+                        });
+                    } else {
+                        courseFilterEl.removeAttribute('data-populated');
+                    }
+                }).catch(e => {
+                    console.error("Failed to populate notice course filter:", e);
+                    courseFilterEl.removeAttribute('data-populated');
+                });
+            }
+
             if (batchFilterEl && !batchFilterEl.classList.contains('hidden')) {
                 const batchVal = batchFilterEl.value;
                 if (!batchVal || batchVal === '') {
@@ -317,11 +343,26 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (!window.currentNoticesList) window.currentNoticesList = [];
 
             const q = document.getElementById('notices-search')?.value.toLowerCase() || '';
+            const courseFilterEl = document.getElementById('notices-course-filter');
+            const courseVal = courseFilterEl ? courseFilterEl.value : 'all';
 
             let filtered = window.currentNoticesList.filter(n => {
                 if (n.notice_type === 'poll') return false; // Exclude polls from the general Notices list
                 const matchQuery = n.title.toLowerCase().includes(q) || n.message.toLowerCase().includes(q);
                 const matchType = currentNoticeFilter === 'all' || n.notice_type === currentNoticeFilter;
+                
+                let matchCourse = true;
+                if (courseVal !== 'all') {
+                    if (n.audience_type === 'all' || n.audience_type === 'all_students') {
+                        matchCourse = true;
+                    } else {
+                        let coursesForNotice = n.notice_courses ? n.notice_courses.map(nc => nc.course_id) : [];
+                        if (coursesForNotice.length === 0 && n.content_targets) {
+                            coursesForNotice = n.content_targets.filter(ct => ct.target_type === 'course_students').map(ct => ct.target_id);
+                        }
+                        matchCourse = coursesForNotice.includes(courseVal);
+                    }
+                }
                 
                 let matchBatch = true;
                 const batchFilterEl = document.getElementById('admin-notices-batch-filter');
@@ -351,7 +392,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     matchBatch = matchesBatch;
                 }
 
-                return matchQuery && matchType && matchBatch;
+                return matchQuery && matchType && matchBatch && matchCourse;
             });
 
             // Dynamic Time-Aware Sorting
@@ -1154,8 +1195,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 console.log("[TARGET SAVE] Old targets deleted.");
 
                 if (isTargetSpecific) {
-                    const cbs = document.querySelectorAll('.notice-target-cb:checked');
-                    const selectedIds = Array.from(cbs).map(cb => cb.value);
+                    const selectedIds = checkedCbs; // Use the already validated and potentially modified array
 
                     if (selectedIds.length > 0) {
                         const targetInserts = selectedIds.map(tid => ({

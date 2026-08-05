@@ -384,12 +384,38 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const searchEl = document.getElementById('schedule-search');
             const sortEl = document.getElementById('schedule-filter-sort');
             const audienceEl = document.getElementById('schedule-filter-audience');
-            const batchFilterEl = document.getElementById('admin-schedule-batch-filter');
-
             const searchVal = (searchEl ? searchEl.value : '').toLowerCase().trim();
             const sortVal = sortEl ? sortEl.value : 'newest';
             const audienceVal = audienceEl ? audienceEl.value : 'all';
+            const batchFilterEl = document.getElementById('admin-schedule-batch-filter');
             const batchVal = (batchFilterEl && !batchFilterEl.classList.contains('hidden')) ? batchFilterEl.value : 'all';
+            const courseFilterEl = document.getElementById('schedule-course-filter');
+            const courseVal = courseFilterEl ? courseFilterEl.value : 'all';
+
+            // Populate course filter dynamically if not already populated
+            if (courseFilterEl && !courseFilterEl.getAttribute('data-populated')) {
+                courseFilterEl.setAttribute('data-populated', 'pending');
+                CourseStore.getCourses().then(fullCourses => {
+                    const userEnrolledIds = (window.currentUserCoursesList || []).map(uc => uc.course_id);
+                    const crBatches = window.currentUserCRBatches || [];
+                    const myCourses = fullCourses.filter(c => userEnrolledIds.includes(c.id) || crBatches.includes(c.batch_id));
+                    if (myCourses.length > 0) {
+                        courseFilterEl.setAttribute('data-populated', 'true');
+                        myCourses.forEach(c => {
+                            const opt = document.createElement('option');
+                            opt.value = c.id;
+                            opt.className = 'text-black';
+                            opt.textContent = c.short_name || c.course_name;
+                            courseFilterEl.appendChild(opt);
+                        });
+                    } else {
+                        courseFilterEl.removeAttribute('data-populated');
+                    }
+                }).catch(e => {
+                    console.error("Failed to populate schedule course filter:", e);
+                    courseFilterEl.removeAttribute('data-populated');
+                });
+            }
 
             if (batchFilterEl && !batchFilterEl.classList.contains('hidden')) {
                 if (!batchVal || batchVal === '') {
@@ -995,16 +1021,22 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (fileInput) fileInput.value = '';
         };
 
+        let isSavingSchedule = false;
+        
         // ----- HANDLE CREATE SCHEDULE -----
         window.handleCreateSchedule = async function () {
             if (!(await window.verifyAdminStatus())) { window.showGlobalToast("Error", "Admin check failed."); return; }
             if (window.currentUserRole !== 'admin' && window.currentUserRole !== 'cr') return;
-
+            if (isSavingSchedule) return;
+            isSavingSchedule = true;
+            window.showLoader(true, "Saving Schedule...");
+            
             const title = document.getElementById('cs-title')?.value?.trim();
             const message = document.getElementById('cs-message')?.value?.trim();
             const date = document.getElementById('cs-date')?.value;
             const time = document.getElementById('cs-time')?.value;
-            const scheduleType = document.getElementById('cs-schedule-type')?.value || '';
+            const scheduleTypeCbs = Array.from(document.querySelectorAll('.cs-schedule-type-cb:checked')).map(cb => cb.value);
+            const scheduleType = scheduleTypeCbs.join(',') || '';
             let isPinned = document.getElementById('cs-pin')?.checked || false;
             
             if (isPinned) {
@@ -1308,6 +1340,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 window.showGlobalToast('Error', err.message || 'Failed to create schedule.');
             } finally {
                 window.showLoader(false);
+                isSavingSchedule = false;
             }
         };
 
@@ -1337,7 +1370,14 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 if (dateEl) dateEl.value = s.schedule_date || '';
                 if (timeEl) timeEl.value = s.schedule_time ? s.schedule_time.substring(0, 5) : '';
                 if (pinEl) pinEl.checked = !!s.is_pinned;
-                if (scheduleTypeEl) scheduleTypeEl.value = s.schedule_type || '';
+                
+                document.querySelectorAll('.es-schedule-type-cb').forEach(cb => cb.checked = false);
+                if (s.schedule_type) {
+                    const types = s.schedule_type.split(',').map(t => t.trim());
+                    document.querySelectorAll('.es-schedule-type-cb').forEach(cb => {
+                        if (types.includes(cb.value)) cb.checked = true;
+                    });
+                }
 
                 currentEditScheduleFile = null;
                 currentEditRemoveAttachment = false;
@@ -1510,7 +1550,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const message = document.getElementById('es-message')?.value?.trim();
             const date = document.getElementById('es-date')?.value;
             const time = document.getElementById('es-time')?.value;
-            const scheduleType = document.getElementById('es-schedule-type')?.value || '';
+            const scheduleTypeCbs = Array.from(document.querySelectorAll('.es-schedule-type-cb:checked')).map(cb => cb.value);
+            const scheduleType = scheduleTypeCbs.join(',') || '';
             let isPinned = document.getElementById('es-pin')?.checked || false;
             
             if (isPinned) {
