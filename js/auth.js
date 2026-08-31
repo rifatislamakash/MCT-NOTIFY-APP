@@ -243,7 +243,8 @@ let isRegistering = false;
                         window.showGlobalToast(portalName, `Welcome back, ${welcomeName}`);
                     } else {
                         if (typeof window.showLoader !== 'undefined') window.showLoader(true, 'Verifying enrollments...');
-                        if (window.currentUserCoursesList && window.currentUserCoursesList.length > 0) {
+                        const hasCompletedOnboarding = !!(profile && profile.batch_id);
+                        if ((window.currentUserCoursesList && window.currentUserCoursesList.length > 0) || hasCompletedOnboarding) {
                             if (typeof window.showLoader !== 'undefined') window.showLoader(false);
                             const needsNotificationPrompt = ('Notification' in window) && Notification.permission === 'default' && sessionStorage.getItem('notification_skipped') !== 'true';
                             if (needsNotificationPrompt) {
