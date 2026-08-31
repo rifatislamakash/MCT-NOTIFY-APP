@@ -22,7 +22,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const localController = new AbortController();
             window.activeLoadControllers['notices'] = localController;
 
-            window.showLoader(true, "Loading notices...");
+            if (!skipRender) window.showLoader(true, "Loading notices...");
             console.log("[NOTICES] Loading notices list...");
             try {
                 if (allCoursesList.length === 0) {
@@ -60,7 +60,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         let ctData = [];
                         
                         // Chunk noticeIds to avoid URL length limits (Supabase PostgREST limit)
-                        const chunkSize = 100;
+                        const chunkSize = 500;
                         ctData = await fetchWithRetry(async (signal) => {
                             let results = [];
                             const chunks = [];

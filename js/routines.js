@@ -2497,14 +2497,19 @@ window.switchRoutineView = switchRoutineView;
 
             // SAFARI FIX: Lock all inner elements to their computed pixel widths
             // to prevent flexbox collapse inside the SVG foreignObject
-            const cells = element.querySelectorAll('div, span, p');
+            const cells = element.querySelectorAll('table, th, td, div, span, p');
             const originalStyles = new Map();
             cells.forEach(c => {
-                originalStyles.set(c, { width: c.style.width, minWidth: c.style.minWidth });
+                originalStyles.set(c, { width: c.style.width, minWidth: c.style.minWidth, maxWidth: c.style.maxWidth, flex: c.style.flex, whiteSpace: c.style.whiteSpace });
                 const rect = c.getBoundingClientRect();
                 if (rect.width > 0) {
-                    c.style.width = rect.width + 'px';
-                    c.style.minWidth = rect.width + 'px';
+                    c.style.width = Math.ceil(rect.width) + 1 + 'px'; // +1px to prevent text wrapping due to font rounding
+                    c.style.minWidth = Math.ceil(rect.width) + 1 + 'px';
+                    c.style.maxWidth = Math.ceil(rect.width) + 1 + 'px';
+                    c.style.flex = 'none';
+                    if (c.tagName !== 'P' && c.tagName !== 'DIV' || c.classList.contains('flex')) {
+                       c.style.whiteSpace = 'nowrap';
+                    }
                 }
             });
 
@@ -2527,6 +2532,9 @@ window.switchRoutineView = switchRoutineView;
                     if (orig) {
                         c.style.width = orig.width;
                         c.style.minWidth = orig.minWidth;
+                        c.style.maxWidth = orig.maxWidth;
+                        c.style.flex = orig.flex;
+                        c.style.whiteSpace = orig.whiteSpace;
                     }
                 });
 
