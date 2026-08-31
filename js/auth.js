@@ -170,7 +170,7 @@ let isRegistering = false;
                         if (typeof window.loadAdminReports === 'function') tasks.push(window.loadAdminReports().catch(console.warn));
                     }
                     
-                    const timeoutPromise = new Promise(resolve => setTimeout(resolve, 10000));
+                    const timeoutPromise = new Promise(resolve => setTimeout(resolve, 25000));
                     await Promise.race([Promise.all(tasks), timeoutPromise]);
                     
                     // Unified Execution Frame for Repainting
@@ -296,7 +296,7 @@ let isRegistering = false;
                     console.log("[DEBUG] checkActiveSession: calling getSession with timeout");
                     const sessionPromise = _supabase.auth.getSession();
                     const timeoutPromise = new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('getSession timeout')), 10000)
+                        setTimeout(() => reject(new Error('getSession timeout')), 25000)
                     );
                     
                     try {

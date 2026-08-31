@@ -6084,7 +6084,7 @@
 
             setTimeout(() => {
                 let initRetries = 0;
-                const maxInitRetries = 160; // 160 * 50ms = 8 seconds
+                const maxInitRetries = 600; // 600 * 50ms = 30 seconds
                 const initApp = async () => {
                     if (window.isAppFullyInitialized) {
                         console.warn("[INIT LOCK] App is already initialized. Halting recursive call.");

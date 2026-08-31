@@ -2495,6 +2495,19 @@ window.switchRoutineView = switchRoutineView;
             element.style.minWidth = boundingBox.width + 'px';
             element.style.minHeight = boundingBox.height + 'px';
 
+            // SAFARI FIX: Lock all inner elements to their computed pixel widths
+            // to prevent flexbox collapse inside the SVG foreignObject
+            const cells = element.querySelectorAll('div, span, p');
+            const originalStyles = new Map();
+            cells.forEach(c => {
+                originalStyles.set(c, { width: c.style.width, minWidth: c.style.minWidth });
+                const rect = c.getBoundingClientRect();
+                if (rect.width > 0) {
+                    c.style.width = rect.width + 'px';
+                    c.style.minWidth = rect.width + 'px';
+                }
+            });
+
             htmlToImage.toPng(element, {
                 pixelRatio: 4, // Ultra high quality
                 backgroundColor: document.documentElement.classList.contains('dark') ? '#0F172A' : '#ffffff',
@@ -2507,6 +2520,16 @@ window.switchRoutineView = switchRoutineView;
                 element.style.height = origHeight;
                 element.style.minWidth = origMinWidth;
                 element.style.minHeight = origMinHeight;
+                
+                // SAFARI FIX: Restore original widths
+                cells.forEach(c => {
+                    const orig = originalStyles.get(c);
+                    if (orig) {
+                        c.style.width = orig.width;
+                        c.style.minWidth = orig.minWidth;
+                    }
+                });
+
                 if (editBtn) editBtn.style.display = '';
                 
                 const batchFilterEl = document.getElementById('admin-routine-batch-filter');
