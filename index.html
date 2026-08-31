@@ -1320,7 +1320,7 @@
 
                             <div class="px-6 mt-4 flex items-center justify-between">
                                 <h3 class="font-bold text-[14px] text-slate-500 dark:text-dark-textSecondary tracking-tight">Unread Updates</h3>
-                                <button onclick="navigate('screen-notices-list'); loadNotices();" class="text-xs font-bold text-indigo-600 hover:underline">See all</button>
+                                <button onclick="onFeatureClick('schedule_hub', 'Schedule Hub', () => { navigate('screen-schedule-list'); loadScheduleList(); })" class="text-xs font-bold text-indigo-600 hover:underline">See all</button>
                             </div>
 
                             <div id="dashboard-recent-notices" class="mx-6 mt-2 space-y-3">
@@ -1819,7 +1819,7 @@
                                 <div class="bg-gradient-to-r from-[#4226E9]/10 to-purple-500/10 border border-indigo-100 rounded-2xl p-4 text-center">
                                     <p class="text-[12px] text-slate-500 dark:text-dark-textSecondary font-medium">Built with ❤️ for MCT students</p>
                                     <p class="text-[11px] text-slate-400 dark:text-dark-textSecondary mt-0.5">Powered by Your Love</p>
-                                    <p class="text-[10px] text-indigo-400 font-bold mt-2 uppercase tracking-wider">MCT Notify Version 1.1.7-2026PR1</p>
+                                    <p class="text-[10px] text-indigo-400 font-bold mt-2 uppercase tracking-wider">MCT Notify Version 2.1.1-2026PR2</p>
                                 </div>
                             </div>
                         </div>
@@ -3772,11 +3772,14 @@
                                     <h2 id="wr-header-title" class="text-[22px] font-bold leading-tight tracking-wide">Weekly Routine</h2>
                                     <p class="text-[12px] text-slate-400 dark:text-dark-textSecondary mt-0.5" id="wr-batch-label">Loading...</p>
                                 </div>
-                                
                                 <button id="wr-download-btn" onclick="if(typeof window.downloadRoutineImage === 'function') window.downloadRoutineImage()" class="px-2 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl flex items-center justify-center active:scale-95 transition-all shadow-sm" title="Download Routine">
                                     <i data-lucide="download" class="w-5 h-5"></i>
                                 </button>
-
+                                
+                                <button id="wr-settings-btn" onclick="if(typeof window.openRoutineMetadataModal === 'function') window.openRoutineMetadataModal()" class="hidden px-2 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl flex items-center justify-center active:scale-95 transition-all shadow-sm" title="Routine Settings & Break Time">
+                                    <i data-lucide="settings" class="w-5 h-5"></i>
+                                </button>
+                                
                                 <select id="admin-routine-batch-filter" onchange="if(typeof window.filterRoutinesByBatch === 'function') window.filterRoutinesByBatch()" class="hidden w-[90px] h-[36px] px-2.5 rounded-xl bg-white/20 border border-white/10 text-slate-300 text-[11px] font-semibold focus:outline-none appearance-none cursor-pointer">
                                     <option value="" disabled selected class="text-black">Select Batch</option>
                                 </select>
@@ -11095,6 +11098,20 @@
                 <div>
                     <label class="text-[12px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase mb-1 block">Effect Date</label>
                     <input type="text" id="meta-routine-date" placeholder="e.g. Aug 15, 2026" class="w-full h-[48px] px-4 bg-slate-50 dark:bg-dark-bg/50 text-slate-900 dark:text-dark-text text-[14px] font-semibold rounded-[14px] border border-slate-200 dark:border-white/10 focus:border-[#4226E9] outline-none">
+                </div>
+                <!-- Break Time Settings -->
+                <div class="pt-4 border-t border-slate-100 dark:border-white/5">
+                    <label class="flex items-center gap-3 cursor-pointer mb-3">
+                        <div class="relative">
+                            <input type="checkbox" id="meta-is-break-time" class="sr-only peer" onchange="document.getElementById('meta-break-message-container').style.display = this.checked ? 'block' : 'none'">
+                            <div class="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-[#4226E9]"></div>
+                        </div>
+                        <span class="text-[14px] font-bold text-slate-700 dark:text-dark-textSecondary">Enable Break Time</span>
+                    </label>
+                    <div id="meta-break-message-container" style="display: none;">
+                        <label class="text-[12px] font-bold text-slate-500 dark:text-dark-textSecondary uppercase mb-1 block">Break Message</label>
+                        <input type="text" id="meta-break-message" placeholder="e.g. Break Time - No Classes" class="w-full h-[48px] px-4 bg-slate-50 dark:bg-dark-bg/50 text-slate-900 dark:text-dark-text text-[14px] font-semibold rounded-[14px] border border-slate-200 dark:border-white/10 focus:border-[#4226E9] outline-none">
+                    </div>
                 </div>
             </div>
             <div class="flex gap-3">

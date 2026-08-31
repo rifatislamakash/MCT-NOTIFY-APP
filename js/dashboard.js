@@ -247,6 +247,45 @@ const getSafariSafeDate = window.getSafariSafeDate;
                     return;
                 }
 
+                // CHECK BREAK TIME
+                let userBatchForBreak = null;
+                if (window.currentUserRole !== 'admin') {
+                    userBatchForBreak = window.authState?.profile?.batch_id;
+                } else {
+                    const batchFilterEl = document.getElementById('admin-routine-batch-filter');
+                    userBatchForBreak = (batchFilterEl && !batchFilterEl.classList.contains('hidden')) ? batchFilterEl.value : null;
+                }
+                
+                if (userBatchForBreak && userBatchForBreak !== 'all') {
+                    let activeBatchObj = null;
+                    if (window.routineBatchesList) {
+                        activeBatchObj = window.routineBatchesList.find(b => String(b.id) === String(userBatchForBreak));
+                    } else {
+                        const { data: batchData } = await _supabase.from('batches').select('is_break_time, break_message').eq('id', userBatchForBreak).abortSignal(localController.signal).single();
+                        activeBatchObj = batchData;
+                    }
+
+                    if (activeBatchObj && activeBatchObj.is_break_time) {
+                        const { isToday } = getSmartDashboardDay();
+                        if (sectionHeader) {
+                            sectionHeader.textContent = isToday ? "Today's Classes" : "Tomorrow's Classes";
+                            if (sectionHeader.nextElementSibling) sectionHeader.nextElementSibling.style.display = 'none';
+                        }
+                        const bMsg = activeBatchObj.break_message || 'Break Time - No Classes Scheduled';
+                        window._dashboardRoutineHTML = `
+                            <div class="bg-indigo-50 dark:bg-indigo-900/20 rounded-[22px] border border-indigo-100 dark:border-indigo-500/20 shadow-2xs p-6 text-center">
+                                <i data-lucide="coffee" class="w-8 h-8 text-indigo-400 mx-auto mb-2"></i>
+                                <h4 class="text-sm font-extrabold text-indigo-700 dark:text-indigo-300 mb-1">On Break</h4>
+                                <p class="text-xs font-bold text-indigo-500 dark:text-indigo-400">${bMsg}</p>
+                            </div>`;
+                        if (!skipRender) window.renderDashboardTodayRoutine();
+                        window.setModuleLoading('dashboard', false);
+                        return;
+                    } else if (sectionHeader && sectionHeader.nextElementSibling) {
+                        sectionHeader.nextElementSibling.style.display = '';
+                    }
+                }
+
                 if (isExamModeOn) {
                     if (sectionHeader) {
                         sectionHeader.textContent = "Upcoming Exam";

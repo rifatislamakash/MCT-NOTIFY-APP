@@ -691,6 +691,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const dynBtn = document.getElementById('wr-admin-dynamic-btn');
             const dynIcon = document.getElementById('wr-admin-dynamic-icon');
             const dynText = document.getElementById('wr-admin-dynamic-text');
+            const settingsBtn = document.getElementById('wr-settings-btn');
 
             // Strictly hide controls from standard students
             const actualRole = window.authState?.profile?.role;
@@ -701,6 +702,13 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     dynBtn.style.display = 'none';
                 } else {
                     dynBtn.style.display = 'flex';
+                }
+            }
+            if (settingsBtn) {
+                if (!hasAdminControls) {
+                    settingsBtn.classList.add('hidden');
+                } else {
+                    settingsBtn.classList.remove('hidden');
                 }
             }
 
@@ -905,23 +913,16 @@ import { ProfileStore } from './stores/ProfileStore.js';
             const rVersion = activeBatch?.routine_version || '';
             const rDate = activeBatch?.routine_effect_date || '';
 
-            const isAdmin = (window.currentUserRole === 'admin' || window.currentUserRole === 'cr');
+            const isAdmin = (String(window.currentUserRole).toLowerCase() === 'admin' || String(window.currentUserRole).toLowerCase() === 'cr');
             let html = `<div id="routine-export-area" class="bg-white dark:bg-dark-card rounded-3xl border border-slate-100 dark:border-white/5 shadow-sm p-5 mt-4 overflow-x-auto min-w-max">`;
             
-            if (rVersion || rDate || isAdmin) {
+            if (rVersion || rDate) {
                 html += `<div class="flex justify-center items-center mb-4 pb-2 border-b border-slate-100 dark:border-white/10 gap-3">
-                            ${(rVersion || rDate) ? `
                                 <div class="flex items-center gap-2 bg-slate-50 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10">
                                     ${rVersion ? `<span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">Ver: ${window.sanitizeHTML(rVersion)}</span>` : ''}
                                     ${(rVersion && rDate) ? `<span class="text-[10px] text-slate-300 dark:text-slate-600">|</span>` : ''}
                                     ${rDate ? `<span class="text-[10px] font-semibold text-slate-500 dark:text-slate-400">Effective: ${window.sanitizeHTML(rDate)}</span>` : ''}
                                 </div>
-                            ` : ''}
-                            ${isAdmin ? `
-                                <button id="routine-meta-edit-btn" onclick="window.openRoutineMetadataModal()" class="w-6 h-6 flex items-center justify-center bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 rounded-md hover:bg-indigo-100 transition-colors" title="Edit Metadata">
-                                    <i data-lucide="edit-3" class="w-3 h-3"></i>
-                                </button>
-                            ` : ''}
                          </div>`;
             }
 
@@ -1947,8 +1948,20 @@ window.switchRoutineView = switchRoutineView;
                 const shouldNotify = document.getElementById('notify-audience-exam')?.checked !== false;
 
                 if (shouldNotify) {
-                        const { NotificationQueueService } = await import('./services/NotificationQueueService.js');
-                        const queueRes = await NotificationQueueService.queueNotification({
+                    try {
+                        const { error: targetErr } = await _supabase.from('content_targets').insert([{
+                            content_type: 'exam',
+                            content_id: newExam.id,
+                            target_type: 'batch_students',
+                            target_id: targetBatch
+                        }]);
+                        if (targetErr) console.error("Error inserting content_target:", targetErr);
+                    } catch (err) {
+                        console.error("Exception inserting content_target:", err);
+                    }
+
+                    const { NotificationQueueService } = await import('./services/NotificationQueueService.js');
+                    const queueRes = await NotificationQueueService.queueNotification({
                         parentType: 'exam',
                         parentId: newExam.id,
                         isNotifyEnabled: true,
@@ -2274,6 +2287,18 @@ window.switchRoutineView = switchRoutineView;
                 const shouldNotify = document.getElementById('notify-audience-edit-exam')?.checked !== false;
 
                 if (shouldNotify) {
+                    try {
+                        const { error: targetErr } = await _supabase.from('content_targets').insert([{
+                            content_type: 'exam',
+                            content_id: examId,
+                            target_type: 'batch_students',
+                            target_id: targetBatch
+                        }]);
+                        if (targetErr) console.error("Error inserting content_target:", targetErr);
+                    } catch (err) {
+                        console.error("Exception inserting content_target:", err);
+                    }
+
                     const { NotificationQueueService } = await import('./services/NotificationQueueService.js');
                     const queueRes = await NotificationQueueService.queueNotification({
                         parentType: 'exam',
@@ -2333,6 +2358,12 @@ window.switchRoutineView = switchRoutineView;
             document.getElementById('meta-routine-version').value = activeBatch?.routine_version || '';
             document.getElementById('meta-routine-date').value = activeBatch?.routine_effect_date || '';
 
+            const isBreak = activeBatch?.is_break_time || false;
+            document.getElementById('meta-is-break-time').checked = isBreak;
+            const bMsgCont = document.getElementById('meta-break-message-container');
+            if (bMsgCont) bMsgCont.style.display = isBreak ? 'block' : 'none';
+            document.getElementById('meta-break-message').value = activeBatch?.break_message || 'Break Time - No Classes Scheduled';
+
             const modal = document.getElementById('routine-metadata-modal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
@@ -2353,6 +2384,8 @@ window.switchRoutineView = switchRoutineView;
 
             const rVersion = document.getElementById('meta-routine-version').value.trim();
             const rDate = document.getElementById('meta-routine-date').value.trim();
+            const isBreak = document.getElementById('meta-is-break-time').checked;
+            const bMsg = document.getElementById('meta-break-message').value.trim() || 'Break Time - No Classes Scheduled';
 
             const btn = document.querySelector('#routine-metadata-modal button:last-child');
             const ogBtnHtml = btn.innerHTML;
@@ -2363,7 +2396,12 @@ window.switchRoutineView = switchRoutineView;
                 const { _supabase } = await import('./supabase-client.js');
                 const { error } = await _supabase
                     .from('batches')
-                    .update({ routine_version: rVersion, routine_effect_date: rDate })
+                    .update({ 
+                        routine_version: rVersion, 
+                        routine_effect_date: rDate,
+                        is_break_time: isBreak,
+                        break_message: bMsg
+                    })
                     .eq('id', batchVal);
 
                 if (error) throw error;
@@ -2375,6 +2413,8 @@ window.switchRoutineView = switchRoutineView;
                 if (activeBatch) {
                     activeBatch.routine_version = rVersion;
                     activeBatch.routine_effect_date = rDate;
+                    activeBatch.is_break_time = isBreak;
+                    activeBatch.break_message = bMsg;
                 }
 
                 // Close Modal
@@ -2435,13 +2475,38 @@ window.switchRoutineView = switchRoutineView;
             console.error = suppressFilter(originalConsoleError);
             console.warn = suppressFilter(originalConsoleWarn);
 
+            const fontEmbedCSS = `
+            @font-face {
+              font-family: 'Inter';
+              font-style: normal;
+              font-weight: 100 900;
+              font-display: swap;
+              src: url(https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyeMZhrib2Bg-4.ttf) format('truetype');
+            }`;
+            
+            const origWidth = element.style.width;
+            const origHeight = element.style.height;
+            const origMinWidth = element.style.minWidth;
+            const origMinHeight = element.style.minHeight;
+            const boundingBox = element.getBoundingClientRect();
+            
+            element.style.width = boundingBox.width + 'px';
+            element.style.height = boundingBox.height + 'px';
+            element.style.minWidth = boundingBox.width + 'px';
+            element.style.minHeight = boundingBox.height + 'px';
+
             htmlToImage.toPng(element, {
                 pixelRatio: 4, // Ultra high quality
-                backgroundColor: document.documentElement.classList.contains('dark') ? '#0F172A' : '#ffffff'
+                backgroundColor: document.documentElement.classList.contains('dark') ? '#0F172A' : '#ffffff',
+                fontEmbedCSS: fontEmbedCSS
             }).then(dataUrl => {
                 console.error = originalConsoleError;
                 console.warn = originalConsoleWarn;
                 element.style.overflow = originalOverflow;
+                element.style.width = origWidth;
+                element.style.height = origHeight;
+                element.style.minWidth = origMinWidth;
+                element.style.minHeight = origMinHeight;
                 if (editBtn) editBtn.style.display = '';
                 
                 const batchFilterEl = document.getElementById('admin-routine-batch-filter');
