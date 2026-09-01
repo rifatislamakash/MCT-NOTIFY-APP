@@ -50,7 +50,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             const coursesPromise = deduplicateRequest('user_courses_boot', async () => {
                                 const sdkController = new AbortController();
                                 const sdkPromise = _supabase.from('user_courses').select('*').eq('user_id', window.authState.user.id).abortSignal(sdkController.signal);
-                                const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('sdk_timeout')), 2000));
+                                const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('sdk_timeout')), 25000));
                                 try {
                                     const { data, error } = await Promise.race([sdkPromise, timeout]);
                                     if (error) throw error;
@@ -96,7 +96,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
                                 let timerId;
                                 const timeoutPromise = new Promise((_, reject) => {
-                                    timerId = setTimeout(() => reject(new Error('sdk_timeout')), 8000);
+                                    timerId = setTimeout(() => reject(new Error('sdk_timeout')), 25000);
                                 });
                                 try {
                                     const { data, error } = await Promise.race([coursesInfoPromise, timeoutPromise]);

@@ -278,7 +278,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                     }
                                     let timerId;
                                     const timeoutPromise = new Promise((_, reject) => {
-                                        timerId = setTimeout(() => reject(new Error('sdk_timeout')), 8000);
+                                        timerId = setTimeout(() => reject(new Error('sdk_timeout')), 25000);
                                     });
                                     console.log("[SCHEDULE ADMIN] [SDK START]");
                         const startSdk = performance.now();

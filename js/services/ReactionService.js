@@ -2,12 +2,12 @@ import { _supabase } from '../supabase-client.js';
 import { showGlobalToast } from '../utils.js';
 
 export const REACTION_ICONS = {
-    'like': 'https://ngropmfrneaaejwocnbf.supabase.co/storage/v1/object/public/materials/Like.png',
-    'love': 'https://ngropmfrneaaejwocnbf.supabase.co/storage/v1/object/public/materials/Love.png',
-    'haha': 'https://ngropmfrneaaejwocnbf.supabase.co/storage/v1/object/public/materials/Haha.png',
-    'sad': 'https://ngropmfrneaaejwocnbf.supabase.co/storage/v1/object/public/materials/Sad.png',
-    'angry': 'https://ngropmfrneaaejwocnbf.supabase.co/storage/v1/object/public/materials/Angry.png',
-    'cool': 'https://ngropmfrneaaejwocnbf.supabase.co/storage/v1/object/public/materials/Cool.png'
+    'like': 'assets/Like.png',
+    'love': 'assets/Love.png',
+    'haha': 'assets/Haha.png',
+    'sad': 'assets/Sad.png',
+    'angry': 'assets/Angry.png',
+    'cool': 'assets/Cool.png'
 };
 
 export class ReactionService {
@@ -474,7 +474,11 @@ export class ReactionService {
         });
         header.innerHTML = headerHtml;
 
-        list.innerHTML = filtered.sort((a,b) => a.profiles?.full_name?.localeCompare(b.profiles?.full_name)).map(r => {
+        list.innerHTML = filtered.sort((a,b) => {
+            const nameA = a.profiles?.full_name || 'Unknown User';
+            const nameB = b.profiles?.full_name || 'Unknown User';
+            return nameA.localeCompare(nameB);
+        }).map(r => {
             const name = window.sanitizeHTML(r.profiles?.full_name || 'Unknown User');
             const initial = name.charAt(0).toUpperCase();
             let avatarHtml = `<span class="font-bold text-[14px] text-[#4226E9]">${initial}</span>`;

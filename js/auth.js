@@ -79,7 +79,7 @@ let isRegistering = false;
                         .maybeSingle();
                     if (error) throw error;
                     return data;
-                }, 4, 1000, 10000);
+                }, 4, 1000);
             } catch (err) {
                 console.error('Exception caught in fetchUserProfile:', err);
                 return null;

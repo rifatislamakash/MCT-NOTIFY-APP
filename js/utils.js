@@ -159,7 +159,7 @@ import { _supabase } from './supabase-client.js';
             }
         }
 
-        export async function fetchWithRetry(fn, retries = 2, delay = 1000, timeoutMs = 20000, parentSignal = null) {
+        export async function fetchWithRetry(fn, retries = 2, delay = 1000, timeoutMs = 30000, parentSignal = null) {
             let lastError = null;
             let actualRetries = retries;
             for (let i = 0; i < actualRetries; i++) {
