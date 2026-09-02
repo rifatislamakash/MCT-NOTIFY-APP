@@ -534,20 +534,21 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                     <h4 class="font-[700] text-[16px] text-[#111827] dark:text-indigo-50 mt-0 truncate leading-tight">${window.safeFormatRichText(n.title)}</h4>
                                     <p class="text-[14px] text-[#4b5563] dark:text-dark-textSecondary line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.safeFormatRichText(n.message)}</p>
                                 </div>
-                                ${bottomEventTagsHtml ? `
-                                <div class="w-full mt-[12px] flex items-center justify-start">
-                                    ${bottomEventTagsHtml}
                                 </div>
-                                ` : ''}
-                                <div class="w-full mt-[12px] pt-[12px] border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-[4px]">
-                                    <div class="flex items-center justify-start flex-1">
-                                        ${window.ReactionService ? window.ReactionService.renderReactionBlock('notice', n.id) : ''}
+                                <div class="w-full mt-[12px] flex flex-wrap items-center justify-between gap-y-3 gap-x-2">
+                                    <div class="flex items-center justify-center w-full md:w-auto md:justify-start">
+                                        ${bottomEventTagsHtml}
                                     </div>
-                                    <div class="flex items-center justify-center flex-1">
-                                        ${window.CommentService ? window.CommentService.renderCommentCountButton('notice', n.id) : ''}
-                                    </div>
-                                    <div class="flex items-center justify-end flex-1">
-                                        ${window.SeenService ? window.SeenService.renderSeenBlock('notice', n.id) : ''}
+                                    <div class="flex items-center justify-between w-full md:w-auto md:justify-end gap-[4px]">
+                                        <div class="shrink-0 flex items-center">
+                                            ${window.SeenService ? window.SeenService.renderSeenBlock('notice', n.id) : ''}
+                                        </div>
+                                        <div class="shrink-0 flex items-center">
+                                            ${window.ReactionService ? window.ReactionService.renderReactionBlock('notice', n.id) : ''}
+                                        </div>
+                                        <div class="shrink-0 flex items-center">
+                                            ${window.CommentService ? window.CommentService.renderCommentCountButton('notice', n.id) : ''}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -702,21 +703,21 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                         <h4 class="font-[700] text-[16px] text-[#111827] dark:text-indigo-50 mt-0 truncate leading-tight">${window.safeFormatRichText(n.title)}</h4>
                                         <p class="text-[14px] text-[#4b5563] dark:text-dark-textSecondary line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.safeFormatRichText(n.message)}</p>
                                     </div>
-                                    ${bottomEventTagsHtml ? `
-                                    <div class="w-full mt-[12px] flex items-center justify-start">
-                                        ${bottomEventTagsHtml}
-                                    </div>
-                                    ` : ''}
-                                    <div class="w-full mt-[12px] pt-[12px] border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-[4px]">
-                                        <div class="flex items-center justify-start flex-1">
-                                            ${window.ReactionService ? (isPoll ? window.ReactionService.renderReactionBlock('poll', n.id) : window.ReactionService.renderReactionBlock('notice', n.id)) : ''}
+                                    <div class="w-full mt-[12px] flex flex-wrap items-center justify-between gap-y-3 gap-x-2">
+                                        <div class="flex items-center justify-center w-full md:w-auto md:justify-start">
+                                            ${bottomEventTagsHtml}
                                         </div>
-                                        ${!isPoll ? `
-                                        <div class="flex items-center justify-center flex-1">
-                                            ${window.CommentService ? window.CommentService.renderCommentCountButton('notice', n.id) : ''}
-                                        </div>` : ''}
-                                        <div class="flex items-center justify-end flex-1">
-                                            ${window.SeenService ? window.SeenService.renderSeenBlock('notice', n.id) : ''}
+                                        <div class="flex items-center justify-between w-full md:w-auto md:justify-end gap-[4px]">
+                                            <div class="shrink-0 flex items-center">
+                                                ${window.SeenService ? window.SeenService.renderSeenBlock('notice', n.id) : ''}
+                                            </div>
+                                            <div class="shrink-0 flex items-center">
+                                                ${window.ReactionService ? (isPoll ? window.ReactionService.renderReactionBlock('poll', n.id) : window.ReactionService.renderReactionBlock('notice', n.id)) : ''}
+                                            </div>
+                                            ${!isPoll ? `
+                                            <div class="shrink-0 flex items-center">
+                                                ${window.CommentService ? window.CommentService.renderCommentCountButton('notice', n.id) : ''}
+                                            </div>` : ''}
                                         </div>
                                     </div>
                                 </div>
@@ -774,20 +775,20 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                          <h4 class="font-[700] text-[16px] text-[#111827] dark:text-indigo-50 mt-0 truncate leading-tight">${window.safeFormatRichText(s.title)}</h4>
                                          <p class="text-[14px] text-[#4b5563] dark:text-dark-textSecondary line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.safeFormatRichText(s.message)}</p>
                                      </div>
-                                     ${bottomEventTagsHtml ? `
-                                     <div class="w-full mt-[12px] flex items-center justify-start">
-                                         ${bottomEventTagsHtml}
-                                     </div>
-                                     ` : ''}
-                                     <div class="w-full mt-[12px] pt-[12px] border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-[4px]">
-                                         <div class="flex items-center justify-start flex-1">
-                                             ${window.ReactionService ? window.ReactionService.renderReactionBlock('schedule', s.id) : ''}
+                                     <div class="w-full mt-[12px] flex flex-wrap items-center justify-between gap-y-3 gap-x-2">
+                                         <div class="flex items-center justify-center w-full md:w-auto md:justify-start">
+                                             ${bottomEventTagsHtml}
                                          </div>
-                                         <div class="flex items-center justify-center flex-1">
-                                             ${window.CommentService ? window.CommentService.renderCommentCountButton('schedule', s.id) : ''}
-                                         </div>
-                                         <div class="flex items-center justify-end flex-1">
-                                             ${window.SeenService ? window.SeenService.renderSeenBlock('schedule', s.id) : ''}
+                                         <div class="flex items-center justify-between w-full md:w-auto md:justify-end gap-[4px]">
+                                             <div class="shrink-0 flex items-center">
+                                                 ${window.SeenService ? window.SeenService.renderSeenBlock('schedule', s.id) : ''}
+                                             </div>
+                                             <div class="shrink-0 flex items-center">
+                                                 ${window.ReactionService ? window.ReactionService.renderReactionBlock('schedule', s.id) : ''}
+                                             </div>
+                                             <div class="shrink-0 flex items-center">
+                                                 ${window.CommentService ? window.CommentService.renderCommentCountButton('schedule', s.id) : ''}
+                                             </div>
                                          </div>
                                      </div>
                                 </div>

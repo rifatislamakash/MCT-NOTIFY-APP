@@ -210,15 +210,16 @@ export class PollService {
                     <div class="text-[11px] text-slate-600 dark:text-dark-textSecondary mt-2 font-medium line-clamp-2">
                         ${window.safeFormatRichText(poll.message)}
                     </div>
-                    <div class="mt-3 border-t border-slate-100 dark:border-white/5 pt-[10px] flex items-center justify-between gap-[4px]">
-                        <div class="flex items-center justify-start flex-1" id="poll-reaction-container-${poll.id}">
-                            ${window.ReactionService ? window.ReactionService.renderReactionBlock('notice', poll.id) : ''}
-                        </div>
-                        <div class="flex items-center justify-center flex-1">
-                            <span class="text-[10px] font-bold text-slate-400 dark:text-dark-textSecondary">${totalVotes} votes</span>
-                        </div>
-                        <div class="flex items-center justify-end flex-1">
+                    <div class="mt-3 flex items-center justify-between text-[10px] font-bold text-slate-400 dark:text-dark-textSecondary">
+                        <div class="flex items-center gap-2">
+                            <span>${totalVotes} total votes</span>
                             ${window.SeenService ? window.SeenService.renderSeenBlock('notice', poll.id) : ''}
+                            <div class="shrink-0 flex items-center" id="poll-reaction-container-${poll.id}">
+                                ${window.ReactionService ? window.ReactionService.renderReactionBlock('notice', poll.id) : ''}
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1 text-indigo-600">
+                            View <i data-lucide="chevron-right" class="w-3 h-3"></i>
                         </div>
                     </div>
                 </div>
@@ -417,13 +418,12 @@ export class PollService {
             </div>
             <div>${optionsHtml}</div>
             ${releaseButtonHtml}
-            <div class="mt-4 border-t border-slate-100 dark:border-white/5 pt-[10px] flex items-center justify-between gap-[4px]">
-                <div class="flex items-center justify-start flex-1" id="poll-reaction-container-${poll.id}">
-                    ${window.ReactionService ? window.ReactionService.renderReactionBlock('notice', poll.id) : ''}
-                </div>
-                <div class="flex items-center justify-center flex-1"></div>
-                <div class="flex items-center justify-end flex-1">
+            <div class="mt-4 border-t border-slate-100 dark:border-white/5 pt-3 flex items-center justify-between">
+                <div class="shrink-0 flex items-center">
                     ${window.SeenService ? window.SeenService.renderSeenBlock('notice', poll.id) : ''}
+                </div>
+                <div class="shrink-0 flex items-center" id="poll-reaction-container-${poll.id}">
+                    ${window.ReactionService ? window.ReactionService.renderReactionBlock('notice', poll.id) : ''}
                 </div>
             </div>
         `;
