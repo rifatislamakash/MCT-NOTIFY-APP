@@ -93,102 +93,129 @@ serve(async (req) => {
       const notificationBody = cleanText(reminder.reminder_message);
 
       // Fetch audience targeting parameters from content_targets securely
-      const { data: targets } = await supabaseClient
+      let { data: targets } = await supabaseClient
         .from('content_targets')
         .select('target_type, target_id')
         .eq('content_id', reminder.parent_id);
 
-      // Fix array access to target_type and target_id
-      let targetType = targets && targets.length > 0 ? targets[0].target_type : "all_students";
-      let targetId = targets && targets.length > 0 ? targets[0].target_id : "global";
+      // SERVER AUTHORITATIVE RESOLUTION FOR COMMENT REPLIES
+      if (reminder.parent_type === 'comment_reply') {
+         const { data: commentData } = await supabaseClient
+             .from('comments')
+             .select('user_id, content_type, content_id, parent_comment_id')
+             .eq('id', reminder.parent_id)
+             .single();
+         
+         if (!commentData) {
+            console.error(`[FAIL CLOSED SECURITY] Comment not found for comment_reply event ${reminder.id}. Aborting.`);
+            sentReminderIds.push(reminder.id);
+            continue;
+         }
+
+         let creatorId = null;
+         let parentCommenterId = null;
+         
+         if (commentData.parent_comment_id) {
+             const { data: parentData } = await supabaseClient
+                 .from('comments')
+                 .select('user_id')
+                 .eq('id', commentData.parent_comment_id)
+                 .single();
+             if (parentData) parentCommenterId = parentData.user_id;
+         }
+         
+         const table = commentData.content_type === 'schedule' ? 'schedules' : (commentData.content_type === 'notice' ? 'notices' : null);
+         if (!table) {
+            console.error(`[FAIL CLOSED SECURITY] Invalid content type ${commentData.content_type}. Aborting.`);
+            sentReminderIds.push(reminder.id);
+            continue;
+         }
+         
+         const { data: contentData } = await supabaseClient
+             .from(table)
+             .select('created_by, audience_type, batch_id, course_id')
+             .eq('id', commentData.content_id)
+             .single();
+             
+         if (contentData) {
+             creatorId = contentData.created_by;
+         } else {
+             console.error(`[FAIL CLOSED SECURITY] Content not found for comment. Aborting.`);
+             sentReminderIds.push(reminder.id);
+             continue;
+         }
+         
+         const candidateRecipients = [parentCommenterId, creatorId];
+         let uniqueRecipients = [...new Set(candidateRecipients)]
+             .filter(id => id !== null && id !== commentData.user_id); // Exclude Actor
+             
+         // Validate Audience Security Server-Side
+         if (contentData.audience_type === 'batch' && contentData.batch_id) {
+             const { data: profiles } = await supabaseClient.from('profiles').select('id, batch_id').in('id', uniqueRecipients);
+             const validIds = profiles?.filter((p: any) => p.batch_id === contentData.batch_id).map((p: any) => p.id) || [];
+             uniqueRecipients = uniqueRecipients.filter(id => validIds.includes(id) || id === creatorId);
+         } else if (contentData.audience_type === 'specific' && contentData.course_id) {
+             const { data: enrolls } = await supabaseClient.from('user_courses').select('user_id').eq('course_id', contentData.course_id).in('user_id', uniqueRecipients);
+             const validIds = enrolls?.map((e: any) => e.user_id) || [];
+             uniqueRecipients = uniqueRecipients.filter(id => validIds.includes(id) || id === creatorId);
+         }
+         
+         targets = uniqueRecipients.map(id => ({ target_type: 'specific_student', target_id: id }));
+      }
+
+      if (!targets || targets.length === 0) {
+        if (reminder.parent_type === 'comment_reply') {
+          console.error(`[FAIL CLOSED SECURITY] Missing targets for comment_reply event ${reminder.id}. Aborting broadcast.`);
+          sentReminderIds.push(reminder.id);
+          continue;
+        }
+        targets = [{ target_type: "all_students", target_id: "global" }];
+      }
 
       if (reminder.parent_type === 'welcome') {
-        targetType = 'specific_student';
-        targetId = reminder.parent_id;
+        targets = [{ target_type: 'specific_student', target_id: reminder.parent_id }];
       }
+
+      console.log(`\n[TARGETS RESOLUTION] Found ${targets.length} targets`);
 
       // Dynamically fetch and filter tokens based on audience criteria
-      let uniqueTokens: string[] = [];
+      const tokenToTarget = new Map<string, { type: string, id: string }>();
       let profileIdsLog: string[] = [];
-      let tokenIdsLog: string[] = [];
 
-      console.log(`\n[TARGET TYPE]\n${targetType}`);
-      console.log(`\n[TARGET ID]\n${targetId}`);
+      for (const target of targets) {
+        const targetType = target.target_type;
+        const targetId = target.target_id;
+        let currentProfileIds: string[] = [];
 
-      if (targetType === 'batch_students' && targetId && targetId !== 'global') {
-        // Query specific batch student IDs
-        const { data: profiles, error: profileErr } = await supabaseClient
-          .from('profiles')
-          .select('id')
-          .eq('batch_id', targetId);
-
-        console.log('[PROFILE ERROR]', profileErr);
-        console.log('[PROFILE RESULT COUNT]', profiles ? profiles.length : 0);
-        console.log('[TARGET UUID]', targetId);
-
-        const { data: testProfiles } = await supabaseClient
-          .from('profiles')
-          .select('id, batch_id')
-          .limit(5);
-        console.log('[PROFILE SAMPLE]', testProfiles);
-
-        if (!profileErr && profiles && profiles.length > 0) {
-          const profileIds = profiles.map((p: any) => p.id);
-          profileIdsLog = profileIds;
-          const { data: devices, error: deviceErr } = await supabaseClient
-            .from('device_tokens')
-            .select('token')
-            .in('user_id', profileIds);
-
-          if (!deviceErr && devices) {
-            tokenIdsLog = devices.map((d: any) => d.token).filter(Boolean);
-            uniqueTokens = [...new Set(tokenIdsLog)];
-          }
+        if (targetType === 'batch_students' && targetId && targetId !== 'global') {
+          const { data: profiles } = await supabaseClient.from('profiles').select('id').eq('batch_id', targetId);
+          if (profiles) currentProfileIds = profiles.map((p: any) => p.id);
+        } else if (targetType === 'course_students' && targetId && targetId !== 'global') {
+          const { data: enrollments } = await supabaseClient.from('user_courses').select('user_id').eq('course_id', targetId);
+          if (enrollments) currentProfileIds = enrollments.map((e: any) => e.user_id);
+        } else if (targetType === 'specific_student' && targetId && targetId !== 'global') {
+          currentProfileIds = [targetId];
+        } else {
+          const { data: devices } = await supabaseClient.from('device_tokens').select('user_id');
+          if (devices) currentProfileIds = devices.map((d: any) => d.user_id).filter(Boolean);
         }
-      } else if (targetType === 'course_students' && targetId && targetId !== 'global') {
-          // Query students enrolled in the course
-          const { data: enrollments, error: enrollErr } = await supabaseClient
-            .from('user_courses')
-            .select('user_id')
-            .eq('course_id', targetId);
-          
-          if (!enrollErr && enrollments && enrollments.length > 0) {
-            const enrollIds = enrollments.map((e: any) => e.user_id);
-            profileIdsLog = enrollIds;
-            const { data: devices, error: deviceErr } = await supabaseClient
-              .from('device_tokens')
-              .select('token')
-              .in('user_id', enrollIds);
 
-            if (!deviceErr && devices) {
-              tokenIdsLog = devices.map((d: any) => d.token).filter(Boolean);
-              uniqueTokens = [...new Set(tokenIdsLog)];
+        if (currentProfileIds.length > 0) {
+          profileIdsLog.push(...currentProfileIds);
+          const { data: devices } = await supabaseClient.from('device_tokens').select('token').in('user_id', currentProfileIds);
+          if (devices) {
+            for (const d of devices) {
+              if (d.token && !tokenToTarget.has(d.token)) {
+                tokenToTarget.set(d.token, { type: targetType, id: targetId });
+              }
             }
           }
-      } else if (targetType === 'specific_student' && targetId && targetId !== 'global') {
-          // Query specific student
-          profileIdsLog = [targetId];
-          const { data: devices, error: deviceErr } = await supabaseClient
-            .from('device_tokens')
-            .select('token')
-            .eq('user_id', targetId);
-
-          if (!deviceErr && devices) {
-            tokenIdsLog = devices.map((d: any) => d.token).filter(Boolean);
-            uniqueTokens = [...new Set(tokenIdsLog)];
-          }
-      } else {
-        // Global broadcast (all_students or fallback)
-        const { data: devices, error: deviceErr } = await supabaseClient
-          .from('device_tokens')
-          .select('user_id, token');
-        
-        if (!deviceErr && devices) {
-          profileIdsLog = [...new Set(devices.map((d: any) => d.user_id).filter(Boolean))];
-          tokenIdsLog = devices.map((d: any) => d.token).filter(Boolean);
-          uniqueTokens = [...new Set(tokenIdsLog)];
         }
       }
+
+      profileIdsLog = [...new Set(profileIdsLog.filter(Boolean))];
+      let tokenIdsLog = Array.from(tokenToTarget.keys());
+      let uniqueTokens = [...tokenIdsLog];
 
       console.log(`\n[ELIGIBLE USERS] (Profile IDs mapped from audience)`);
       console.log(JSON.stringify(profileIdsLog, null, 2));
@@ -229,6 +256,7 @@ serve(async (req) => {
       const logsToInsert: any[] = [];
 
       for (const token of uniqueTokens) {
+        const tokenTarget = tokenToTarget.get(token);
         const fcmPayload = {
           message: {
             token: token,
@@ -237,8 +265,8 @@ serve(async (req) => {
               body: notificationBody || "Open the application to see details."
             },
             data: {
-              target_type: String(targetType || "notice"),
-              target_id: String(targetId || ""),
+              target_type: String(tokenTarget?.type || "notice"),
+              target_id: String(tokenTarget?.id || ""),
               click_action: "https://mctnotify.vercel.app"
             },
             android: {

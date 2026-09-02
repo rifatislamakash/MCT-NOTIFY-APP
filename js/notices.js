@@ -1415,6 +1415,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     ndSeenContainer.innerHTML = window.SeenService.renderSeenBlock('notice', id);
                 }
             }
+            
+            if (window.CommentService) {
+                window.CommentService.renderCommentsSection('nd-comments-container', 'notice', id);
+            }
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
             window.navigate('screen-notice-details');

@@ -758,6 +758,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
             if (window.ReactionService) {
                 document.getElementById('sd-reaction-container').innerHTML = window.ReactionService.renderReactionBlock('schedule', scheduleId);
             }
+            
+            if (window.CommentService) {
+                window.CommentService.renderCommentsSection('sd-comments-container', 'schedule', scheduleId);
+            }
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
         };

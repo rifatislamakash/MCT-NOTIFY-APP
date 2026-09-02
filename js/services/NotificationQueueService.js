@@ -81,24 +81,42 @@ export const NotificationQueueService = {
                 case 'exam_schedules':
                     formatted = NotificationFormatter.formatExam(title || courseName, message, date, time);
                     break;
+                case 'comment_reply':
+                    formatted = NotificationFormatter.formatCommentReply(title, message);
+                    break;
                 default:
                     formatted = NotificationFormatter.formatGeneric(title, message);
             }
 
-            // Security: Prevent identical notifications from spamming the system within 5 minutes
-            const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-            const { data: recentDups, error: dupErr } = await _supabase
-                .from('notification_reminders')
-                .select('id')
-                .eq('parent_type', parentType)
-                .eq('reminder_title', formatted.title)
-                .eq('reminder_message', formatted.message)
-                .gte('created_at', fiveMinutesAgo)
-                .limit(1);
+            // STRICT DEDUPLICATION FOR COMMENT REPLIES
+            if (parentType === 'comment_reply') {
+                const { data: dupReply, error: dupReplyErr } = await _supabase
+                    .from('notification_reminders')
+                    .select('id')
+                    .eq('parent_type', 'comment_reply')
+                    .eq('parent_id', parentId)
+                    .limit(1);
+                    
+                if (dupReply && dupReply.length > 0) {
+                    console.log(`[QUEUE SECURITY] Blocked duplicate comment_reply notification. Event already exists.`);
+                    return { success: true, skipped: true, reason: 'Duplicate prevented (Strict Idempotency)' };
+                }
+            } else {
+                // Security: Prevent identical notifications from spamming the system within 5 minutes
+                const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+                const { data: recentDups, error: dupErr } = await _supabase
+                    .from('notification_reminders')
+                    .select('id')
+                    .eq('parent_type', parentType)
+                    .eq('reminder_title', formatted.title)
+                    .eq('reminder_message', formatted.message)
+                    .gte('created_at', fiveMinutesAgo)
+                    .limit(1);
 
-            if (recentDups && recentDups.length > 0) {
-                console.log(`[QUEUE SECURITY] Blocked duplicate notification. Exact match found within 5 minutes.`);
-                return { success: true, skipped: true, reason: 'Duplicate prevented' };
+                if (recentDups && recentDups.length > 0) {
+                    console.log(`[QUEUE SECURITY] Blocked duplicate notification. Exact match found within 5 minutes.`);
+                    return { success: true, skipped: true, reason: 'Duplicate prevented' };
+                }
             }
 
             const payload = {

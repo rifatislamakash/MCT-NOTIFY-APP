@@ -46,6 +46,13 @@ export const NotificationFormatter = {
             message: (window.stripRichText ? window.stripRichText(message) : message) || `Upcoming Exam on ${date} ${time ? '& ' + time : ''}. Open the app to see details.`
         };
     },
+
+    formatCommentReply: function(title, message) {
+        return {
+            title: title || 'New Reply',
+            message: message || 'Someone replied to your comment.'
+        };
+    },
     
     // Generic fallback
     formatGeneric: function(title, message) {
