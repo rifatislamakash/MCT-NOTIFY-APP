@@ -144,7 +144,7 @@ export class CommentService {
                     </div>
                 </div>
                 <div class="flex gap-3">
-                    <img src="${window.sanitizeUrl(window.authState?.profile?.profile_url) || 'assets/profilefill.png'}" class="w-12 h-12 aspect-square rounded-full overflow-hidden object-cover object-center shrink-0" onerror="this.src='assets/profilefill.png'">
+                    <img src="${window.sanitizeUrl(window.authState?.profile?.profile_url) || 'assets/profilefill.png'}" class="w-12 h-12 aspect-square rounded-full overflow-hidden object-cover object-center shrink-0 self-start" style="min-width: 48px; max-width: 48px; height: 48px; min-height: 48px;" onerror="this.src='assets/profilefill.png'">
                     <div class="flex-1 relative">
                         <textarea id="comment-input-${contentId}" rows="1" class="w-full bg-slate-50 dark:bg-dark-surface border border-slate-200 dark:border-white/10 rounded-[12px] px-3 py-2 text-[13px] text-slate-800 dark:text-dark-text focus:outline-none focus:border-[#4226E9] resize-none overflow-hidden block" placeholder="Write a comment..." oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'"></textarea>
                         <button id="comment-submit-${contentId}" onclick="window.CommentService.submitTopComment('${contentType}', '${contentId}')" class="absolute right-3 bottom-2 text-[#4226E9] font-bold text-[13px] hover:opacity-80">Send</button>
@@ -188,7 +188,7 @@ export class CommentService {
                 const rIsMine = reply.user_id === window.authState?.user?.id;
                 return `
                 <div class="flex gap-2" id="comment-${reply.id}">
-                    <img src="${rAvatar}" class="w-10 h-10 aspect-square rounded-full overflow-hidden object-cover object-center shrink-0 mt-1" onerror="this.src='assets/profilefill.png'">
+                    <img src="${rAvatar}" class="w-10 h-10 aspect-square rounded-full overflow-hidden object-cover object-center shrink-0 self-start mt-1" style="min-width: 40px; max-width: 40px; height: 40px; min-height: 40px;" onerror="this.src='assets/profilefill.png'">
                     <div class="flex-1 min-w-0">
                         <div class="bg-slate-50 dark:bg-dark-surface rounded-[12px] px-3 py-2 border border-slate-100 dark:border-white/5 inline-block min-w-[50%] max-w-full">
                             <span class="block font-bold text-[12px] text-slate-800 dark:text-dark-text leading-none mb-1">${window.sanitizeHTML(rName)}</span>
@@ -205,7 +205,7 @@ export class CommentService {
             }).join('') + `</div>`;
         }
         div.innerHTML = `
-            <img src="${avatar}" class="w-12 h-12 aspect-square rounded-full overflow-hidden object-cover object-center shrink-0 mt-1" onerror="this.src='assets/profilefill.png'">
+            <img src="${avatar}" class="w-12 h-12 aspect-square rounded-full overflow-hidden object-cover object-center shrink-0 self-start mt-1" style="min-width: 48px; max-width: 48px; height: 48px; min-height: 48px;" onerror="this.src='assets/profilefill.png'">
             <div class="flex-1 min-w-0">
                 <div class="bg-slate-50 dark:bg-dark-surface rounded-[14px] px-3 py-2 border border-slate-100 dark:border-white/5 inline-block min-w-[50%] max-w-full">
                     <span class="block font-bold text-[13px] text-slate-800 dark:text-dark-text leading-none mb-1">${window.sanitizeHTML(name)}</span>
@@ -220,7 +220,7 @@ export class CommentService {
                 ${repliesHtml}
                 <div id="reply-container-${comment.id}" class="hidden mt-3 pl-2 border-l-2 border-slate-100 dark:border-white/5">
                     <div class="flex gap-2">
-                        <img src="${window.sanitizeUrl(window.authState?.profile?.profile_url) || 'assets/profilefill.png'}" class="w-10 h-10 aspect-square rounded-full overflow-hidden object-cover object-center shrink-0" onerror="this.src='assets/profilefill.png'">
+                        <img src="${window.sanitizeUrl(window.authState?.profile?.profile_url) || 'assets/profilefill.png'}" class="w-10 h-10 aspect-square rounded-full overflow-hidden object-cover object-center shrink-0 self-start" style="min-width: 40px; max-width: 40px; height: 40px; min-height: 40px;" onerror="this.src='assets/profilefill.png'">
                         <div class="flex-1 relative">
                             <textarea id="reply-input-${comment.id}" rows="1" class="w-full bg-slate-50 dark:bg-dark-surface border border-slate-200 dark:border-white/10 rounded-[12px] px-3 py-2 pr-12 text-[12px] text-slate-800 dark:text-dark-text focus:outline-none focus:border-[#4226E9] resize-none overflow-hidden block" placeholder="Write a reply..." oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'"></textarea>
                             <button id="reply-submit-${comment.id}" onclick="window.CommentService.submitReply('${comment.id}', '${contentType}', '${contentId}')" class="absolute right-3 bottom-2 text-[#4226E9] font-bold text-[12px] hover:opacity-80">Send</button>
@@ -408,18 +408,10 @@ export class CommentService {
         if (contentType === 'notice') {
             if (typeof window.openNoticeDetails === 'function') {
                 window.openNoticeDetails(contentId);
-                setTimeout(() => {
-                    const commentsEl = document.getElementById('nd-comments-container');
-                    if (commentsEl) commentsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 400);
             }
         } else if (contentType === 'schedule') {
             if (typeof window.openScheduleDetails === 'function') {
                 window.openScheduleDetails(contentId);
-                setTimeout(() => {
-                    const commentsEl = document.getElementById('sd-comments-container');
-                    if (commentsEl) commentsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 400);
             }
         }
     }
