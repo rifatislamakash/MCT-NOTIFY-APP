@@ -162,6 +162,10 @@ let isRegistering = false;
                             }
                         }).catch(console.warn));
                     }
+                    if (window.CommentService && typeof window.CommentService.loadAllCommentCounts === 'function') {
+                        tasks.push(window.CommentService.loadAllCommentCounts().catch(console.warn));
+                    }
+
                     const currentPrefRole = sessionStorage.getItem('crPreferredRole') || window.authState?.profile?.role || 'student';
                     const isActualAdmin = window.currentUserRole === 'admin' || window.isAdminEmail(window.currentUserEmail);
                     const isCR = window.currentUserRole === 'cr';

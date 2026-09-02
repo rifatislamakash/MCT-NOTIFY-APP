@@ -647,9 +647,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         </div>
                         <div class="w-full mt-[12px] !flex !flex-wrap !justify-between !items-center !gap-[8px]">
                             <div class="flex-1">${bottomEventTagsHtml}</div>
-                            <div class="shrink-0 ml-3 flex items-center">
+                            <div class="shrink-0 ml-3 flex items-center gap-[4px]">
                                 ${window.SeenService ? window.SeenService.renderSeenBlock('schedule', s.id) : ''}
                                 ${window.ReactionService ? window.ReactionService.renderReactionBlock('schedule', s.id) : ''}
+                                ${window.CommentService ? window.CommentService.renderCommentCountButton('schedule', s.id) : ''}
                             </div>
                         </div>
                     </div>`;

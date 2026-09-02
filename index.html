@@ -9777,7 +9777,7 @@
                     result = await fetchWithRetry(async (signal) => {
                         const { data, error } = await _supabase
                             .from('groups')
-                            .select('*, courses(batch_id, course_name, short_name, course_code)')
+                            .select('*, courses(batch_id, course_name, short_name, course_code), content_targets(target_type, target_id)')
                             .order('created_at', { ascending: false })
                             .abortSignal(signal);
                         if (error) {
@@ -9916,29 +9916,48 @@
             let viewableGroups = currentGroupsList;
             if (!isAdminOrCR) {
                 const myCourseIds = (window.currentUserCoursesList || []).map(uc => uc.course_id);
+                const myBatchId = window.authState?.profile?.batch_id;
                 viewableGroups = currentGroupsList.filter(g => {
-                    // General/Link groups have no course_id, course groups MUST match enrollment
-                    if (!g.course_id) return true;
-                    return myCourseIds.includes(g.course_id);
+                    // Course groups MUST match enrollment
+                    if (g.course_id) return myCourseIds.includes(g.course_id);
+                    
+                    // General/Link groups: strict check against content_targets
+                    if (g.content_targets && g.content_targets.length > 0) {
+                        return g.content_targets.some(ct => 
+                            (ct.target_type === 'all_students' || ct.target_type === 'all') ||
+                            (ct.target_type === 'batch_students' && ct.target_id === myBatchId)
+                        );
+                    }
+                    
+                    // Fallback for old global groups (pre-migration)
+                    return true;
                 });
             } else if (batchVal !== 'all') {
                 console.log("[DEBUG GROUPS] batchVal:", batchVal);
-                console.log("[DEBUG GROUPS] Sample group:", currentGroupsList[0]);
                 viewableGroups = currentGroupsList.filter(g => {
-                    if (!g.course_id) return true;
-                    
-                    let gBatchId = null;
-                    if (g.courses) {
-                        if (Array.isArray(g.courses) && g.courses.length > 0) gBatchId = g.courses[0].batch_id;
-                        else if (g.courses.batch_id) gBatchId = g.courses.batch_id;
+                    // Course groups: match course batch
+                    if (g.course_id) {
+                        let gBatchId = null;
+                        if (g.courses) {
+                            if (Array.isArray(g.courses) && g.courses.length > 0) gBatchId = g.courses[0].batch_id;
+                            else if (g.courses.batch_id) gBatchId = g.courses.batch_id;
+                        }
+                        if (gBatchId) return String(gBatchId) === String(batchVal);
+                        
+                        const c = (window.allCoursesList || []).find(x => x.id === g.course_id);
+                        return c && String(c.batch_id) === String(batchVal);
                     }
                     
-                    if (gBatchId) {
-                        return String(gBatchId) === String(batchVal);
+                    // General/Link groups: match content_targets batch
+                    if (g.content_targets && g.content_targets.length > 0) {
+                        return g.content_targets.some(ct => 
+                            (ct.target_type === 'all_students' || ct.target_type === 'all') ||
+                            (ct.target_type === 'batch_students' && String(ct.target_id) === String(batchVal))
+                        );
                     }
                     
-                    const c = (window.allCoursesList || []).find(x => x.id === g.course_id);
-                    return c && String(c.batch_id) === String(batchVal);
+                    // Fallback for old global groups
+                    return true;
                 });
             }
 

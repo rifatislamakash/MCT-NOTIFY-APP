@@ -92,14 +92,23 @@ export class CommentService {
             const isReply = !!commentData.parent_comment_id;
             const actorName = commentData.profiles?.full_name || window.authState?.profile?.full_name || 'Someone';
             
-            // Determine dynamic title (Backend Edge Function will handle actual filtering and delivery)
-            let titleStr = isReply ? `${actorName} replied to a comment` : `${actorName} commented on your ${commentData.content_type}`;
-            
-            // Note: Since we shifted recipient logic to backend to prevent RLS target spoofing, 
-            // the exact 'replied to YOUR comment' vs 'replied to A comment' title nuance will be a generalized format here.
-            if (isReply) {
-                titleStr = `${actorName} replied to the conversation`;
+            // Fetch content title for notification text
+            let contentTitle = 'Update';
+            try {
+                const table = commentData.content_type === 'schedule' ? 'schedules' : (commentData.content_type === 'notice' ? 'notices' : null);
+                if (table) {
+                    const { data: contentDataRec } = await _supabase.from(table).select('title').eq('id', commentData.content_id).single();
+                    if (contentDataRec && contentDataRec.title) {
+                        contentTitle = contentDataRec.title;
+                    }
+                }
+            } catch(e) {
+                console.warn('[COMMENT TITLE FETCH ERR]', e);
             }
+            
+            let titleStr = isReply 
+                ? `${actorName} replied to you - ${contentTitle}` 
+                : `${actorName} commented on your ${commentData.content_type} - ${contentTitle}`;
 
             const result = await NotificationQueueService.queueNotification({
                 parentType: 'comment_reply',
@@ -135,7 +144,7 @@ export class CommentService {
                     </div>
                 </div>
                 <div class="flex gap-3">
-                    <img src="${window.sanitizeUrl(window.authState?.profile?.profile_url) || 'assets/profilefill.png'}" class="w-8 h-8 rounded-full object-cover shrink-0">
+                    <img src="${window.sanitizeUrl(window.authState?.profile?.profile_url) || 'assets/profilefill.png'}" class="w-12 h-12 aspect-square rounded-full overflow-hidden object-cover object-center shrink-0" onerror="this.src='assets/profilefill.png'">
                     <div class="flex-1 relative">
                         <textarea id="comment-input-${contentId}" rows="1" class="w-full bg-slate-50 dark:bg-dark-surface border border-slate-200 dark:border-white/10 rounded-[12px] px-3 py-2 text-[13px] text-slate-800 dark:text-dark-text focus:outline-none focus:border-[#4226E9] resize-none overflow-hidden block" placeholder="Write a comment..." oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'"></textarea>
                         <button id="comment-submit-${contentId}" onclick="window.CommentService.submitTopComment('${contentType}', '${contentId}')" class="absolute right-3 bottom-2 text-[#4226E9] font-bold text-[13px] hover:opacity-80">Send</button>
@@ -179,7 +188,7 @@ export class CommentService {
                 const rIsMine = reply.user_id === window.authState?.user?.id;
                 return `
                 <div class="flex gap-2" id="comment-${reply.id}">
-                    <img src="${rAvatar}" class="w-6 h-6 rounded-full object-cover shrink-0 mt-1">
+                    <img src="${rAvatar}" class="w-10 h-10 aspect-square rounded-full overflow-hidden object-cover object-center shrink-0 mt-1" onerror="this.src='assets/profilefill.png'">
                     <div class="flex-1 min-w-0">
                         <div class="bg-slate-50 dark:bg-dark-surface rounded-[12px] px-3 py-2 border border-slate-100 dark:border-white/5 inline-block min-w-[50%] max-w-full">
                             <span class="block font-bold text-[12px] text-slate-800 dark:text-dark-text leading-none mb-1">${window.sanitizeHTML(rName)}</span>
@@ -196,7 +205,7 @@ export class CommentService {
             }).join('') + `</div>`;
         }
         div.innerHTML = `
-            <img src="${avatar}" class="w-8 h-8 rounded-full object-cover shrink-0 mt-1">
+            <img src="${avatar}" class="w-12 h-12 aspect-square rounded-full overflow-hidden object-cover object-center shrink-0 mt-1" onerror="this.src='assets/profilefill.png'">
             <div class="flex-1 min-w-0">
                 <div class="bg-slate-50 dark:bg-dark-surface rounded-[14px] px-3 py-2 border border-slate-100 dark:border-white/5 inline-block min-w-[50%] max-w-full">
                     <span class="block font-bold text-[13px] text-slate-800 dark:text-dark-text leading-none mb-1">${window.sanitizeHTML(name)}</span>
@@ -211,7 +220,7 @@ export class CommentService {
                 ${repliesHtml}
                 <div id="reply-container-${comment.id}" class="hidden mt-3 pl-2 border-l-2 border-slate-100 dark:border-white/5">
                     <div class="flex gap-2">
-                        <img src="${window.sanitizeUrl(window.authState?.profile?.profile_url) || 'assets/profilefill.png'}" class="w-6 h-6 rounded-full object-cover shrink-0">
+                        <img src="${window.sanitizeUrl(window.authState?.profile?.profile_url) || 'assets/profilefill.png'}" class="w-10 h-10 aspect-square rounded-full overflow-hidden object-cover object-center shrink-0" onerror="this.src='assets/profilefill.png'">
                         <div class="flex-1 relative">
                             <textarea id="reply-input-${comment.id}" rows="1" class="w-full bg-slate-50 dark:bg-dark-surface border border-slate-200 dark:border-white/10 rounded-[12px] px-3 py-2 pr-12 text-[12px] text-slate-800 dark:text-dark-text focus:outline-none focus:border-[#4226E9] resize-none overflow-hidden block" placeholder="Write a reply..." oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'"></textarea>
                             <button id="reply-submit-${comment.id}" onclick="window.CommentService.submitReply('${comment.id}', '${contentType}', '${contentId}')" class="absolute right-3 bottom-2 text-[#4226E9] font-bold text-[12px] hover:opacity-80">Send</button>
@@ -350,6 +359,69 @@ export class CommentService {
         interval = seconds / 60;
         if (interval > 1) return Math.floor(interval) + "m";
         return "Just now";
+    }
+
+    static countsCache = {};
+
+    static async loadAllCommentCounts() {
+        try {
+            const { data, error } = await _supabase.from('comments').select('content_id');
+            if (error) throw error;
+            
+            const counts = {};
+            if (data) {
+                data.forEach(c => {
+                    counts[c.content_id] = (counts[c.content_id] || 0) + 1;
+                });
+            }
+            this.countsCache = counts;
+            console.log(`[COMMENT COUNT LOAD] Loaded counts for ${Object.keys(counts).length} items`);
+            
+            // Update all rendered buttons dynamically
+            document.querySelectorAll('.comment-count-btn').forEach(btn => {
+                const id = btn.dataset.contentId;
+                const count = this.countsCache[id] || 0;
+                const text = count > 0 ? `Comment ${count}` : 'Comment';
+                btn.innerHTML = `<i data-lucide="message-square" class="w-[14px] h-[14px]"></i> ${text}`;
+            });
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        } catch (e) {
+            console.error('[COMMENT COUNT LOAD ERR]', e);
+        }
+    }
+
+    static renderCommentCountButton(contentType, contentId) {
+        const count = this.countsCache[contentId] || 0;
+        const text = count > 0 ? `Comment ${count}` : 'Comment';
+        
+        return `
+            <button class="comment-count-btn flex items-center justify-center gap-[6px] px-3 py-1.5 rounded-[8px] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 text-[11px] font-bold text-slate-600 dark:text-dark-textSecondary hover:bg-slate-100 dark:hover:bg-white/10 transition-colors" 
+                data-content-type="${contentType}" data-content-id="${contentId}" 
+                onclick="event.stopPropagation(); window.CommentService.handleCommentButtonClick('${contentType}', '${contentId}')">
+                <i data-lucide="message-square" class="w-[14px] h-[14px]"></i> ${text}
+            </button>
+        `;
+    }
+
+    static handleCommentButtonClick(contentType, contentId) {
+        console.log('[COMMENT BUTTON] Clicked for', contentType, contentId);
+        if (contentType === 'notice') {
+            if (typeof window.openNoticeDetails === 'function') {
+                window.openNoticeDetails(contentId);
+                setTimeout(() => {
+                    const commentsEl = document.getElementById('nd-comments-container');
+                    if (commentsEl) commentsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 400);
+            }
+        } else if (contentType === 'schedule') {
+            if (typeof window.openScheduleDetails === 'function') {
+                window.openScheduleDetails(contentId);
+                setTimeout(() => {
+                    const commentsEl = document.getElementById('sd-comments-container');
+                    if (commentsEl) commentsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 400);
+            }
+        }
     }
 }
 window.CommentService = CommentService;

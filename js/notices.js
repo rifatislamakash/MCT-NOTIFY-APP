@@ -545,6 +545,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                         <div class="shrink-0 flex items-center">
                                             ${window.ReactionService ? window.ReactionService.renderReactionBlock('notice', n.id) : ''}
                                         </div>
+                                        <div class="shrink-0 flex items-center">
+                                            ${window.CommentService ? window.CommentService.renderCommentCountButton('notice', n.id) : ''}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -710,6 +713,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                             <div class="shrink-0 flex items-center">
                                                 ${window.ReactionService ? (isPoll ? window.ReactionService.renderReactionBlock('poll', n.id) : window.ReactionService.renderReactionBlock('notice', n.id)) : ''}
                                             </div>
+                                            ${!isPoll ? `
+                                            <div class="shrink-0 flex items-center">
+                                                ${window.CommentService ? window.CommentService.renderCommentCountButton('notice', n.id) : ''}
+                                            </div>` : ''}
                                         </div>
                                     </div>
                                 </div>
@@ -777,6 +784,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                              </div>
                                              <div class="shrink-0 flex items-center">
                                                  ${window.ReactionService ? window.ReactionService.renderReactionBlock('schedule', s.id) : ''}
+                                             </div>
+                                             <div class="shrink-0 flex items-center">
+                                                 ${window.CommentService ? window.CommentService.renderCommentCountButton('schedule', s.id) : ''}
                                              </div>
                                          </div>
                                      </div>

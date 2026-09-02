@@ -121,19 +121,39 @@ export const batchService = {
     async getBatchGroups(batchIds) {
         if (!batchIds || batchIds.length === 0) return [];
         console.log('[BATCH GROUPS] Fetching groups for batches:', batchIds);
-        const { data, error } = await _supabase
+        
+        // 1. Fetch groups mapped via course_id
+        const { data: courseGroupsData, error: err1 } = await _supabase
             .from('groups')
-            .select(`
-                *,
-                courses!inner (batch_id, course_name, short_name)
-            `)
+            .select('*, courses!inner (batch_id, course_name, short_name, course_code), content_targets(target_type, target_id)')
             .in('courses.batch_id', batchIds);
             
-        if (error) {
-            console.error('[BATCH GROUPS] Error:', error);
-            return [];
-        }
-        return data || [];
+        // 2. Fetch general groups mapped via content_targets (batch_students)
+        const { data: targetGroupsData, error: err2 } = await _supabase
+            .from('groups')
+            .select('*, courses(batch_id, course_name, short_name, course_code), content_targets!inner(content_type, target_type, target_id)')
+            .eq('content_targets.content_type', 'group')
+            .eq('content_targets.target_type', 'batch_students')
+            .in('content_targets.target_id', batchIds);
+
+        if (err1) console.error('[BATCH GROUPS] Error 1:', err1);
+        if (err2) console.error('[BATCH GROUPS] Error 2:', err2);
+
+        const allGroups = [];
+        const seenIds = new Set();
+        const process = (arr) => {
+            if (!arr) return;
+            for (const g of arr) {
+                if (!seenIds.has(g.id)) {
+                    seenIds.add(g.id);
+                    allGroups.push(g);
+                }
+            }
+        };
+        process(courseGroupsData);
+        process(targetGroupsData);
+
+        return allGroups.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     },
 
     /**
