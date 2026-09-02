@@ -131,10 +131,12 @@ export const NotificationQueueService = {
 
             console.log(`[QUEUE INSERT] Payload ready for ${parentType}`);
 
-            const { data, error } = await _supabase.from('notification_reminders').insert([payload]);
+            const { data, error } = await _supabase.rpc('secure_queue_reminders', {
+                p_reminders: [payload]
+            });
 
             if (error) {
-                console.error(`[QUEUE FAILED] Error inserting for ${parentType}:`, error);
+                console.error(`[QUEUE FAILED] Error inserting via RPC for ${parentType}:`, error);
                 return { success: false, error };
             }
 

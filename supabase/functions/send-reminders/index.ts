@@ -92,88 +92,218 @@ serve(async (req) => {
       const notificationTitle = cleanText(rawTitle);
       const notificationBody = cleanText(reminder.reminder_message);
 
-      // Fetch audience targeting parameters from content_targets securely
       let { data: targets } = await supabaseClient
         .from('content_targets')
         .select('target_type, target_id')
         .eq('content_id', reminder.parent_id);
 
-      // SERVER AUTHORITATIVE RESOLUTION FOR COMMENT REPLIES
+      // ============================================================================
+      // CRITICAL SECURITY BOUNDARY: SERVER AUTHORITATIVE COMMENT PIPELINE
+      // ============================================================================
       if (reminder.parent_type === 'comment_reply') {
-         const { data: commentData } = await supabaseClient
-             .from('comments')
-             .select('user_id, content_type, content_id, parent_comment_id')
-             .eq('id', reminder.parent_id)
-             .single();
-         
-         if (!commentData) {
-            console.error(`[FAIL CLOSED SECURITY] Comment not found for comment_reply event ${reminder.id}. Aborting.`);
-            sentReminderIds.push(reminder.id);
-            continue;
-         }
+          console.log(`\n[COMMENT NOTIFICATION START]`);
+          console.log(`event_id: ${reminder.id}`);
+          console.log(`parent_id (comment): ${reminder.parent_id}`);
 
-         let creatorId = null;
-         let parentCommenterId = null;
-         
-         if (commentData.parent_comment_id) {
-             const { data: parentData } = await supabaseClient
-                 .from('comments')
-                 .select('user_id')
-                 .eq('id', commentData.parent_comment_id)
-                 .single();
-             if (parentData) parentCommenterId = parentData.user_id;
-         }
-         
-         const table = commentData.content_type === 'schedule' ? 'schedules' : (commentData.content_type === 'notice' ? 'notices' : null);
-         if (!table) {
-            console.error(`[FAIL CLOSED SECURITY] Invalid content type ${commentData.content_type}. Aborting.`);
-            sentReminderIds.push(reminder.id);
-            continue;
-         }
-         
-         const { data: contentData } = await supabaseClient
-             .from(table)
-             .select('created_by, audience_type, batch_id, course_id')
-             .eq('id', commentData.content_id)
-             .single();
-             
-         if (contentData) {
-             creatorId = contentData.created_by;
-         } else {
-             console.error(`[FAIL CLOSED SECURITY] Content not found for comment. Aborting.`);
+          const { data: commentData } = await supabaseClient
+              .from('comments')
+              .select('user_id, content_type, content_id, parent_comment_id')
+              .eq('id', reminder.parent_id)
+              .single();
+              
+          if (!commentData) {
+             console.error(`[FAIL CLOSED SECURITY] Comment not found for event ${reminder.id}. Aborting.`);
              sentReminderIds.push(reminder.id);
              continue;
-         }
-         
-         const candidateRecipients = [parentCommenterId, creatorId];
-         let uniqueRecipients = [...new Set(candidateRecipients)]
-             .filter(id => id !== null && id !== commentData.user_id); // Exclude Actor
+          }
+          
+          console.log(`content_type: ${commentData.content_type}`);
+          console.log(`content_id: ${commentData.content_id}`);
+          console.log(`actor_id: ${commentData.user_id}`);
+          console.log(`parent_comment_id: ${commentData.parent_comment_id || 'none'}`);
+
+          let creatorId = null;
+          let parentCommenterId = null;
+          
+          if (commentData.parent_comment_id) {
+              const { data: parentData } = await supabaseClient
+                  .from('comments')
+                  .select('user_id')
+                  .eq('id', commentData.parent_comment_id)
+                  .single();
+              if (parentData) {
+                  parentCommenterId = parentData.user_id;
+                  console.log(`[COMMENT NOTIFICATION PARENT] parent_exists: true, parent_author_id: ${parentCommenterId}`);
+              } else {
+                  console.log(`[COMMENT NOTIFICATION PARENT] parent_exists: false`);
+              }
+          }
+          
+          const table = commentData.content_type === 'schedule' ? 'schedules' : (commentData.content_type === 'notice' ? 'notices' : (commentData.content_type === 'material' ? 'materials' : (commentData.content_type === 'poll' ? 'polls' : null)));
+          
+          if (!table) {
+             console.error(`[FAIL CLOSED SECURITY] Invalid content type ${commentData.content_type}. Aborting.`);
+             sentReminderIds.push(reminder.id);
+             continue;
+          }
+          
+          const { data: contentData } = await supabaseClient
+              .from(table)
+              .select('created_by')
+              .eq('id', commentData.content_id)
+              .single();
+              
+          if (contentData && contentData.created_by) {
+              creatorId = contentData.created_by;
+              console.log(`[COMMENT NOTIFICATION CONTENT] content_exists: true, content_owner_id: ${creatorId}`);
+          } else {
+              console.error(`[FAIL CLOSED SECURITY] Content owner not found for comment. Aborting.`);
+              sentReminderIds.push(reminder.id);
+              continue;
+          }
+          
+          const candidateIds = [parentCommenterId, creatorId].filter(id => id !== null);
+          console.log(`[COMMENT NOTIFICATION RECIPIENTS] candidate_ids: ${JSON.stringify(candidateIds)}`);
+          
+          let uniqueRecipients = [...new Set(candidateIds)].filter(id => id !== commentData.user_id);
+          console.log(`[COMMENT NOTIFICATION RECIPIENTS] final_authorized_ids: ${JSON.stringify(uniqueRecipients)}`);
+          
+          if (uniqueRecipients.length === 0) {
+              console.error(`[FAIL CLOSED SECURITY] No valid recipients after actor exclusion. Aborting.`);
+              sentReminderIds.push(reminder.id);
+              continue;
+          }
+
+          let uniqueTokens: string[] = [];
+          const tokenToTarget = new Map<string, string>();
+          
+          const { data: devices } = await supabaseClient
+              .from('device_tokens')
+              .select('token, user_id')
+              .in('user_id', uniqueRecipients);
+              
+          if (devices && devices.length > 0) {
+              for (const d of devices) {
+                  if (uniqueRecipients.includes(d.user_id)) {
+                      uniqueTokens.push(d.token);
+                      tokenToTarget.set(d.token, d.user_id);
+                  }
+              }
+          }
+          
+          uniqueTokens = [...new Set(uniqueTokens)];
+          console.log(`[COMMENT NOTIFICATION TOKENS] recipient_count: ${uniqueRecipients.length}, token_count: ${uniqueTokens.length}`);
+
+          if (uniqueTokens.length === 0) {
+              console.warn(`[FAIL CLOSED SECURITY] No tokens found for authorized users.`);
+              sentReminderIds.push(reminder.id);
+              continue;
+          }
+
+          const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+          const { data: recentLogs, error: logsErr } = await supabaseClient
+              .from('notification_logs')
+              .select('fcm_token')
+              .eq('target_id', reminder.parent_id)
+              .gte('created_at', oneHourAgo);
+
+          if (!logsErr && recentLogs) {
+              const recentTokens = new Set(recentLogs.map((l: any) => l.fcm_token));
+              uniqueTokens = uniqueTokens.filter(token => !recentTokens.has(token));
+          }
+
+          if (uniqueTokens.length === 0) {
+              console.log(`[ANTI-SPAM] All tokens were blocked by cooldown. Skipping.`);
+              sentReminderIds.push(reminder.id);
+              continue;
+          }
+
+          let hasRetryableFailure = false;
+          const logsToInsert: any[] = [];
+          for (const token of uniqueTokens) {
+             const recipientUserId = tokenToTarget.get(token);
+             if (!recipientUserId || !uniqueRecipients.includes(recipientUserId)) {
+                 continue; // Cryptographic isolation
+             }
              
-         // Validate Audience Security Server-Side
-         if (contentData.audience_type === 'batch' && contentData.batch_id) {
-             const { data: profiles } = await supabaseClient.from('profiles').select('id, batch_id').in('id', uniqueRecipients);
-             const validIds = profiles?.filter((p: any) => p.batch_id === contentData.batch_id).map((p: any) => p.id) || [];
-             uniqueRecipients = uniqueRecipients.filter(id => validIds.includes(id) || id === creatorId);
-         } else if (contentData.audience_type === 'specific' && contentData.course_id) {
-             const { data: enrolls } = await supabaseClient.from('user_courses').select('user_id').eq('course_id', contentData.course_id).in('user_id', uniqueRecipients);
-             const validIds = enrolls?.map((e: any) => e.user_id) || [];
-             uniqueRecipients = uniqueRecipients.filter(id => validIds.includes(id) || id === creatorId);
-         }
-         
-         targets = uniqueRecipients.map(id => ({ target_type: 'specific_student', target_id: id }));
-      }
-
-      if (!targets || targets.length === 0) {
-        if (reminder.parent_type === 'comment_reply') {
-          console.error(`[FAIL CLOSED SECURITY] Missing targets for comment_reply event ${reminder.id}. Aborting broadcast.`);
-          sentReminderIds.push(reminder.id);
+             const fcmPayload = {
+               message: {
+                 token: token,
+                 data: {
+                   title: String(reminder.reminder_title || ""),
+                   message: String(reminder.reminder_message || ""),
+                   url: "https://mctnotify.vercel.app",
+                   target_type: "specific_student",
+                   target_id: String(recipientUserId)
+                 },
+                 webpush: {
+                   notification: {
+                     title: String(reminder.reminder_title || ""),
+                     body: String(reminder.reminder_message || ""),
+                     icon: "https://ngropmfrneaaejwocnbf.supabase.co/storage/v1/object/public/materials/192.png",
+                     badge: "https://ngropmfrneaaejwocnbf.supabase.co/storage/v1/object/public/materials/badge.png"
+                   },
+                   fcm_options: { link: "https://mctnotify.vercel.app" }
+                 }
+               }
+             };
+             
+             try {
+                const maskedToken = token.substring(0, 8) + "...";
+                console.log(`[COMMENT NOTIFICATION SEND] recipient_user_id: ${recipientUserId}, token: ${maskedToken}`);
+                
+                const fcmResponse = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authTokens.access_token}`
+                  },
+                  body: JSON.stringify(fcmPayload)
+                });
+                
+                if (fcmResponse.ok) {
+                    successCount++;
+                    logsToInsert.push({
+                        target_id: reminder.parent_id,
+                        fcm_token: token,
+                        created_at: new Date().toISOString()
+                    });
+                } else {
+                    console.error(`[FCM ERROR] status: ${fcmResponse.status}`);
+                    if (fcmResponse.status >= 500 || fcmResponse.status === 429) {
+                        hasRetryableFailure = true;
+                    }
+                }
+             } catch (err: any) {
+                console.error("[FATAL FIREBASE FETCH ERROR]:", err.message);
+                hasRetryableFailure = true; // network errors are retryable
+             }
+          }
+          
+          if (logsToInsert.length > 0) {
+              await supabaseClient.from('notification_logs').insert(logsToInsert);
+          }
+          if (!hasRetryableFailure) {
+              sentReminderIds.push(reminder.id);
+          } else {
+              console.warn(`[RELIABILITY] Reminder ${reminder.id} held back from 'sent: true' due to partial retryable failure.`);
+          }
           continue;
-        }
-        targets = [{ target_type: "all_students", target_id: "global" }];
       }
+      // ============================================================================
+      // END CRITICAL SECURITY BOUNDARY
+      // ============================================================================
 
-      if (reminder.parent_type === 'welcome') {
-        targets = [{ target_type: 'specific_student', target_id: reminder.parent_id }];
+      // FAIL CLOSED FOR ALL OTHER EVENTS LACKING TARGETS
+      // Legitimate global notices have explicit target_type = 'all_students' in content_targets.
+      if (!targets || targets.length === 0) {
+        if (reminder.parent_type === 'welcome') {
+           targets = [{ target_type: 'specific_student', target_id: reminder.parent_id }];
+        } else {
+           console.error(`[FAIL CLOSED SECURITY] Missing targets for event ${reminder.id} (type: ${reminder.parent_type}). Aborting broadcast. No implicit global fallback allowed.`);
+           sentReminderIds.push(reminder.id);
+           continue;
+        }
       }
 
       console.log(`\n[TARGETS RESOLUTION] Found ${targets.length} targets`);
@@ -227,7 +357,7 @@ serve(async (req) => {
       console.log(uniqueTokens.length);
 
       if (uniqueTokens.length === 0) {
-          console.warn(`No tokens found for reminder ${reminder.id} (Target: ${targetType} - ${targetId})`);
+          console.warn(`No tokens found for reminder ${reminder.id} (${targets.length} targets)`);
           sentReminderIds.push(reminder.id);
           continue;
       }
@@ -253,6 +383,7 @@ serve(async (req) => {
           continue;
       }
 
+      let hasRetryableFailure = false;
       const logsToInsert: any[] = [];
 
       for (const token of uniqueTokens) {
@@ -307,9 +438,14 @@ serve(async (req) => {
                   fcm_token: token,
                   created_at: new Date().toISOString()
               });
+          } else {
+              if (fcmResponse.status >= 500 || fcmResponse.status === 429) {
+                  hasRetryableFailure = true;
+              }
           }
         } catch (err: any) {
           console.error("[FATAL FIREBASE FETCH ERROR]:", err.message);
+          hasRetryableFailure = true;
         }
       }
 
@@ -320,7 +456,11 @@ serve(async (req) => {
           if (insertErr) console.error("[ANTI-SPAM] Failed to insert logs:", insertErr);
       }
 
-      sentReminderIds.push(reminder.id);
+      if (!hasRetryableFailure) {
+          sentReminderIds.push(reminder.id);
+      } else {
+          console.warn(`[RELIABILITY] Reminder ${reminder.id} held back from 'sent: true' due to partial retryable failure.`);
+      }
     }
 
     if (sentReminderIds.length > 0) {

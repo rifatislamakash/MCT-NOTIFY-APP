@@ -30,11 +30,11 @@ export const CascadeDeleteService = {
 
         try {
             // 1. [DELETE REMINDER]
-            const { error: errReminders, count: countReminders } = await _supabase
-                .from('notification_reminders')
-                .delete({ count: 'exact' })
-                .eq('parent_type', parentType)
-                .eq('parent_id', parentId);
+            const { error: errReminders } = await _supabase.rpc('secure_delete_reminders', {
+                p_parent_type: parentType,
+                p_parent_id: parentId
+            });
+            const countReminders = errReminders ? 0 : 1; // Fake count for logging
             
             if (errReminders) {
                 console.error(`[DELETE REMINDER] Error deleting reminders for ${parentId}:`, errReminders);

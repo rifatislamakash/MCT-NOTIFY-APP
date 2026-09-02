@@ -375,7 +375,9 @@
                     created_by: window.authState.user.id
                 };
 
-                const { error } = await window._supabase.from('notification_reminders').insert([payload]);
+                const { error } = await window._supabase.rpc('secure_queue_reminders', {
+                    p_reminders: [payload]
+                });
                 
                 if (error) {
                     console.error("[PUSH] Failed to trigger immediate notification:", error);

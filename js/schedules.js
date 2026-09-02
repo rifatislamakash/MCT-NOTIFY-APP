@@ -1321,8 +1321,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         console.log("[REMINDERS] Inserting schedule reminder rows...", reminderRows);
                         console.log('[QUEUE INSERT PAYLOAD]', reminderRows);
                         const { error: reminderError } = await _supabase
-                            .from('notification_reminders')
-                            .insert(reminderRows);
+                            .rpc('secure_queue_reminders', { p_reminders: reminderRows });
                             
                         if (reminderError) {
                             console.error("[REMINDERS] Error inserting schedule reminders:", reminderError);
@@ -1693,7 +1692,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 // Task 3: Update Reminders
                 try {
                     console.log("[SCHEDULE UPDATE] Cleaning up old reminders...");
-                    await _supabase.from('notification_reminders').delete().eq('parent_id', selectedScheduleId).eq('parent_type', 'schedule');
+                    await _supabase.rpc('secure_delete_reminders', {
+                        p_parent_type: 'schedule',
+                        p_parent_id: selectedScheduleId
+                    });
                     const notifyUpdate = document.getElementById('notify-audience-edit-schedule')?.checked;
                     const reminderRows = [];
                     const reminderDivs = document.querySelectorAll('#edit-schedule-reminders-list .reminder-row');
@@ -1736,8 +1738,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         if (reminderRows.length > 0) {
                             console.log("[SCHEDULE UPDATE] Inserting schedule reminder rows...", reminderRows);
                             const { error: reminderError } = await _supabase
-                                .from('notification_reminders')
-                                .insert(reminderRows);
+                                .rpc('secure_queue_reminders', { p_reminders: reminderRows });
                                 
                             if (reminderError) {
                                 console.error("[SCHEDULE UPDATE] Error inserting schedule reminders:", reminderError);

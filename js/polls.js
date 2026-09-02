@@ -811,7 +811,7 @@ export class PollService {
         try {
             await _supabase.from('content_targets').delete().eq('content_id', pollId).eq('content_type', 'notice');
             await _supabase.from('content_reactions').delete().eq('content_id', pollId).eq('content_type', 'notice');
-            await _supabase.from('notification_reminders').delete().eq('parent_id', pollId).eq('parent_type', 'notice');
+            await _supabase.rpc('secure_delete_reminders', { p_parent_type: 'notice', p_parent_id: pollId });
             
             try { await _supabase.from('polls').delete().eq('id', pollId); } catch(e) {}
             

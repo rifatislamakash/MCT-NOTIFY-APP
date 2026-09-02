@@ -1262,7 +1262,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                 try {
                     // Always delete old reminders first when saving (handles both update and insert safely)
                     console.log("[REMINDERS] Cleaning up old reminders for notice ID:", savedNoticeId);
-                    await _supabase.from('notification_reminders').delete().eq('parent_id', savedNoticeId).eq('parent_type', 'notice');
+                    await _supabase.rpc('secure_delete_reminders', {
+                        p_parent_type: 'notice',
+                        p_parent_id: savedNoticeId
+                    });
 
                     const reminderRows = [];
                     
@@ -1280,6 +1283,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             title: title,
                             message: window.stripRichText ? window.stripRichText(message) : message
                         });
+                        console.log("[NOTICE CREATE] Notification queue response:", queueRes);
 
                         if (!queueRes.success) {
                             window.showGlobalToast("Warning", "Notice saved, but notification queue failed.");
@@ -1288,14 +1292,10 @@ import { ProfileStore } from './stores/ProfileStore.js';
                         console.log("[SILENT MODE] Content saved, but audience notification skipped.");
                     }
 
-                    const reminderDivs = document.querySelectorAll('#notice-reminders-list .reminder-row');
-                    if (reminderDivs.length > 0) {
-                        console.log(`[REMINDERS] Found ${reminderDivs.length} reminder rows to insert/update.`);
-                        const eventDateTime = window.getSafariSafeDate(notice_date + 'T' + notice_time);
-                        
-                        reminderDivs.forEach(div => {
-                            const offsetSelect = div.querySelector('.reminder-offset');
-                            const offsetVal = offsetSelect.value;
+                    // Add custom offset reminders for Notice
+                    document.querySelectorAll('.reminder-rule').forEach(div => {
+                        const offsetVal = div.querySelector('.reminder-offset').value;
+                        if (offsetVal) {
                             let targetTime;
                             
                             if (offsetVal === 'custom') {
@@ -1304,6 +1304,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                     targetTime = new Date(customInput.value);
                                 }
                             } else {
+                                const eventDateTime = window.getSafariSafeDate(notice_date + 'T' + notice_time);
                                 const offsetMinutes = parseInt(offsetVal, 10);
                                 if (!isNaN(offsetMinutes)) {
                                     targetTime = new Date(eventDateTime.getTime() - offsetMinutes * 60 * 1000);
@@ -1321,18 +1322,17 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                     created_by: window.authState.user.id
                                 });
                             }
-                        });
-                    }
+                        }
+                    });
                     
                     if (reminderRows.length > 0) {
                         console.log("[REMINDERS] Inserting/updating reminder rows...", reminderRows);
                         console.log('[QUEUE INSERT PAYLOAD]', reminderRows);
                         const { error: reminderError } = await _supabase
-                            .from('notification_reminders')
-                            .insert(reminderRows);
+                            .rpc('secure_queue_reminders', { p_reminders: reminderRows });
                             
                         if (reminderError) {
-                            console.error("[REMINDERS] Error inserting reminders into notification_reminders:", reminderError);
+                            console.error("[REMINDERS] Error inserting reminders via RPC:", reminderError);
                             window.showGlobalToast("Warning", "Notice saved, but reminders failed to schedule.");
                         } else {
                             console.log("[REMINDERS] Successfully scheduled reminders bulk insert completed.");

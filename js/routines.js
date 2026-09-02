@@ -1912,8 +1912,7 @@ window.switchRoutineView = switchRoutineView;
                         if (reminderRows.length > 0) {
                             console.log("[REMINDERS] Inserting exam reminder rows...", reminderRows);
                             const { error: reminderError } = await _supabase
-                                .from('notification_reminders')
-                                .insert(reminderRows);
+                                .rpc('secure_queue_reminders', { p_reminders: reminderRows });
                                 
                             if (reminderError) {
                                 console.error("[REMINDERS] Error inserting exam reminders:", reminderError);
@@ -2209,11 +2208,10 @@ window.switchRoutineView = switchRoutineView;
                     throw new Error("Update failed. You may not have permission to edit this exam.");
                 }
                 
-                const { error: delRemError } = await _supabase
-                    .from('notification_reminders')
-                    .delete()
-                    .eq('parent_type', 'exam')
-                    .eq('parent_id', examId);
+                const { error: delRemError } = await _supabase.rpc('secure_delete_reminders', {
+                    p_parent_type: 'exam',
+                    p_parent_id: examId
+                });
                     
                 if (delRemError) {
                     console.error("[REMINDERS] Error deleting old exam reminders:", delRemError);
@@ -2258,8 +2256,7 @@ window.switchRoutineView = switchRoutineView;
                         if (reminderRows.length > 0) {
                             console.log("[REMINDERS] Inserting exam reminder rows...", reminderRows);
                             const { error: reminderError } = await _supabase
-                                .from('notification_reminders')
-                                .insert(reminderRows);
+                                .rpc('secure_queue_reminders', { p_reminders: reminderRows });
                                 
                             if (reminderError) {
                                 console.error("[REMINDERS] Error inserting exam reminders:", reminderError);
