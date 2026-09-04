@@ -259,14 +259,9 @@ export const crPermissionService = {
      * Get visible groups based on role
      */
     async getVisibleGroups() {
-        if (this.isAdmin()) {
-            const { data } = await _supabase.from('groups').select('*, courses(batch_id, course_name, short_name, course_code)').order('created_at', { ascending: false });
-            return data || [];
-        }
-        if (this.isCR()) {
-            console.log('[CR GROUPS] Fetching groups for assigned batches');
-            return await batchService.getBatchGroups(this.currentAssignedBatches);
-        }
-        return [];
+        // Admin and CR both need all groups because CRs also need to see groups for their enrolled courses
+        // Filtering is handled thoroughly on the client side in renderGroups.
+        const { data } = await _supabase.from('groups').select('*, courses(batch_id, course_name, short_name, course_code), content_targets(target_type, target_id)').order('created_at', { ascending: false });
+        return data || [];
     }
 };

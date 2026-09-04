@@ -9912,20 +9912,48 @@
             const filterEl = document.getElementById('groups-filter');
             const filterValue = filterEl ? filterEl.value : 'all';
 
-            // Filter logic for student isolation
+            // Filter logic for student & CR isolation
             let viewableGroups = currentGroupsList;
-            if (!isAdminOrCR) {
-                const myCourseIds = (window.currentUserCoursesList || []).map(uc => uc.course_id);
-                const myBatchId = window.authState?.profile?.batch_id;
+            const isStrictAdmin = (currentUserRole === 'admin' || window.isAdminEmail(currentUserEmail));
+            const isCR = (currentUserRole === 'cr' && !isStrictAdmin);
+
+            if (!isStrictAdmin) {
+                const myCourseIds = (window.currentUserCoursesList || []).map(uc => String(uc.course_id));
+                const myBatchId = String(window.authState?.profile?.batch_id);
+                const myManagedBatches = (window.currentUserCRBatches || []).map(b => String(b));
+
                 viewableGroups = currentGroupsList.filter(g => {
-                    // Course groups MUST match enrollment
-                    if (g.course_id) return myCourseIds.includes(g.course_id);
+                    // 1. CR Privilege Check
+                    if (isCR) {
+                        let gBatchId = null;
+                        if (g.course_id) {
+                            if (g.courses) {
+                                if (Array.isArray(g.courses) && g.courses.length > 0) gBatchId = g.courses[0].batch_id;
+                                else if (g.courses.batch_id) gBatchId = g.courses.batch_id;
+                            }
+                            if (!gBatchId) {
+                                const c = (window.allCoursesList || []).find(x => String(x.id) === String(g.course_id));
+                                if (c) gBatchId = c.batch_id;
+                            }
+                        }
+                        if (gBatchId && myManagedBatches.includes(String(gBatchId))) return true;
+                        
+                        if (g.content_targets && g.content_targets.length > 0) {
+                            const isManagedTarget = g.content_targets.some(ct => 
+                                ct.target_type === 'batch_students' && myManagedBatches.includes(String(ct.target_id))
+                            );
+                            if (isManagedTarget) return true;
+                        }
+                    }
                     
-                    // General/Link groups: strict check against content_targets
+                    // 2. Student Enrollment Check
+                    if (g.course_id && myCourseIds.includes(String(g.course_id))) return true;
+                    
+                    // 3. General Target Check
                     if (g.content_targets && g.content_targets.length > 0) {
                         return g.content_targets.some(ct => 
                             (ct.target_type === 'all_students' || ct.target_type === 'all') ||
-                            (ct.target_type === 'batch_students' && ct.target_id === myBatchId)
+                            (ct.target_type === 'batch_students' && String(ct.target_id) === String(myBatchId))
                         );
                     }
                     
