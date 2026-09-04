@@ -273,9 +273,6 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                 try {
                                     let batchesData, error;
                                     const sdkPromise = _supabase.from('batches').select('id, batch_name').order('batch_name');
-                                    if (window._supabaseSdkFailing) {
-                                        throw new Error('sdk_timeout');
-                                    }
                                     let timerId;
                                     const timeoutPromise = new Promise((_, reject) => {
                                         timerId = setTimeout(() => reject(new Error('sdk_timeout')), 25000);
@@ -299,10 +296,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                         optionsHTML += batchesData.map(b => `<option value="${b.id}" class="text-black">${b.batch_name}</option>`).join('');
                                     }
                                     batchFilter.innerHTML = optionsHTML;
-                                } catch(e) { 
+                                } catch(e) {
                                     if (e.message === 'sdk_timeout') {
                                         if (typeof sdkController !== 'undefined') sdkController.abort();
-                                        window._supabaseSdkFailing = true;
                                         console.log("[SCHEDULE ADMIN] [SDK TIMEOUT] 8000ms limit reached");
                             console.log("[SCHEDULE ADMIN] [REST FALLBACK]");
                                         try {

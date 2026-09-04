@@ -57,10 +57,10 @@ let isRegistering = false;
                 console.log(`[JWT VALIDITY] iat=${payload.iat}, adjustedNow=${nowSec}, skew=${skew}s`);
 
                 if (skew > 0) {
-                    const waitMs = Math.min((skew + 2) * 1000, 30000); // max 30s
-                    console.warn(`[JWT VALIDITY] Token iat is ${skew}s in the future. Waiting ${waitMs}ms for DB clock to catch up...`);
+                    const waitMs = Math.min((skew + 2) * 1000, 3000); // cap wait at 3s to prevent mobile data freezing
+                    console.warn(`[JWT VALIDITY] Token iat is ${skew}s in the future. Waiting ${waitMs}ms for DB clock...`);
                     await new Promise(resolve => setTimeout(resolve, waitMs));
-                    console.log('[JWT VALIDITY] Wait complete, proceeding with queries.');
+                    console.log('[JWT VALIDITY] Wait complete.');
                 }
             } catch (err) {
                 console.warn('[JWT VALIDITY] Error during JWT validity check:', err);

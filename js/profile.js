@@ -93,7 +93,6 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             let cData;
                             const startSdk = performance.now();
                             try {
-                                if (window._supabaseSdkFailing) throw new Error('sdk_timeout');
                                 let timerId;
                                 const timeoutPromise = new Promise((_, reject) => {
                                     timerId = setTimeout(() => reject(new Error('sdk_timeout')), 25000);
@@ -109,7 +108,6 @@ import { ProfileStore } from './stores/ProfileStore.js';
                             } catch (e) {
                                 if (e.message === 'sdk_timeout') {
                                     sdkController.abort();
-                                    window._supabaseSdkFailing = true;
                                     const inList = courseIds.map(id => `"${id}"`).join(',');
                                     const url = `${_supabase.supabaseUrl}/rest/v1/courses?id=in.(${inList})&select=total_credit`;
                                     const res = await fetch(url, {
