@@ -9775,20 +9775,48 @@
                     result = await window.crPermissionService.getVisibleGroups();
                 } else {
                     result = await fetchWithRetry(async (signal) => {
-                        const { data, error } = await _supabase
+                        // Fetch groups and courses first
+                        const { data: groupsData, error: groupsErr } = await _supabase
                             .from('groups')
-                            .select('*, courses(batch_id, course_name, short_name, course_code), content_targets(target_type, target_id)')
+                            .select('*, courses(batch_id, course_name, short_name, course_code)')
                             .order('created_at', { ascending: false })
                             .abortSignal(signal);
-                        if (error) {
-                            console.error("[GROUPS] Query error:", error);
-                            throw error;
+                            
+                        if (groupsErr) {
+                            console.error("[GROUPS] Query error:", groupsErr);
+                            throw groupsErr;
                         }
-                        return data;
-                    }, 2, 1000, 12000, localController.signal);
+                        
+                        if (!groupsData || groupsData.length === 0) return [];
+                        
+                        // Fetch content_targets separately (no FK relationship)
+                        const { data: targetData, error: targetErr } = await _supabase
+                            .from('content_targets')
+                            .select('content_id, target_type, target_id')
+                            .eq('content_type', 'group')
+                            .abortSignal(signal);
+                            
+                        if (targetErr) {
+                            console.warn("[GROUPS] Target fetch error:", targetErr);
+                        }
+                        
+                        const targetMap = {};
+                        if (targetData) {
+                            targetData.forEach(t => {
+                                if (!targetMap[t.content_id]) targetMap[t.content_id] = [];
+                                targetMap[t.content_id].push(t);
+                            });
+                        }
+                        
+                        groupsData.forEach(g => {
+                            g.content_targets = targetMap[g.id] || [];
+                        });
+                        
+                        return groupsData;
+                    }, 3, 1000, 10000, localController.signal);
                 }
 
-                if (localController.signal.aborted) {
+                if (activeLoadControllers['groups'] !== localController) {
                     console.log("[GROUPS] Fetch aborted after completion — ignoring.");
                     return;
                 }

@@ -261,7 +261,30 @@ export const crPermissionService = {
     async getVisibleGroups() {
         // Admin and CR both need all groups because CRs also need to see groups for their enrolled courses
         // Filtering is handled thoroughly on the client side in renderGroups.
-        const { data } = await _supabase.from('groups').select('*, courses(batch_id, course_name, short_name, course_code), content_targets(target_type, target_id)').order('created_at', { ascending: false });
-        return data || [];
+        const { data: groupsData, error: groupsErr } = await _supabase
+            .from('groups')
+            .select('*, courses(batch_id, course_name, short_name, course_code)')
+            .order('created_at', { ascending: false });
+            
+        if (groupsErr || !groupsData) return [];
+        
+        const { data: targetData } = await _supabase
+            .from('content_targets')
+            .select('content_id, target_type, target_id')
+            .eq('content_type', 'group');
+            
+        const targetMap = {};
+        if (targetData) {
+            targetData.forEach(t => {
+                if (!targetMap[t.content_id]) targetMap[t.content_id] = [];
+                targetMap[t.content_id].push(t);
+            });
+        }
+        
+        groupsData.forEach(g => {
+            g.content_targets = targetMap[g.id] || [];
+        });
+        
+        return groupsData;
     }
 };
