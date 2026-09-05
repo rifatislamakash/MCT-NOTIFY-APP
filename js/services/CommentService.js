@@ -8,9 +8,10 @@ export class CommentService {
             console.log(`[COMMENTS LOAD] Fetching for ${contentType}:${contentId}`);
             const { data, error } = await _supabase
                 .from('comments')
-                .select(`id, created_at, updated_at, user_id, content_type, content_id, comment_text, parent_comment_id, profiles ( full_name, profile_url )`)
+                .select(`id, created_at, updated_at, user_id, content_type, content_id, comment_text, parent_comment_id, is_pinned, is_deleted, edited_at, profiles ( full_name, profile_url )`)
                 .eq('content_type', contentType)
                 .eq('content_id', contentId)
+                .order('is_pinned', { ascending: false })
                 .order('created_at', { ascending: true });
             if (error) throw error;
             const topLevel = [];
@@ -38,6 +39,12 @@ export class CommentService {
         try {
             const user = window.authState?.user;
             if (!user) throw new Error("Not authenticated");
+            
+            const words = commentText.trim().split(/\s+/).length;
+            if (words > 2000) {
+                throw new Error("Comment exceeds the 2000 word limit.");
+            }
+
             console.log(`[COMMENT CREATE] ${parentCommentId ? 'Reply' : 'Top-level'}`);
             const payload = {
                 user_id: user.id,
@@ -47,7 +54,12 @@ export class CommentService {
                 parent_comment_id: parentCommentId
             };
             const { data, error } = await _supabase.from('comments').insert([payload]).select('*, profiles (full_name, profile_url)').single();
-            if (error) throw error;
+            if (error) {
+                if (error.message && error.message.includes('hourly commenting limit')) {
+                    throw new Error("You have reached your hourly commenting limit (15) for this post.");
+                }
+                throw error;
+            }
             console.log(`[COMMENT CREATE SUCCESS] ID: ${data.id}`);
             
             // Queue notification in background (don't block UI)
@@ -63,7 +75,15 @@ export class CommentService {
     static async updateComment(commentId, newText) {
         try {
             console.log(`[COMMENT UPDATE] ID: ${commentId}`);
-            const { data, error } = await _supabase.from('comments').update({ comment_text: newText.trim(), updated_at: new Date().toISOString() }).eq('id', commentId).select('*, profiles (full_name, profile_url)').single();
+            
+            const words = newText.trim().split(/\s+/).length;
+            if (words > 2000) throw new Error("Comment exceeds the 2000 word limit.");
+            
+            const { data, error } = await _supabase.from('comments').update({ 
+                comment_text: newText.trim(), 
+                updated_at: new Date().toISOString(),
+                edited_at: new Date().toISOString()
+            }).eq('id', commentId).select('*, profiles (full_name, profile_url)').single();
             if (error) throw error;
             return data;
         } catch (err) {
@@ -75,11 +95,44 @@ export class CommentService {
     static async deleteComment(commentId) {
         try {
             console.log(`[COMMENT DELETE] ID: ${commentId}`);
-            const { error } = await _supabase.from('comments').delete().eq('id', commentId);
+            const { error } = await _supabase.rpc('delete_comment_v2', { p_comment_id: commentId });
             if (error) throw error;
             return true;
         } catch (err) {
             console.error('[COMMENT DELETE FAILURE]', err);
+            throw err;
+        }
+    }
+
+    static async pinComment(commentId, pinStatus) {
+        try {
+            console.log(`[COMMENT PIN] ID: ${commentId} Status: ${pinStatus}`);
+            const { error } = await _supabase.rpc('pin_comment', { p_comment_id: commentId, p_pin: pinStatus });
+            if (error) {
+                if (error.message && error.message.includes('Maximum of 3')) {
+                    throw new Error("Maximum of 3 pinned comments allowed per update.");
+                }
+                throw error;
+            }
+            return true;
+        } catch (err) {
+            console.error('[COMMENT PIN FAILURE]', err);
+            throw err;
+        }
+    }
+
+    static async togglePostComments(contentType, contentId, allow) {
+        try {
+            console.log(`[TOGGLE COMMENTS] ${contentType}:${contentId} -> allow: ${allow}`);
+            const { error } = await _supabase.rpc('toggle_post_comments', { 
+                p_content_type: contentType, 
+                p_content_id: contentId, 
+                p_allow: allow 
+            });
+            if (error) throw error;
+            return true;
+        } catch (err) {
+            console.error('[TOGGLE COMMENTS FAILURE]', err);
             throw err;
         }
     }
@@ -131,73 +184,96 @@ export class CommentService {
         }
     }
 
-    static renderCommentsSection(containerId, contentType, contentId) {
+    static renderCommentsSection(containerId, contentType, contentId, authorId = null, allowComments = true) {
         const container = document.getElementById(containerId);
         if (!container) return;
+        
+        const isMod = window.currentUserRole === 'admin' || window.currentUserRole === 'cr' || window.authState?.user?.id === authorId;
+        const toggleBtn = isMod ? 
+            `<button onclick="window.CommentService.togglePostComments('${contentType}', '${contentId}', ${!allowComments})" class="text-[11px] font-bold ${allowComments ? 'text-red-500' : 'text-green-500'} bg-slate-50 dark:bg-dark-surface px-2 py-1 rounded border border-slate-200 dark:border-white/10 hover:opacity-80">
+                ${allowComments ? 'Lock Comments' : 'Unlock Comments'}
+            </button>` : '';
+
+        const inputHtml = allowComments ? `
+            <div class="flex gap-3 mt-4">
+                <img src="${window.sanitizeUrl(window.authState?.profile?.profile_url) || 'assets/profilefill.png'}" class="w-12 h-12 aspect-square rounded-full overflow-hidden object-cover object-center shrink-0 self-start" style="min-width: 48px; max-width: 48px; height: 48px; min-height: 48px;" onerror="this.src='assets/profilefill.png'">
+                <div class="flex-1 relative">
+                    <textarea id="comment-input-${contentId}" rows="1" class="w-full bg-slate-50 dark:bg-dark-surface border border-slate-200 dark:border-white/10 rounded-[12px] px-3 py-2 text-[13px] text-slate-800 dark:text-dark-text focus:outline-none focus:border-[#4226E9] resize-none overflow-hidden block" placeholder="Write a comment... (Max 2000 words)" oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'"></textarea>
+                    <button id="comment-submit-${contentId}" onclick="window.CommentService.submitTopComment('${contentType}', '${contentId}')" class="absolute right-3 bottom-2 text-[#4226E9] font-bold text-[13px] hover:opacity-80">Send</button>
+                </div>
+            </div>
+        ` : `<div class="text-[12px] text-center text-slate-500 dark:text-dark-textSecondary mt-4 italic">Comments are turned off for this post.</div>`;
+
         container.innerHTML = `
             <div class="mt-6 border-t border-slate-100 dark:border-white/5 pt-4">
-                <h3 class="font-bold text-[14px] text-slate-800 dark:text-dark-text mb-4">Comments</h3>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-[14px] text-slate-800 dark:text-dark-text">Comments</h3>
+                    ${toggleBtn}
+                </div>
                 <div id="comments-list-${contentId}" class="flex flex-col gap-4 mb-4">
                     <div class="animate-pulse flex items-center gap-3">
                         <div class="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
                         <div class="flex-1 h-10 bg-slate-200 dark:bg-slate-700 rounded-[12px]"></div>
                     </div>
                 </div>
-                <div class="flex gap-3">
-                    <img src="${window.sanitizeUrl(window.authState?.profile?.profile_url) || 'assets/profilefill.png'}" class="w-12 h-12 aspect-square rounded-full overflow-hidden object-cover object-center shrink-0 self-start" style="min-width: 48px; max-width: 48px; height: 48px; min-height: 48px;" onerror="this.src='assets/profilefill.png'">
-                    <div class="flex-1 relative">
-                        <textarea id="comment-input-${contentId}" rows="1" class="w-full bg-slate-50 dark:bg-dark-surface border border-slate-200 dark:border-white/10 rounded-[12px] px-3 py-2 text-[13px] text-slate-800 dark:text-dark-text focus:outline-none focus:border-[#4226E9] resize-none overflow-hidden block" placeholder="Write a comment..." oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'"></textarea>
-                        <button id="comment-submit-${contentId}" onclick="window.CommentService.submitTopComment('${contentType}', '${contentId}')" class="absolute right-3 bottom-2 text-[#4226E9] font-bold text-[13px] hover:opacity-80">Send</button>
-                    </div>
-                </div>
+                ${inputHtml}
             </div>
         `;
-        this.refreshCommentsList(contentType, contentId);
+        this.refreshCommentsList(contentType, contentId, authorId, allowComments);
     }
 
-    static async refreshCommentsList(contentType, contentId) {
+    static async refreshCommentsList(contentType, contentId, authorId = null, allowComments = true) {
         const listEl = document.getElementById(`comments-list-${contentId}`);
         if (!listEl) return;
         try {
             const comments = await this.loadComments(contentType, contentId);
             if (comments.length === 0) {
-                listEl.innerHTML = `<div class="text-[13px] text-slate-500 dark:text-dark-textSecondary text-center py-4">No comments yet. Be the first to comment.</div>`;
+                listEl.innerHTML = `<div class="text-[13px] text-slate-500 dark:text-dark-textSecondary text-center py-4">No comments yet.</div>`;
                 return;
             }
             listEl.innerHTML = '';
             comments.forEach(c => {
-                listEl.appendChild(this.buildCommentElement(c, contentType, contentId));
+                listEl.appendChild(this.buildCommentElement(c, contentType, contentId, authorId, allowComments));
             });
         } catch (e) {
-            listEl.innerHTML = `<div class="text-[13px] text-red-500 text-center py-4">Comments couldn't be loaded. <button onclick="window.CommentService.refreshCommentsList('${contentType}', '${contentId}')" class="underline">Retry</button></div>`;
+            listEl.innerHTML = `<div class="text-[13px] text-red-500 text-center py-4">Comments couldn't be loaded. <button onclick="window.CommentService.refreshCommentsList('${contentType}', '${contentId}', '${authorId}', ${allowComments})" class="underline">Retry</button></div>`;
         }
     }
 
-    static buildCommentElement(comment, contentType, contentId) {
+    static buildCommentElement(comment, contentType, contentId, authorId = null, allowComments = true) {
         const div = document.createElement('div');
         div.className = 'flex gap-3';
         div.id = `comment-${comment.id}`;
         const avatar = comment.profiles?.profile_url ? window.sanitizeUrl(comment.profiles.profile_url) : 'assets/profilefill.png';
         const name = comment.profiles?.full_name || 'Unknown User';
         const isMine = comment.user_id === window.authState?.user?.id;
+        const isMod = window.currentUserRole === 'admin' || window.currentUserRole === 'cr' || window.authState?.user?.id === authorId;
+        const canDelete = isMine || isMod;
+        
+        let pinnedBadge = comment.is_pinned ? `<span class="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 text-[10px] px-1.5 py-0.5 rounded ml-1 font-bold inline-flex items-center gap-1"><i data-lucide="pin" class="w-3 h-3"></i> Pinned</span>` : '';
+        let editedBadge = comment.edited_at && !comment.is_deleted ? `<span class="text-[10px] text-slate-400 font-normal ml-1">(edited)</span>` : '';
+
         let repliesHtml = '';
         if (comment.replies && comment.replies.length > 0) {
             repliesHtml = `<div class="flex flex-col gap-3 mt-3">` + comment.replies.map(reply => {
                 const rAvatar = reply.profiles?.profile_url ? window.sanitizeUrl(reply.profiles.profile_url) : 'assets/profilefill.png';
                 const rName = reply.profiles?.full_name || 'Unknown User';
                 const rIsMine = reply.user_id === window.authState?.user?.id;
+                const rCanDelete = rIsMine || isMod;
+                const rEdited = reply.edited_at && !reply.is_deleted ? `<span class="text-[10px] text-slate-400 font-normal ml-1">(edited)</span>` : '';
+                
                 return `
                 <div class="flex gap-2" id="comment-${reply.id}">
                     <img src="${rAvatar}" class="w-10 h-10 aspect-square rounded-full overflow-hidden object-cover object-center shrink-0 self-start mt-1" style="min-width: 40px; max-width: 40px; height: 40px; min-height: 40px;" onerror="this.src='assets/profilefill.png'">
                     <div class="flex-1 min-w-0">
                         <div class="bg-slate-50 dark:bg-dark-surface rounded-[12px] px-3 py-2 border border-slate-100 dark:border-white/5 inline-block min-w-[50%] max-w-full">
                             <span class="block font-bold text-[12px] text-slate-800 dark:text-dark-text leading-none mb-1">${window.sanitizeHTML(rName)}</span>
-                            <span class="block text-[13px] text-slate-700 dark:text-dark-text break-words" id="text-${reply.id}"></span>
+                            <span class="block text-[13px] break-words ${reply.is_deleted ? 'italic text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-dark-text'}" id="text-${reply.id}"></span>
                         </div>
                         <div class="flex items-center gap-3 px-2 mt-1">
-                            <span class="text-[10px] text-slate-400 font-medium">${this.timeAgo(reply.created_at)}</span>
-                            ${rIsMine ? `<button onclick="window.CommentService.editComment('${reply.id}')" class="text-[10px] text-slate-500 font-bold hover:text-[#4226E9]">Edit</button>` : ''}
-                            ${rIsMine ? `<button onclick="window.CommentService.deleteCommentPrompt('${reply.id}', '${contentType}', '${contentId}')" class="text-[10px] text-red-400 font-bold hover:text-red-600">Delete</button>` : ''}
+                            <span class="text-[10px] text-slate-400 font-medium">${this.timeAgo(reply.created_at)} ${rEdited}</span>
+                            ${!reply.is_deleted && rIsMine ? `<button onclick="window.CommentService.editComment('${reply.id}')" class="text-[10px] text-slate-500 font-bold hover:text-[#4226E9]">Edit</button>` : ''}
+                            ${!reply.is_deleted && rCanDelete ? `<button onclick="window.CommentService.deleteCommentPrompt('${reply.id}', '${contentType}', '${contentId}')" class="text-[10px] text-red-400 font-bold hover:text-red-600">Delete</button>` : ''}
                         </div>
                     </div>
                 </div>
@@ -207,22 +283,23 @@ export class CommentService {
         div.innerHTML = `
             <img src="${avatar}" class="w-12 h-12 aspect-square rounded-full overflow-hidden object-cover object-center shrink-0 self-start mt-1" style="min-width: 48px; max-width: 48px; height: 48px; min-height: 48px;" onerror="this.src='assets/profilefill.png'">
             <div class="flex-1 min-w-0">
-                <div class="bg-slate-50 dark:bg-dark-surface rounded-[14px] px-3 py-2 border border-slate-100 dark:border-white/5 inline-block min-w-[50%] max-w-full">
-                    <span class="block font-bold text-[13px] text-slate-800 dark:text-dark-text leading-none mb-1">${window.sanitizeHTML(name)}</span>
-                    <span class="block text-[14px] text-slate-700 dark:text-dark-text break-words" id="text-${comment.id}"></span>
+                <div class="bg-slate-50 dark:bg-dark-surface rounded-[14px] px-3 py-2 border border-slate-100 dark:border-white/5 inline-block min-w-[50%] max-w-full relative">
+                    <span class="flex items-center font-bold text-[13px] text-slate-800 dark:text-dark-text leading-none mb-1">${window.sanitizeHTML(name)} ${pinnedBadge}</span>
+                    <span class="block text-[14px] break-words ${comment.is_deleted ? 'italic text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-dark-text'}" id="text-${comment.id}"></span>
                 </div>
                 <div class="flex items-center gap-3 px-2 mt-1">
-                    <span class="text-[11px] text-slate-400 font-medium">${this.timeAgo(comment.created_at)}</span>
-                    <button onclick="window.CommentService.showReplyInput('${comment.id}')" class="text-[11px] text-slate-500 font-bold hover:text-[#4226E9]">Reply</button>
-                    ${isMine ? `<button onclick="window.CommentService.editComment('${comment.id}')" class="text-[11px] text-slate-500 font-bold hover:text-[#4226E9]">Edit</button>` : ''}
-                    ${isMine ? `<button onclick="window.CommentService.deleteCommentPrompt('${comment.id}', '${contentType}', '${contentId}')" class="text-[11px] text-red-400 font-bold hover:text-red-600">Delete</button>` : ''}
+                    <span class="text-[11px] text-slate-400 font-medium">${this.timeAgo(comment.created_at)} ${editedBadge}</span>
+                    ${!comment.is_deleted && allowComments ? `<button onclick="window.CommentService.showReplyInput('${comment.id}')" class="text-[11px] text-slate-500 font-bold hover:text-[#4226E9]">Reply</button>` : ''}
+                    ${!comment.is_deleted && isMine ? `<button onclick="window.CommentService.editComment('${comment.id}')" class="text-[11px] text-slate-500 font-bold hover:text-[#4226E9]">Edit</button>` : ''}
+                    ${!comment.is_deleted && isMod ? `<button onclick="window.CommentService.pinComment('${comment.id}', ${!comment.is_pinned}).then(()=>window.CommentService.refreshCommentsList('${contentType}','${contentId}','${authorId}',${allowComments}))" class="text-[11px] text-slate-500 font-bold hover:text-indigo-500">${comment.is_pinned ? 'Unpin' : 'Pin'}</button>` : ''}
+                    ${!comment.is_deleted && canDelete ? `<button onclick="window.CommentService.deleteCommentPrompt('${comment.id}', '${contentType}', '${contentId}')" class="text-[11px] text-red-400 font-bold hover:text-red-600">Delete</button>` : ''}
                 </div>
                 ${repliesHtml}
                 <div id="reply-container-${comment.id}" class="hidden mt-3 pl-2 border-l-2 border-slate-100 dark:border-white/5">
                     <div class="flex gap-2">
                         <img src="${window.sanitizeUrl(window.authState?.profile?.profile_url) || 'assets/profilefill.png'}" class="w-10 h-10 aspect-square rounded-full overflow-hidden object-cover object-center shrink-0 self-start" style="min-width: 40px; max-width: 40px; height: 40px; min-height: 40px;" onerror="this.src='assets/profilefill.png'">
                         <div class="flex-1 relative">
-                            <textarea id="reply-input-${comment.id}" rows="1" class="w-full bg-slate-50 dark:bg-dark-surface border border-slate-200 dark:border-white/10 rounded-[12px] px-3 py-2 pr-12 text-[12px] text-slate-800 dark:text-dark-text focus:outline-none focus:border-[#4226E9] resize-none overflow-hidden block" placeholder="Write a reply..." oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'"></textarea>
+                            <textarea id="reply-input-${comment.id}" rows="1" class="w-full bg-slate-50 dark:bg-dark-surface border border-slate-200 dark:border-white/10 rounded-[12px] px-3 py-2 pr-12 text-[12px] text-slate-800 dark:text-dark-text focus:outline-none focus:border-[#4226E9] resize-none overflow-hidden block" placeholder="Write a reply... (Max 2000 words)" oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'"></textarea>
                             <button id="reply-submit-${comment.id}" onclick="window.CommentService.submitReply('${comment.id}', '${contentType}', '${contentId}')" class="absolute right-3 bottom-2 text-[#4226E9] font-bold text-[12px] hover:opacity-80">Send</button>
                         </div>
                     </div>
@@ -230,12 +307,13 @@ export class CommentService {
             </div>
         `;
         setTimeout(() => {
+            if (typeof lucide !== 'undefined') lucide.createIcons({root: div});
             const el = div.querySelector(`#text-${comment.id}`);
-            if (el) el.textContent = comment.comment_text;
+            if (el) el.textContent = comment.is_deleted ? 'Deleted comment' : comment.comment_text;
             if (comment.replies) {
                 comment.replies.forEach(r => {
                     const rEl = div.querySelector(`#text-${r.id}`);
-                    if (rEl) rEl.textContent = r.comment_text;
+                    if (rEl) rEl.textContent = r.is_deleted ? 'Deleted comment' : r.comment_text;
                 });
             }
         }, 0);

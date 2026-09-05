@@ -1173,11 +1173,14 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     attachmentUrl = urlData.publicUrl;
                 }
 
+                const allowComments = document.getElementById('notice-allow-comments')?.checked !== false;
+
                 const payload = {
                     title, message, notice_type, is_pinned, publish_now, publish_date,
                     audience_type, notice_date, notice_time,
                     attachment_url: attachmentUrl,
-                    created_by: window.authState.user.id
+                    created_by: window.authState.user.id,
+                    allow_comments: allowComments
                 };
                 console.log("[NOTICE SYSTEM] Notice payload:", payload);
 
@@ -1428,7 +1431,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             }
             
             if (window.CommentService) {
-                window.CommentService.renderCommentsSection('nd-comments-container', 'notice', id);
+                window.CommentService.renderCommentsSection('nd-comments-container', 'notice', id, notice.created_by, notice.allow_comments !== false);
             }
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -1445,6 +1448,9 @@ import { ProfileStore } from './stores/ProfileStore.js';
             document.getElementById('notice-message').value = notice.message;
             document.getElementById('notice-type').value = notice.notice_type;
             document.getElementById('notice-pinned').checked = notice.is_pinned;
+            const allowCommentsToggle = document.getElementById('notice-allow-comments');
+            if (allowCommentsToggle) allowCommentsToggle.checked = notice.allow_comments !== false;
+            
             document.getElementById('notice-publish-now').checked = notice.publish_now;
             document.getElementById('notice-audience-type').value = notice.audience_type;
 

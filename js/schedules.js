@@ -757,7 +757,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
             }
             
             if (window.CommentService) {
-                window.CommentService.renderCommentsSection('sd-comments-container', 'schedule', scheduleId);
+                window.CommentService.renderCommentsSection('sd-comments-container', 'schedule', scheduleId, s.created_by, s.allow_comments !== false);
             }
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -1121,7 +1121,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     console.log("Generated Public URL:", attachmentUrl);
                 }
 
-                // No CR specific override
+                const allowComments = document.getElementById('exam-allow-comments')?.checked !== false;
 
                 // Insert schedule row
                 const payload = {
@@ -1132,6 +1132,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     audience_type: audience_type,
                     is_pinned: isPinned,
                     schedule_type: scheduleType,
+                    allow_comments: allowComments,
                     attachment_url: attachmentUrl,
                     created_by: window.authState.user?.id || null
                 };
@@ -1666,6 +1667,8 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                 // No CR specific override
 
+                const allowComments = document.getElementById('edit-exam-allow-comments')?.checked !== false;
+
                 // Update schedule row
                 const payload = {
                     title,
@@ -1673,6 +1676,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                     schedule_date: date,
                     schedule_time: time,
                     audience_type: audience_type,
+                    allow_comments: allowComments,
                     is_pinned: isPinned,
                     schedule_type: scheduleType,
                     attachment_url: attachmentUrl
