@@ -210,7 +210,7 @@ export class PollService {
                     <div class="text-[11px] text-slate-600 dark:text-dark-textSecondary mt-2 font-medium line-clamp-2">
                         ${window.safeFormatRichText(poll.message)}
                     </div>
-                    ${window.ActionFooterService ? window.ActionFooterService.renderFooter({ contentType: 'poll', contentId: poll.id, dateStr: '', timeStr: '', isAdminOrCR: (window.currentUserRole === 'admin' || (window.currentUserRole === 'cr' && poll.created_by === window.authState?.user?.id)), metadataHtml: `<span class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary">${totalVotes} total votes</span>` }) : ''}
+                    ${window.ActionFooterService ? window.ActionFooterService.renderFooter({ contentType: 'poll', contentId: poll.id, title: poll.title, dateStr: '', timeStr: '', isAdminOrCR: (window.currentUserRole === 'admin' || (window.currentUserRole === 'cr' && poll.created_by === window.authState?.user?.id)), metadataHtml: `<span class="text-[11px] font-bold text-slate-500 dark:text-dark-textSecondary">${totalVotes} total votes</span>` }) : ''}
 </div>
             `;
         }).join('');
@@ -908,8 +908,15 @@ export class PollService {
         }
     }
 
-    static async notifyPoll(pollId) {
-        if (!confirm("Send push notification reminder for this poll?")) return;
+    static async notifyPoll(pollId, skipConfirm = false) {
+        if (!skipConfirm) {
+            if (window.ActionFooterService && typeof window.ActionFooterService.handleNotifyClick === 'function') {
+                const poll = (this.currentPolls || []).find(p => p.id === pollId) || (window.currentNoticesList || []).find(p => p.id === pollId);
+                window.ActionFooterService.handleNotifyClick('poll', pollId, null, poll?.title || 'Poll');
+                return;
+            }
+            if (!confirm("Send push notification reminder for this poll?")) return;
+        }
         
         if (typeof window.showLoader === 'function') window.showLoader(true, "Sending reminder...");
         try {
@@ -943,9 +950,17 @@ export class PollService {
 
             if (queueRes.error) throw queueRes.error;
 
+            if (window.ActionFooterService && typeof window.ActionFooterService.setCooldown === 'function') {
+                window.ActionFooterService.setCooldown('poll', pollId);
+                window.ActionFooterService.updateButtonToCooldown(pollId);
+            }
+
             if (typeof window.showGlobalToast === 'function') window.showGlobalToast("Success", "Reminder sent successfully.");
         } catch(err) {
             console.error("Notify error", err);
+            if (window.ActionFooterService && typeof window.ActionFooterService.clearCooldown === 'function') {
+                window.ActionFooterService.clearCooldown('poll', pollId);
+            }
             if (typeof window.showGlobalToast === 'function') window.showGlobalToast("Error", "Could not send notification.");
         } finally {
             if (typeof window.showLoader === 'function') window.showLoader(false);

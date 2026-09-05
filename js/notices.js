@@ -525,7 +525,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                     <h4 class="font-[700] text-[16px] text-[#111827] dark:text-indigo-50 mt-0 truncate leading-tight">${window.safeFormatRichText(n.title)}</h4>
                                     <p class="text-[14px] text-[#4b5563] dark:text-dark-textSecondary line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.safeFormatRichText(n.message)}</p>
                                 </div>
-                                ${window.ActionFooterService ? window.ActionFooterService.renderFooter({ contentType: 'notice', contentId: n.id, dateStr: dStr, timeStr: tStr, isAdminOrCR: isAdminOrCR }) : ''}
+                                ${window.ActionFooterService ? window.ActionFooterService.renderFooter({ contentType: 'notice', contentId: n.id, title: n.title, dateStr: dStr, timeStr: tStr, isAdminOrCR: isAdminOrCR }) : ''}
                             </div>
                         `;
                 }).join('');
@@ -678,7 +678,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                         <h4 class="font-[700] text-[16px] text-[#111827] dark:text-indigo-50 mt-0 truncate leading-tight">${window.safeFormatRichText(n.title)}</h4>
                                         <p class="text-[14px] text-[#4b5563] dark:text-dark-textSecondary line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.safeFormatRichText(n.message)}</p>
                                     </div>
-                                    ${window.ActionFooterService ? window.ActionFooterService.renderFooter({ contentType: isPoll ? 'poll' : 'notice', contentId: n.id, dateStr: typeof dStr !== 'undefined' ? dStr : '', timeStr: typeof tStr !== 'undefined' ? tStr : '', isAdminOrCR: ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || (window.isAdminEmail ? window.isAdminEmail(window.currentUserEmail) : false)), showComments: !isPoll }) : ''}
+                                    ${window.ActionFooterService ? window.ActionFooterService.renderFooter({ contentType: isPoll ? 'poll' : 'notice', contentId: n.id, title: n.title, dateStr: typeof dStr !== 'undefined' ? dStr : '', timeStr: typeof tStr !== 'undefined' ? tStr : '', isAdminOrCR: ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || (window.isAdminEmail ? window.isAdminEmail(window.currentUserEmail) : false)), showComments: !isPoll }) : ''}
                                 </div>
                             `;
                         } else {
@@ -734,7 +734,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                          <h4 class="font-[700] text-[16px] text-[#111827] dark:text-indigo-50 mt-0 truncate leading-tight">${window.safeFormatRichText(s.title)}</h4>
                                          <p class="text-[14px] text-[#4b5563] dark:text-dark-textSecondary line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.safeFormatRichText(s.message)}</p>
                                      </div>
-                                     ${window.ActionFooterService ? window.ActionFooterService.renderFooter({ contentType: 'schedule', contentId: s.id, dateStr: typeof dStr !== 'undefined' ? dStr : '', timeStr: typeof tStr !== 'undefined' ? tStr : '', isAdminOrCR: typeof isAdminOrCR !== 'undefined' ? isAdminOrCR : ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail)) }) : ''}
+                                     ${window.ActionFooterService ? window.ActionFooterService.renderFooter({ contentType: 'schedule', contentId: s.id, title: s.title, dateStr: typeof dStr !== 'undefined' ? dStr : '', timeStr: typeof tStr !== 'undefined' ? tStr : '', isAdminOrCR: typeof isAdminOrCR !== 'undefined' ? isAdminOrCR : ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail)) }) : ''}
                                 </div>
                             `;
                         }

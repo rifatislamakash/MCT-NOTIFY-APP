@@ -10663,13 +10663,23 @@
                 
                 if (error) {
                     console.error('[NOTIFY CLICK] Error inserting reminder:', error);
+                    if (window.ActionFooterService && typeof window.ActionFooterService.clearCooldown === 'function') {
+                        window.ActionFooterService.clearCooldown(type, id);
+                    }
                     showGlobalToast("Error", "Failed to queue push notification.");
                 } else {
                     console.log('[NOTIFY CLICK] Scheduled successfully for', reminderTime);
+                    if (window.ActionFooterService && typeof window.ActionFooterService.setCooldown === 'function') {
+                        window.ActionFooterService.setCooldown(type, id);
+                        window.ActionFooterService.updateButtonToCooldown(id);
+                    }
                     showGlobalToast("Success", "Push notification queued! Processing via Edge Function shortly.");
                 }
             } catch (err) {
                 console.error('[NOTIFY CLICK] Exception:', err);
+                if (window.ActionFooterService && typeof window.ActionFooterService.clearCooldown === 'function') {
+                    window.ActionFooterService.clearCooldown(type, id);
+                }
                 showGlobalToast("Error", "An unexpected error occurred.");
             } finally {
                 if (btn) btn.classList.remove('opacity-50', 'pointer-events-none');
@@ -10772,6 +10782,46 @@
         <button class="absolute top-6 right-6 text-white bg-black/50 hover:bg-white/20 rounded-full w-10 h-10 flex items-center justify-center transition-all z-50 shadow-md" onclick="closeImagePreview(event)">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
+    </div>
+
+    <!-- MODAL: NOTIFY CONFIRMATION -->
+    <div id="modal-notify-confirm" class="fixed inset-0 z-[120] flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="window.ActionFooterService.closeNotifyConfirmModal()"></div>
+        <div class="bg-white dark:bg-dark-card rounded-[24px] w-[90%] max-w-[360px] p-6 shadow-2xl relative z-10 flex flex-col border border-slate-100 dark:border-white/10 text-center animate-slide-up">
+            <div class="w-12 h-12 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-[#4226E9] flex items-center justify-center mx-auto mb-3.5">
+                <i data-lucide="bell" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-[17px] font-black text-slate-900 dark:text-dark-text tracking-tight mb-2">Confirm Notification</h3>
+            <p id="notify-confirm-message" class="text-[13px] text-slate-600 dark:text-dark-textSecondary font-medium mb-6 leading-relaxed">
+                Are you sure to notify this message - "<span id="notify-confirm-title" class="font-bold text-slate-900 dark:text-dark-text"></span>" to its selected audience?
+            </p>
+            <div class="flex items-center gap-3 w-full">
+                <button type="button" onclick="window.ActionFooterService.closeNotifyConfirmModal()" class="flex-1 py-3 px-4 rounded-xl border border-slate-200 dark:border-white/10 text-[13px] font-bold text-slate-600 dark:text-dark-textSecondary hover:bg-slate-50 dark:hover:bg-white/5 transition-colors active:scale-95">
+                    No
+                </button>
+                <button type="button" id="notify-confirm-yes-btn" class="flex-1 py-3 px-4 rounded-xl bg-[#4226E9] hover:bg-[#341BC5] text-white text-[13px] font-bold transition-all shadow-md shadow-indigo-500/20 active:scale-95 flex items-center justify-center gap-1.5">
+                    <i data-lucide="send" class="w-3.5 h-3.5"></i> Yes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: NOTIFY COOLDOWN WARNING -->
+    <div id="modal-notify-warning" class="fixed inset-0 z-[120] flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="window.ActionFooterService.closeNotifyWarningModal()"></div>
+        <div class="bg-white dark:bg-dark-card rounded-[24px] w-[90%] max-w-[360px] p-6 shadow-2xl relative z-10 flex flex-col border border-slate-100 dark:border-white/10 text-center animate-slide-up">
+            <div class="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-500 flex items-center justify-center mx-auto mb-3.5">
+                <i data-lucide="alert-circle" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-[17px] font-black text-slate-900 dark:text-dark-text tracking-tight mb-2">Notification Cooldown</h3>
+            <p id="notify-warning-message" class="text-[13px] text-slate-600 dark:text-dark-textSecondary font-medium mb-2 leading-relaxed">
+                You already notified this update and cant re notify its audience for the next 5 minute.
+            </p>
+            <p id="notify-warning-countdown" class="text-[11px] font-bold text-amber-600 dark:text-amber-400 mb-6"></p>
+            <button type="button" onclick="window.ActionFooterService.closeNotifyWarningModal()" class="w-full py-3 px-4 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-800 dark:text-dark-text text-[13px] font-bold transition-colors active:scale-95">
+                Got it
+            </button>
+        </div>
     </div>
 
     <!-- CR Access Request Modal -->

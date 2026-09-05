@@ -123,25 +123,26 @@ export class SeenService {
         if (total === 0) return `<div id="seen-block-${contentId}" class="seen-block-container empty hidden"></div>`;
 
         let avatarsHtml = '';
-        const displaySeen = seen.slice(0, 3);
+        const maxAvatars = total > 3 ? 2 : 3;
+        const displaySeen = seen.slice(0, maxAvatars);
         avatarsHtml = displaySeen.map((s, idx) => `
             <img src="${s.profiles?.profile_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(s.profiles?.full_name || 'U') + '&background=random'}" 
-                 class="w-[26px] h-[26px] rounded-full border-[2.5px] border-white dark:border-dark-card object-cover pointer-events-none shadow-sm" 
-                 style="margin-left: ${idx > 0 ? '-10px' : '0'}; z-index: ${10 - idx};" 
+                 class="w-[28px] h-[28px] rounded-full border-[2px] border-white dark:border-dark-card object-cover pointer-events-none shadow-sm shrink-0" 
+                 style="margin-left: ${idx > 0 ? '-9px' : '0'}; z-index: ${idx + 1};" 
                  alt="${s.profiles?.full_name || 'User'}">
         `).join('');
         
         if (total > 3) {
             avatarsHtml += `
-                <div class="w-[26px] h-[26px] rounded-full border-[2.5px] border-white dark:border-dark-card bg-slate-800 dark:bg-slate-700 text-white text-[9px] font-bold flex items-center justify-center shrink-0 shadow-sm" 
-                     style="margin-left: -10px; z-index: 7;">
-                    +${total - 3}
+                <div class="w-[28px] h-[28px] rounded-full border-[2px] border-white dark:border-dark-card bg-slate-800 dark:bg-slate-700 text-white text-[11px] font-extrabold flex items-center justify-center shrink-0 shadow-sm leading-none" 
+                     style="margin-left: -9px; z-index: 5; position: relative;">
+                    +${total - 2}
                 </div>
             `;
         }
 
         return `
-            <div id="seen-block-${contentId}" class="seen-block-container flex items-center cursor-pointer hover:opacity-80 transition-opacity mr-1 sm:mr-1.5"
+            <div id="seen-block-${contentId}" class="seen-block-container flex items-center cursor-pointer hover:opacity-80 transition-opacity shrink-0"
                  onclick="event.stopPropagation(); window.SeenService.openSeenList('${contentType}', '${contentId}')"
                  title="${total} viewed this">
                 ${avatarsHtml}
