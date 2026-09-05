@@ -69,6 +69,15 @@ let isRegistering = false;
 
 
         export async function fetchUserProfile(userId) {
+        if (!userId) return null;
+        const cacheKey = 'mct_profile_cache_' + userId;
+        let cached = null;
+        try {
+            const raw = localStorage.getItem(cacheKey);
+            if (raw) cached = JSON.parse(raw);
+        } catch (e) {}
+
+        const networkFetch = async () => {
             try {
                 return await fetchWithRetry(async (signal) => {
                     const { data, error } = await _supabase
@@ -78,13 +87,28 @@ let isRegistering = false;
                         .abortSignal(signal)
                         .maybeSingle();
                     if (error) throw error;
+                    if (data) {
+                        try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch (e) {}
+                        if (window.authState && window.authState.user && window.authState.user.id === userId) {
+                            window.authState.profile = data;
+                            if (typeof window.updateGlobalAvatars === 'function') window.updateGlobalAvatars();
+                        }
+                    }
                     return data;
-                }, 4, 1000);
+                }, 2, 800, 5000);
             } catch (err) {
-                console.error('Exception caught in fetchUserProfile:', err);
+                console.warn('[PROFILE] Network fetch error:', err);
                 return null;
             }
+        };
+
+        if (cached) {
+            networkFetch().catch(() => {});
+            return cached;
         }
+
+        return await networkFetch();
+    }
 
 
 
@@ -127,16 +151,37 @@ let isRegistering = false;
                 if (isAdminCheck) {
                     window.currentUserCoursesList = [];
                 } else {
-                    const userCourses = await fetchWithRetry(async (signal) => {
-                        const { data, error } = await _supabase
-                            .from('user_courses')
-                            .select('*')
-                            .eq('user_id', user.id)
-                            .abortSignal(signal);
-                        if (error) throw error;
-                        return data;
-                    }, 3, 1000, 8000);
-                    window.currentUserCoursesList = userCourses || [];
+                    const coursesCacheKey = 'mct_courses_cache_' + user.id;
+                    let cachedCourses = null;
+                    try {
+                        const raw = localStorage.getItem(coursesCacheKey);
+                        if (raw) cachedCourses = JSON.parse(raw);
+                    } catch (e) {}
+
+                    if (cachedCourses && Array.isArray(cachedCourses)) {
+                        window.currentUserCoursesList = cachedCourses;
+                        (async () => {
+                            try {
+                                const { data } = await _supabase.from('user_courses').select('*').eq('user_id', user.id);
+                                if (data) {
+                                    window.currentUserCoursesList = data;
+                                    try { localStorage.setItem(coursesCacheKey, JSON.stringify(data)); } catch (e) {}
+                                }
+                            } catch (e) {}
+                        })();
+                    } else {
+                        const userCourses = await fetchWithRetry(async (signal) => {
+                            const { data, error } = await _supabase
+                                .from('user_courses')
+                                .select('*')
+                                .eq('user_id', user.id)
+                                .abortSignal(signal);
+                            if (error) throw error;
+                            return data;
+                        }, 2, 800, 5000);
+                        window.currentUserCoursesList = userCourses || [];
+                        try { localStorage.setItem(coursesCacheKey, JSON.stringify(userCourses || [])); } catch (e) {}
+                    }
                     window._userCoursesFetchFailed = false;
                 }
             } catch (e) { 
@@ -174,8 +219,8 @@ let isRegistering = false;
                         if (typeof window.loadAdminReports === 'function') tasks.push(window.loadAdminReports().catch(console.warn));
                     }
                     
-                    const timeoutPromise = new Promise(resolve => setTimeout(resolve, 25000));
-                    await Promise.race([Promise.all(tasks), timeoutPromise]);
+                    const timeoutPromise = new Promise(resolve => setTimeout(resolve, 5000));
+                    await Promise.race([Promise.allSettled(tasks), timeoutPromise]);
                     
                     // Unified Execution Frame for Repainting
                     if (typeof window.updateDashboardGreetings === 'function') window.updateDashboardGreetings();
@@ -263,7 +308,9 @@ let isRegistering = false;
                             }
                         } else if (window._userCoursesFetchFailed) {
                             if (typeof window.showLoader !== 'undefined') window.showLoader(false);
-                            window.showGlobalToast("Network Error", "Could not load your courses. Please check your connection and reload the app.");
+                            window.navigate('screen-student-dashboard');
+                            await loadDashboardDataAsync().catch(console.warn);
+                            window.showGlobalToast("Connection Notice", "Loaded in mobile data mode. Courses will sync in background.");
                         } else {
                             if (typeof window.showLoader !== 'undefined') window.showLoader(false);
                             window.navigate('screen-onboarding');
@@ -301,7 +348,7 @@ let isRegistering = false;
                     console.log("[DEBUG] checkActiveSession: calling getSession with timeout");
                     const sessionPromise = _supabase.auth.getSession();
                     const timeoutPromise = new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('getSession timeout')), 25000)
+                        setTimeout(() => reject(new Error('getSession timeout')), 8000)
                     );
                     
                     try {
@@ -317,13 +364,14 @@ let isRegistering = false;
                             if (key && key.indexOf('-auth-token') > -1) {
                                 try {
                                     const parsed = JSON.parse(localStorage.getItem(key));
-                                    if (parsed && parsed.currentSession) {
-                                        localSession = parsed.currentSession;
+                                    const candidate = parsed?.currentSession || (parsed?.access_token ? parsed : null);
+                                    if (candidate && candidate.user) {
+                                        localSession = candidate;
+                                        break;
                                     }
                                 } catch (e) {
                                     console.warn("[AUTH] Failed to parse local token:", e);
                                 }
-                                break;
                             }
                         }
                         if (localSession) {

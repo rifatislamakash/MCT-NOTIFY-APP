@@ -471,25 +471,16 @@ import { ProfileStore } from './stores/ProfileStore.js';
 
                     const pin = n.is_pinned ? `<i data-lucide="pin" class="w-4.5 h-4.5 text-orange-500 fill-orange-500"></i>` : '';
 
-                    let bottomEventTagsHtml = '';
-                    if (n.notice_date || n.notice_time) {
-                        let dStr = '';
-                        let tStr = '';
-                        if (n.notice_date) {
-                            dStr = new Date(n.notice_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                        }
-                        if (n.notice_time) {
-                            const [h, m] = n.notice_time.split(':');
-                            const ampm = +h >= 12 ? 'PM' : 'AM';
-                            const h12 = +h % 12 || 12;
-                            tStr = `${h12}:${m} ${ampm}`;
-                        }
-                        bottomEventTagsHtml = `
-                            <div class="flex items-center justify-start gap-[8px]">
-                                ${n.notice_date ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 dark:bg-dark-bg/50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600 dark:text-dark-textSecondary"><i data-lucide="calendar" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${dStr}</span>` : ''}
-                                ${n.notice_time ? `<span class="flex items-center gap-[6px] px-[4px] py-[2px] rounded-[6px] bg-slate-50 dark:bg-dark-bg/50 border border-[rgba(114,46,209,0.12)] text-[11px] whitespace-nowrap font-medium text-slate-600 dark:text-dark-textSecondary"><i data-lucide="clock" class="w-[14px] h-[14px] text-[#4226E9]"></i> ${tStr}</span>` : ''}
-                            </div>
-                        `;
+                    let dStr = '';
+                    let tStr = '';
+                    if (n.notice_date) {
+                        dStr = new Date(n.notice_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                    }
+                    if (n.notice_time) {
+                        const [h, m] = n.notice_time.split(':');
+                        const ampm = +h >= 12 ? 'PM' : 'AM';
+                        const h12 = +h % 12 || 12;
+                        tStr = `${h12}:${m} ${ampm}`;
                     }
 
                     const noticeD = new Date((n.notice_date || todayStr) + 'T' + (n.notice_time || '23:59:00'));
@@ -534,23 +525,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                     <h4 class="font-[700] text-[16px] text-[#111827] dark:text-indigo-50 mt-0 truncate leading-tight">${window.safeFormatRichText(n.title)}</h4>
                                     <p class="text-[14px] text-[#4b5563] dark:text-dark-textSecondary line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.safeFormatRichText(n.message)}</p>
                                 </div>
-                                </div>
-                                <div class="w-full mt-[12px] flex flex-wrap items-center justify-between gap-y-3 gap-x-2">
-                                    <div class="flex items-center justify-center w-full md:w-auto md:justify-start">
-                                        ${bottomEventTagsHtml}
-                                    </div>
-                                    <div class="flex items-center justify-between w-full md:w-auto md:justify-end gap-[4px]">
-                                        <div class="shrink-0 flex items-center">
-                                            ${window.SeenService ? window.SeenService.renderSeenBlock('notice', n.id) : ''}
-                                        </div>
-                                        <div class="shrink-0 flex items-center">
-                                            ${window.ReactionService ? window.ReactionService.renderReactionBlock('notice', n.id) : ''}
-                                        </div>
-                                        <div class="shrink-0 flex items-center">
-                                            ${window.CommentService ? window.CommentService.renderCommentCountButton('notice', n.id) : ''}
-                                        </div>
-                                    </div>
-                                </div>
+                                ${window.ActionFooterService ? window.ActionFooterService.renderFooter({ contentType: 'notice', contentId: n.id, dateStr: dStr, timeStr: tStr, isAdminOrCR: isAdminOrCR }) : ''}
                             </div>
                         `;
                 }).join('');
@@ -703,23 +678,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                         <h4 class="font-[700] text-[16px] text-[#111827] dark:text-indigo-50 mt-0 truncate leading-tight">${window.safeFormatRichText(n.title)}</h4>
                                         <p class="text-[14px] text-[#4b5563] dark:text-dark-textSecondary line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.safeFormatRichText(n.message)}</p>
                                     </div>
-                                    <div class="w-full mt-[12px] flex flex-wrap items-center justify-between gap-y-3 gap-x-2">
-                                        <div class="flex items-center justify-center w-full md:w-auto md:justify-start">
-                                            ${bottomEventTagsHtml}
-                                        </div>
-                                        <div class="flex items-center justify-between w-full md:w-auto md:justify-end gap-[4px]">
-                                            <div class="shrink-0 flex items-center">
-                                                ${window.SeenService ? window.SeenService.renderSeenBlock('notice', n.id) : ''}
-                                            </div>
-                                            <div class="shrink-0 flex items-center">
-                                                ${window.ReactionService ? (isPoll ? window.ReactionService.renderReactionBlock('poll', n.id) : window.ReactionService.renderReactionBlock('notice', n.id)) : ''}
-                                            </div>
-                                            ${!isPoll ? `
-                                            <div class="shrink-0 flex items-center">
-                                                ${window.CommentService ? window.CommentService.renderCommentCountButton('notice', n.id) : ''}
-                                            </div>` : ''}
-                                        </div>
-                                    </div>
+                                    ${window.ActionFooterService ? window.ActionFooterService.renderFooter({ contentType: isPoll ? 'poll' : 'notice', contentId: n.id, dateStr: typeof dStr !== 'undefined' ? dStr : '', timeStr: typeof tStr !== 'undefined' ? tStr : '', isAdminOrCR: ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || (window.isAdminEmail ? window.isAdminEmail(window.currentUserEmail) : false)), showComments: !isPoll }) : ''}
                                 </div>
                             `;
                         } else {
@@ -775,22 +734,7 @@ import { ProfileStore } from './stores/ProfileStore.js';
                                          <h4 class="font-[700] text-[16px] text-[#111827] dark:text-indigo-50 mt-0 truncate leading-tight">${window.safeFormatRichText(s.title)}</h4>
                                          <p class="text-[14px] text-[#4b5563] dark:text-dark-textSecondary line-clamp-2 overflow-hidden mt-[6px] leading-[1.5] w-full max-w-full box-border break-words">${window.safeFormatRichText(s.message)}</p>
                                      </div>
-                                     <div class="w-full mt-[12px] flex flex-wrap items-center justify-between gap-y-3 gap-x-2">
-                                         <div class="flex items-center justify-center w-full md:w-auto md:justify-start">
-                                             ${bottomEventTagsHtml}
-                                         </div>
-                                         <div class="flex items-center justify-between w-full md:w-auto md:justify-end gap-[4px]">
-                                             <div class="shrink-0 flex items-center">
-                                                 ${window.SeenService ? window.SeenService.renderSeenBlock('schedule', s.id) : ''}
-                                             </div>
-                                             <div class="shrink-0 flex items-center">
-                                                 ${window.ReactionService ? window.ReactionService.renderReactionBlock('schedule', s.id) : ''}
-                                             </div>
-                                             <div class="shrink-0 flex items-center">
-                                                 ${window.CommentService ? window.CommentService.renderCommentCountButton('schedule', s.id) : ''}
-                                             </div>
-                                         </div>
-                                     </div>
+                                     ${window.ActionFooterService ? window.ActionFooterService.renderFooter({ contentType: 'schedule', contentId: s.id, dateStr: typeof dStr !== 'undefined' ? dStr : '', timeStr: typeof tStr !== 'undefined' ? tStr : '', isAdminOrCR: typeof isAdminOrCR !== 'undefined' ? isAdminOrCR : ((window.currentUserRole === 'admin' || window.currentUserRole === 'cr') || window.isAdminEmail(window.currentUserEmail)) }) : ''}
                                 </div>
                             `;
                         }

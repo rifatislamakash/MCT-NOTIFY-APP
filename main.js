@@ -10,6 +10,7 @@ import { _supabase } from './js/supabase-client.js';
 import { batchService } from './js/services/batchService.js';
 import { crPermissionService } from './js/services/crPermissionService.js';
 import { NotificationQueueService } from './js/services/NotificationQueueService.js';
+import { ActionFooterService } from './js/services/ActionFooterService.js';
 
 
 import { CourseStore } from './js/stores/CourseStore.js';
@@ -228,3 +229,4 @@ window.executeStartupQueue = function() {
         }
     });
 };
+

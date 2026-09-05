@@ -473,7 +473,7 @@ export class CommentService {
         const text = count > 0 ? `Comment ${count}` : 'Comment';
         
         return `
-            <button class="comment-count-btn flex items-center justify-center gap-[6px] px-3 py-1.5 rounded-[8px] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 text-[11px] font-bold text-slate-600 dark:text-dark-textSecondary hover:bg-slate-100 dark:hover:bg-white/10 transition-colors" 
+            <button class="comment-count-btn flex items-center justify-center gap-1 sm:gap-[6px] px-2 py-1 sm:px-3 sm:py-1.5 rounded-[8px] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 text-[10px] sm:text-[11px] font-bold text-slate-600 dark:text-dark-textSecondary hover:bg-slate-100 dark:hover:bg-white/10 transition-colors shrink-0 whitespace-nowrap" 
                 data-content-type="${contentType}" data-content-id="${contentId}" 
                 onclick="event.stopPropagation(); window.CommentService.handleCommentButtonClick('${contentType}', '${contentId}')">
                 <i data-lucide="message-square" class="w-[14px] h-[14px]"></i> ${text}

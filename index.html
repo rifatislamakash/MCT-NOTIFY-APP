@@ -5586,6 +5586,7 @@
     <script type="module" src="main.js"></script>
     <script type="module" src="js/notifications.js"></script>
     <script type="module" src="js/services/CommentService.js"></script>
+    <script type="module" src="js/services/ActionFooterService.js"></script>
     <!-- MAIN APP ENGINE CODE -->
     <script>
 
@@ -6009,8 +6010,11 @@
         }
         window.reorderBottomNavBars = reorderBottomNavBars;
 
-        // App Initializer
-        window.addEventListener('load', () => {
+        // App Initializer - Fast Non-Blocking Boot for Mobile Data
+        const startAppEngine = () => {
+            if (window.__appEngineStarted) return;
+            window.__appEngineStarted = true;
+
             // Network Listeners
             window.addEventListener('offline', () => {
                 const banner = document.getElementById('global-network-banner');
@@ -6029,6 +6033,7 @@
             });
             if (!navigator.onLine) window.dispatchEvent(new Event('offline'));
             reorderBottomNavBars();
+
             // Clock handler
             setInterval(() => {
                 const now = new Date();
@@ -6038,151 +6043,97 @@
                 if (clockEl) clockEl.innerText = `${hh}:${mm}`;
             }, 1000);
 
-            // Splash countdown & App Initialization
-            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-            // Let the splash screen remain active and visible until checkActiveSession completes navigation, preventing white screen during boot.
-
-            // --- CLOCK SKEW RESOLUTION ROUTINE ---
+            // Fast Non-Blocking Clock Offset Sync (Runs in background, doesn't block boot)
             async function syncClockWithSupabase() {
-                const start = performance.now();
-                let serverTimeMs = null;
-
-                // STRATEGY 1: Cross-origin time API (NOT cached by Service Worker)
-                // This is the most reliable source because the SW only caches same-origin requests
                 try {
-                    const res = await Promise.race([
-                        fetch('https://worldtimeapi.org/api/timezone/Etc/UTC', { cache: 'no-store' }),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
-                    ]);
-                    const data = await res.json();
-                    if (data && data.datetime) {
-                        serverTimeMs = new window.OriginalDate(data.datetime).getTime();
-                        console.log('[CLOCK SYNC] Got time from worldtimeapi.org');
+                    const controller = new AbortController();
+                    const tId = setTimeout(() => controller.abort(), 1500);
+                    const res = await fetch(window.location.origin + '/?_t=' + window.OriginalDate.now(), {
+                        method: 'HEAD',
+                        cache: 'no-store',
+                        signal: controller.signal
+                    });
+                    clearTimeout(tId);
+                    const dateStr = res.headers.get('date');
+                    if (dateStr) {
+                        const serverTimeMs = new window.OriginalDate(dateStr).getTime();
+                        const latency = 100;
+                        const expectedLocalNow = serverTimeMs + latency;
+                        const actualLocalNow = window.OriginalDate.now();
+                        window.supabaseClockOffset = expectedLocalNow - actualLocalNow;
                     }
-                } catch (err) {
-                    // Warning removed to prevent console spam
-                    // console.warn("[CLOCK SYNC] worldtimeapi.org failed:", err.message);
-                }
+                } catch (e) {}
+            }
+            syncClockWithSupabase().catch(() => {});
 
-                // STRATEGY 2: Same-origin HEAD request (may be stale if Service Worker caches it)
-                if (!serverTimeMs) {
+            let initRetries = 0;
+            const maxInitRetries = 200; // 200 * 50ms = 10s max
+            const initApp = async () => {
+                if (window.isAppFullyInitialized) return;
+                if (typeof window.checkActiveSession === 'function') {
+                    if (typeof window.__BOOT_COUNT !== 'undefined') window.__BOOT_COUNT++;
+                    window.isAppFullyInitialized = true;
                     try {
-                        const res = await fetch(window.location.origin + '/?_t=' + window.OriginalDate.now(), {
-                            method: 'HEAD',
-                            cache: 'no-store'
-                        });
-                        const dateStr = res.headers.get('date');
-                        if (dateStr) {
-                            serverTimeMs = new window.OriginalDate(dateStr).getTime();
-                            console.log('[CLOCK SYNC] Got time from same-origin Date header');
-                        }
-                    } catch (err) {
-                        console.warn("[CLOCK SYNC] Same-origin sync failed:", err.message);
+                        await window.checkActiveSession();
+                    } catch (e) {
+                        console.error("[INIT ERROR] checkActiveSession failed:", e);
+                        window.navigate('screen-welcome');
                     }
-                }
-
-                if (serverTimeMs) {
-                    const rtt = performance.now() - start;
-                    const latency = rtt / 2;
-                    const expectedLocalNow = serverTimeMs + latency;
-                    const actualLocalNow = window.OriginalDate.now();
-                    window.supabaseClockOffset = expectedLocalNow - actualLocalNow;
-                    const absSec = Math.abs(window.supabaseClockOffset / 1000).toFixed(1);
-                    console.log(`[CLOCK SYNC] Offset: ${window.supabaseClockOffset.toFixed(0)}ms (${absSec}s). RTT: ${rtt.toFixed(1)}ms.`);
-                    if (Math.abs(window.supabaseClockOffset) > 5000) {
-                        console.warn(`[CLOCK SYNC] Large clock skew detected: ${absSec}s. Device clock may be significantly off.`);
-                    }
+                    startTypewriter();
                 } else {
-                    console.error("[CLOCK SYNC] Could not retrieve server time from any source.");
+                    initRetries++;
+                    if (initRetries > maxInitRetries) {
+                        console.error("[INIT ERROR] checkActiveSession load timeout. Falling back to welcome screen.");
+                        window.isAppFullyInitialized = true;
+                        window.navigate('screen-welcome');
+                        return;
+                    }
+                    setTimeout(initApp, 50);
                 }
+            };
+
+            // Immediately start app boot without waiting for heavy assets or external time APIs
+            initApp();
+
+            // PART 8: Login email auto-complete @diu.edu.bd
+            const loginEmailEl = document.getElementById('login-email');
+            if (loginEmailEl) {
+                loginEmailEl.addEventListener('blur', () => {
+                    const val = loginEmailEl.value.trim();
+                    if (val && !val.includes('@') && val.match(/^\d{3}-\d{2}-\d{3,4}$/)) {
+                        loginEmailEl.value = val + '@diu.edu.bd';
+                    }
+                });
+                loginEmailEl.addEventListener('input', () => {
+                    const val = loginEmailEl.value.trim();
+                    // If user types ID then space, auto-complete
+                    if (val.endsWith(' ') && !val.includes('@')) {
+                        const trimmed = val.trim();
+                        if (trimmed.match(/^\d{3}-\d{2}-\d{3,4}$/)) {
+                            loginEmailEl.value = trimmed + '@diu.edu.bd';
+                        }
+                    }
+                });
             }
 
-            setTimeout(() => {
-                let initRetries = 0;
-                const maxInitRetries = 600; // 600 * 50ms = 30 seconds
-                const initApp = async () => {
-                    if (window.isAppFullyInitialized) {
-                        console.warn("[INIT LOCK] App is already initialized. Halting recursive call.");
-                        return; 
+            // Add preview live sync listeners for Course form
+            ['create', 'update'].forEach(mode => {
+                ['batch', 'name', 'code', 'short', 'faculty', 'credit', 'sections'].forEach(field => {
+                    const el = document.getElementById(`${mode}-course-${field}`);
+                    if (el) {
+                        el.addEventListener('input', () => updateCoursePreview(mode));
+                        el.addEventListener('change', () => updateCoursePreview(mode));
                     }
-                    if (typeof window.checkActiveSession === 'function') {
-                        if (typeof window.__BOOT_COUNT !== 'undefined') window.__BOOT_COUNT++;
-                        window.isAppFullyInitialized = true;
-                        try {
-                            await window.checkActiveSession();
-                        } catch (e) {
-                            console.error("[INIT ERROR] checkActiveSession failed:", e);
-                            window.navigate('screen-welcome');
-                        }
-                        startTypewriter();
-                        console.log("==========");
-                        console.log("[BOOT REPORT FINAL]");
-                        console.log("==========");
-                        console.log(`Boots: ${window.__BOOT_COUNT || 0}`);
-                        console.log(`Auth Events: ${window.__AUTH_COUNT || 0}`);
-                        console.log(`Routes: ${window.__ROUTE_COUNT || 0}`);
-                        console.log(`Dashboard Fetches: ${window.__DASHBOARD_FETCH_COUNT || 0}`);
-                        console.log(`Dashboard Renders: ${window.__DASHBOARD_RENDER_COUNT || 0}`);
-                        console.log(`Firebase Init: ${window.__FIREBASE_COUNT || 0}`);
-                        console.log("==========");
-                        console.log("[LIFECYCLE] Boot execution complete");
-
-                        if ((window.__ROUTE_COUNT || 0) >= 7 || (window.__DASHBOARD_FETCH_COUNT || 0) >= 5) {
-                            console.error("[CRITICAL WARNING] High route or fetch count detected during boot, recursion is likely occurring!");
-                        }
-                    } else {
-                        initRetries++;
-                        if (initRetries > maxInitRetries) {
-                            console.error("[INIT ERROR] checkActiveSession load timeout. Falling back to welcome screen.");
-                            window.isAppFullyInitialized = true;
-                            window.navigate('screen-welcome');
-                            if (typeof window.showGlobalToast === 'function') {
-                                window.showGlobalToast("Offline / Slow Connection", "Some features may be limited due to network conditions.");
-                            }
-                            return;
-                        }
-                        setTimeout(initApp, 50);
-                    }
-                };
-                
-                // Synchronize client memory clock with Supabase first, then execute boot routing
-                syncClockWithSupabase().finally(() => {
-                    initApp();
                 });
+            });
+        };
 
-                // PART 8: Login email auto-complete @diu.edu.bd
-                const loginEmailEl = document.getElementById('login-email');
-                if (loginEmailEl) {
-                    loginEmailEl.addEventListener('blur', () => {
-                        const val = loginEmailEl.value.trim();
-                        if (val && !val.includes('@') && val.match(/^\d{3}-\d{2}-\d{3,4}$/)) {
-                            loginEmailEl.value = val + '@diu.edu.bd';
-                        }
-                    });
-                    loginEmailEl.addEventListener('input', () => {
-                        const val = loginEmailEl.value.trim();
-                        // If user types ID then space, auto-complete
-                        if (val.endsWith(' ') && !val.includes('@')) {
-                            const trimmed = val.trim();
-                            if (trimmed.match(/^\d{3}-\d{2}-\d{3,4}$/)) {
-                                loginEmailEl.value = trimmed + '@diu.edu.bd';
-                            }
-                        }
-                    });
-                }
-
-                // Add preview live sync listeners for Course form
-                ['create', 'update'].forEach(mode => {
-                    ['batch', 'name', 'code', 'short', 'faculty', 'credit', 'sections'].forEach(field => {
-                        const el = document.getElementById(`${mode}-course-${field}`);
-                        if (el) {
-                            el.addEventListener('input', () => updateCoursePreview(mode));
-                            el.addEventListener('change', () => updateCoursePreview(mode));
-                        }
-                    });
-                });
-            }, isStandalone ? 0 : 2000);
-        });
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', startAppEngine);
+        } else {
+            startAppEngine();
+        }
+        window.addEventListener('load', startAppEngine);
 
         // ----------------- COURSE MANAGEMENT LOGIC (NEW) -----------------
 
@@ -11213,6 +11164,7 @@
 </div>
 </body>
 </html>
+
 
 
 

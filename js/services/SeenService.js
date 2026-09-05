@@ -141,7 +141,7 @@ export class SeenService {
         }
 
         return `
-            <div id="seen-block-${contentId}" class="seen-block-container flex items-center cursor-pointer hover:opacity-80 transition-opacity mr-2"
+            <div id="seen-block-${contentId}" class="seen-block-container flex items-center cursor-pointer hover:opacity-80 transition-opacity mr-1 sm:mr-1.5"
                  onclick="event.stopPropagation(); window.SeenService.openSeenList('${contentType}', '${contentId}')"
                  title="${total} viewed this">
                 ${avatarsHtml}

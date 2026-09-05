@@ -329,11 +329,7 @@ export class ReactionService {
                     ${this.getReactionPickerHTML(contentType, contentId)}
                     ${this.getReactionSummaryHTML(contentType, contentId)}
                 </div>
-                ${isAdmin ? `
-                <button onclick="event.stopPropagation(); triggerImmediateNotification('${contentType}', '${contentId}', this)" class="px-2.5 py-1.5 bg-[#4226E9] hover:bg-[#341BC5] text-white rounded-[6px] text-[10px] font-bold transition-colors flex items-center gap-1 shrink-0 ml-1 mr-[2px]">
-                    <i data-lucide="bell" class="w-3 h-3"></i> Notify
-                </button>
-                ` : ''}
+                
             </div>
         `;
     }
@@ -602,3 +598,4 @@ document.addEventListener('mouseleave', (e) => {
         }, 300);
     }
 }, true);
+

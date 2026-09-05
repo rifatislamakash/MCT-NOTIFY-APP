@@ -28,11 +28,14 @@
             if (typeof window.__LIFECYCLE_DEBUG__ === 'function') window.__LIFECYCLE_DEBUG__('[SW REGISTER]', 'Initiating SW registration');
             if (typeof window.__serviceWorkerRegisterCount !== 'undefined') window.__serviceWorkerRegisterCount++;
 
-            _serviceWorkerRegistrationPromise = navigator.serviceWorker.register('./firebase-messaging-sw.js?v=10')
+            _serviceWorkerRegistrationPromise = navigator.serviceWorker.register('./firebase-messaging-sw.js?v=11')
                 .then(async (registration) => {
                     console.log('[FCM SW REGISTERED] Service Worker registration success with scope:', registration.scope);
                     if (document.getElementById('diag-sw')) document.getElementById('diag-sw').innerText = 'Registered';
-                    await navigator.serviceWorker.ready;
+                    await Promise.race([
+                        navigator.serviceWorker.ready,
+                        new Promise(resolve => setTimeout(resolve, 3000))
+                    ]);
                     return registration;
                 })
                 .catch((swErr) => {
