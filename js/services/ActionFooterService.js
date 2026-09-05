@@ -285,11 +285,11 @@ export class ActionFooterService {
     } = {}) {
         if (!contentId) return '';
 
-        // 1. Date & Time Row (Centered horizontally)
+        // 1. Date & Time Row (Context of the post, placed ABOVE the dividing line)
         let dateTimeRow = '';
         if (dateStr || timeStr || metadataHtml) {
             dateTimeRow = `
-                <div class="metadata-row w-full flex justify-center items-center flex-wrap gap-2 mt-2.5 mb-2.5 min-w-0" style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <div class="metadata-row w-full flex justify-center items-center flex-wrap gap-2 mb-2.5 min-w-0" style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px;">
                     ${dateStr ? `<span class="flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 text-[11px] whitespace-nowrap font-medium text-slate-600 dark:text-dark-textSecondary" style="display: inline-flex; align-items: center; gap: 6px;"><i data-lucide="calendar" class="w-3.5 h-3.5 text-[#4226E9]"></i> ${dateStr}</span>` : ''}
                     ${timeStr ? `<span class="flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 text-[11px] whitespace-nowrap font-medium text-slate-600 dark:text-dark-textSecondary" style="display: inline-flex; align-items: center; gap: 6px;"><i data-lucide="clock" class="w-3.5 h-3.5 text-[#4226E9]"></i> ${timeStr}</span>` : ''}
                     ${metadataHtml ? `<div class="flex items-center min-w-0">${metadataHtml}</div>` : ''}
@@ -338,12 +338,12 @@ export class ActionFooterService {
             `;
         }
 
-        // 3. Action Row: Strictly 1 single row using flexbox space-between
+        // 3. Action Row: Strictly 1 single row with thin dividing line at top
         // Left: Reaction (justify-start)
         // Center: Comment (justify-center)
         // Right: Seen + Notify (justify-end)
         const actionRow = `
-            <div class="action-row w-full flex items-center justify-between min-w-0 pt-1" style="display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; justify-content: space-between !important; align-items: center !important; width: 100% !important;">
+            <div class="action-row w-full flex items-center justify-between min-w-0 pt-2 border-t border-slate-100 dark:border-white/5" style="display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; justify-content: space-between !important; align-items: center !important; width: 100%;">
                 <div class="action-col-left shrink-0 min-w-0" style="display: flex !important; align-items: center !important; justify-content: flex-start !important; flex-shrink: 0 !important;">
                     ${reactionHtml}
                 </div>
@@ -358,7 +358,7 @@ export class ActionFooterService {
         `;
 
         return `
-            <div class="card-footer w-full flex flex-col items-center mt-2 pt-2 border-t border-slate-100 dark:border-white/5 min-w-0" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+            <div class="card-footer w-full flex flex-col items-center mt-2.5 min-w-0" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
                 ${dateTimeRow}
                 ${actionRow}
             </div>
